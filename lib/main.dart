@@ -32,16 +32,17 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider<MyAppState>(
       create: (context) => MyAppState(),
       child: MaterialApp(
-        title: 'Namer App',
+        title: 'GlutaFam',
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         ),
-        home: firstLaunch ? OnboardingScreen() : OnboardingScreen(),
+        debugShowCheckedModeBanner: false,
+        home: firstLaunch ? OnboardingScreen() : MyHomePage(),
         routes: {
           '/home': (context) => MyHomePage(),
           '/explore': (context) => ExploreScreen(),
-          '/community': (context) => SpeechScreen(),
+          '/community': (context) => CommunityPage(),
           '/profile': (context) => ProfileScreen(),
         },
       ),
