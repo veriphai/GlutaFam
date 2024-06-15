@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "290193356646",
+    "project_id": "glutafam",
+    "storage_bucket": "glutafam.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:290193356646:android:f67b7ef65196e38d79baa7",
+        "android_client_info": {
+          "package_name": "com.example.eureka_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxC2ZtoBf30Wrjo4xW5uYUs6nnxSeTrqU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
