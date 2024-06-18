@@ -46,9 +46,8 @@ class MyApp extends StatelessWidget {
         routes: {
           '/home': (context) => MyHomePage(),
           '/explore': (context) => ExploreScreen(),
-          '/community': (context) => CommunityPage(),
+          '/community': (context) => Signupscreen(),
           '/profile': (context) => ProfileScreen(),
-          
         },
       ),
     );
