@@ -81,7 +81,7 @@ flutter {
 }
 
 dependencies {
-    implementation 'com.google.gms:google-services:4.4.2'
+    implementation 'com.google.gms:google-services:4.3.15'
     implementation 'com.google.firebase:firebase-bom:32.7.0'
 }
 
