@@ -7,6 +7,7 @@ import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/screens/signupScreen.dart';
 import 'package:eureka_app/screens/speechScreen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:eureka_app/firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import './screens/homeScreen.dart';
@@ -16,7 +17,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool? firstLaunchBool = prefs.getBool('firstLaunch');
   bool firstLaunch = firstLaunchBool ?? true; // Default to true if null
@@ -42,7 +45,7 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         ),
         debugShowCheckedModeBanner: false,
-        home: firstLaunch ? OnboardingScreen() : MyHomePage(),
+        home: firstLaunch ? MyHomePage() : MyHomePage(),
         routes: {
           '/home': (context) => MyHomePage(),
           '/explore': (context) => ExploreScreen(),
