@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "683170204306",
-    "project_id": "glutaclass",
-    "storage_bucket": "glutaclass.appspot.com"
+    "project_number": "550557666388",
+    "project_id": "glutafam-4aa2f",
+    "storage_bucket": "glutafam-4aa2f.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:683170204306:android:0c60b5997fd533bc2bb44b",
+        "mobilesdk_app_id": "1:550557666388:android:3f450bccebaf432b8f31c1",
         "android_client_info": {
           "package_name": "com.gluta.glutafam"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "683170204306-7veh98nnii06hh9jj1eg6qhku4kk0kj7.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDus8fWh8rw-Q7caaglTaBxRaEcMBTGVsA"
+          "current_key": "AIzaSyDPgVAU8njyBAsllR5S6lnMbynAYj5NcPk"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "683170204306-7veh98nnii06hh9jj1eg6qhku4kk0kj7.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

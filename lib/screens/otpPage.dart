@@ -7,6 +7,7 @@ import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter/widgets.dart";
+import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "package:google_fonts/google_fonts.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import '../apis/authApi.dart';
@@ -97,14 +98,16 @@ class _OtpPageState extends State<OtpPage> {
 
   Future<void> getIdTokenAndSendToBackend() async {
   User? user = FirebaseAuth.instance.currentUser;
+  final secureStorage = new FlutterSecureStorage();
   if (user != null) {
     try {
       String? idToken = await user.getIdToken();
+      print("IdToken: $idToken");
       if (idToken != null) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('idToken', idToken);
+        
+        await secureStorage.write(key: "IdToken", value: idToken);
         await sendIdTokenToBackend();
-        await printStoredValues();
+        // await printStoredValues();
       } else {
         print("Failed to get ID token: idToken is null");
       }
@@ -116,16 +119,16 @@ class _OtpPageState extends State<OtpPage> {
   }
   }
 
-  Future<void> printStoredValues() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool? newUser = prefs.getBool('newUser');
-    String? token = prefs.getString('token');
-    bool? isSuccess = prefs.getBool('isSuccess');
+  // Future<void> printStoredValues() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   bool? newUser = prefs.getBool('newUser');
+  //   String? token = prefs.getString('token');
+  //   bool? isSuccess = prefs.getBool('isSuccess');
 
-    print("newUser: $newUser");
-    print("token: $token");
-    print("isSuccess: $isSuccess");
-  }
+  //   print("newUser: $newUser");
+  //   print("token: $token");
+  //   print("isSuccess: $isSuccess");
+  // }
 
 
   void _setErrorMessage(String message) {

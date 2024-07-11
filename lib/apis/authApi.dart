@@ -1,14 +1,16 @@
 import "dart:convert";
 
 import "package:flutter/material.dart";
+import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "../screens/otpPage.dart";
 import 'package:http/http.dart' as http;
 import "package:shared_preferences/shared_preferences.dart";
 
 
 Future<Map<String, dynamic>> sendIdTokenToBackend() async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? idToken = prefs.getString('idToken');
+  final secureStorage = new FlutterSecureStorage();
+  final idToken = await secureStorage.read(key: "IdToken");
+  
   final url = 'https://glutaclass.com:8080/gluta/fam/auth?idToken=$idToken';
   
   if (idToken != null) {
@@ -18,9 +20,11 @@ Future<Map<String, dynamic>> sendIdTokenToBackend() async {
         Map<String, dynamic> data = json.decode(response.body);
         print("Auth api:$data");
 
-        await prefs.setBool("newUser", data['newUser']);
-        await prefs.setString("token", data['token']);
-        await prefs.setBool('isSuccess', data['isSuccess']);
+        await secureStorage.write(key: "authKey", value: data['token']);
+
+        // await prefs.setBool("newUser", data['newUser']);
+        // await prefs.setString("token", data['token']);
+        // await prefs.setBool('isSuccess', data['isSuccess']);
 
         return data;
       } else {
