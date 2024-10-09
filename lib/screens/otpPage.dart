@@ -3,6 +3,7 @@ import "dart:math";
 
 import "package:eureka_app/screens/homeScreen.dart";
 import "package:eureka_app/screens/homeScreenV2.dart";
+import "package:eureka_app/screens/profileCreationScreen.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
@@ -77,8 +78,8 @@ class _OtpPageState extends State<OtpPage> {
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
       await getIdTokenAndSendToBackend();
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => HomePageV2()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (context) => ProfileCreationScreen()));
     } catch (ex) {
       if (ex is FirebaseAuthException) {
         switch (ex.code) {

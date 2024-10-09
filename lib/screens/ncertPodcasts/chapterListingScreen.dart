@@ -102,6 +102,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
             color: Colors.white,
             fontWeight: FontWeight.bold,
           )),
+      iconTheme: const IconThemeData(
+        color: Colors.white, // Set the back button color to white
+      ),
     );
   }
 

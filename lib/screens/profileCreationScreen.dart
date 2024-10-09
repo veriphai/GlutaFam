@@ -1,4 +1,5 @@
 import 'package:eureka_app/widgets/childAgeInput.dart';
+import 'package:eureka_app/widgets/childGradeInput.dart';
 import 'package:flutter/material.dart';
 
 class ProfileCreationScreen extends StatefulWidget {
@@ -73,18 +74,17 @@ class _ProfileCreationScreenState extends State<ProfileCreationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: Padding(
-        padding: const EdgeInsets.only(left: 30.0, right: 30.0),
-        child: _buildSegmentedProgressBar(),
-      )),
+          title: Padding(padding: const EdgeInsets.only(left: 30.0, right: 30.0)
+              // child: _buildSegmentedProgressBar(),
+              )),
       body: PageView(
         controller: _pageController,
         physics: NeverScrollableScrollPhysics(), // Disable swiping
         children: [
-          _buildFirstPage(),
-          _buildSecondPage(),
-          _buildThirdPage(),
-          ChildAgeInputPage()
+          // _buildFirstPage(),
+          // _buildSecondPage(),
+          // _buildThirdPage(),
+          ChildGradeInputPage()
         ],
       ),
     );

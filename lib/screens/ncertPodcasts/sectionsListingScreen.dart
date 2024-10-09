@@ -25,6 +25,9 @@ class Sectionscreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+          iconTheme: const IconThemeData(
+            color: Colors.white, // Set the back button color to white
+          ),
         ),
         backgroundColor: Colors.black,
         body: Column(
@@ -54,12 +57,12 @@ class Sectionscreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: ListTile(
-                                // leading: Image.network(
-                                //   sections[index]['image'],
-                                //   width: 50,
-                                //   height: 50,
-                                //   fit: BoxFit.cover,
-                                // ),
+                                leading: Image.network(
+                                  sections[index]['imageUrl'],
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                ),
                                 title: Text(
                                   'Section ${index + 1}: ${sections[index]['name']}',
                                   style: const TextStyle(
@@ -71,7 +74,9 @@ class Sectionscreen extends StatelessWidget {
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey,
-                                    )),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis),
                                 onTap: () {
                                   Navigator.push(
                                     context,
@@ -81,7 +86,7 @@ class Sectionscreen extends StatelessWidget {
                                         description: sections[index]
                                                 ['description'] ??
                                             "No description available",
-                                        imageUrl: chapterImage,
+                                        imageUrl: sections[index]['imageUrl'],
                                         audioUrl: sections[index]['audioUrl'] ??
                                             "", // Assuming audioUrl is part of the section
                                         duration: sections[index]

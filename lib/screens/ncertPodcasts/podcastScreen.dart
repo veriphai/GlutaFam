@@ -79,19 +79,20 @@ class _PodcastScreenState extends State<PodcastScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: appBar(),
+        backgroundColor: Colors.black,
         body: Container(
-          decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  colors: [
-                Colors.deepPurple.shade800.withOpacity(0.8),
-                Colors.black87.withOpacity(0.8)
-              ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  tileMode: TileMode.mirror)),
+          // decoration: BoxDecoration(
+          //     gradient: LinearGradient(
+          //         colors: [
+          //       Colors.deepPurple.shade800.withOpacity(0.8),
+          //       Colors.black87.withOpacity(0.8)
+          //     ],
+          //         begin: Alignment.topCenter,
+          //         end: Alignment.bottomCenter,
+          //         tileMode: TileMode.mirror)),
           child: Column(
             children: [
-              SizedBox(height: 60),
+              SizedBox(height: 40),
               // Podcast image
               Container(
                 width: double.infinity,
@@ -110,16 +111,17 @@ class _PodcastScreenState extends State<PodcastScreen> {
                     children: [
                       Text(
                         widget.title,
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                            fontSize: 30,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.white),
                       ),
                       SizedBox(height: 10),
-                      Text(
-                        widget.description,
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      // Text(
+                      //   widget.description,
+                      //   style: TextStyle(fontSize: 16),
+                      // ),
                       // SizedBox(height: 10),
                       // Text(
                       //   "Duration: ${widget.duration}",
@@ -131,7 +133,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
               ),
               // Music controls
               Padding(
-                padding: EdgeInsets.only(bottom: 60),
+                padding: EdgeInsets.only(bottom: 20),
                 child: Column(
                   children: [
                     Slider(
@@ -141,17 +143,34 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       onChanged: (value) {
                         _audioPlayer.seek(Duration(seconds: value.toInt()));
                       },
+                      activeColor: Colors.white,
+                      inactiveColor: Colors.grey[700],
+                      thumbColor: Colors.white,
                     ),
-                    Text(
-                      "${currentPosition.inMinutes}:${(currentPosition.inSeconds % 60).toString().padLeft(2, '0')} / ${totalDuration.inMinutes}:${(totalDuration.inSeconds % 60).toString().padLeft(2, '0')}",
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0), // Adjust padding if needed
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "${currentPosition.inMinutes}:${(currentPosition.inSeconds % 60).toString().padLeft(2, '0')}",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          Text(
+                            "${totalDuration.inMinutes}:${(totalDuration.inSeconds % 60).toString().padLeft(2, '0')}",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                     IconButton(
-                      iconSize: 64,
+                      iconSize: 80,
                       icon: Icon(
                         isPlaying
                             ? Icons.pause_circle_filled
                             : Icons.play_circle_fill,
-                        color: Colors.blue,
+                        color: Colors.white,
                       ),
                       onPressed: playPauseAudio,
                     ),
@@ -171,9 +190,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
       title: Text(
         'Now Playing',
         style: TextStyle(
-            fontSize: 24.0, color: Colors.black, fontWeight: FontWeight.bold),
+            fontSize: 24.0, color: Colors.white, fontWeight: FontWeight.bold),
       ),
       centerTitle: true,
+      iconTheme: const IconThemeData(
+        color: Colors.white, // Set the back button color to white
+      ),
     );
   }
 }

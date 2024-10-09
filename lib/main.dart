@@ -1,6 +1,7 @@
 import 'package:eureka_app/screens/communityScreen.dart';
 import 'package:eureka_app/screens/exploreScreen.dart';
 import 'package:eureka_app/screens/homeScreenV2.dart';
+import 'package:eureka_app/screens/landingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:eureka_app/screens/onboardingScreen.dart';
 import 'package:eureka_app/screens/otpPage.dart';
@@ -47,7 +48,7 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         ),
         debugShowCheckedModeBanner: false,
-        home: firstLaunch ? Signupscreen() : HomePageV2(),
+        home: firstLaunch ? LandingScreen() : HomePageV2(),
         routes: {
           '/home': (context) => HomePageV2(),
           '/explore': (context) => CommunityPage(),
