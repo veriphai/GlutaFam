@@ -152,12 +152,6 @@ class _ChapterscreenState extends State<Chapterscreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => Sectionscreen(
-                                  chapterName: chapter['name'],
-                                  sections: chapter['sections'],
-                                  chapterImage: chapter['image'],
-                                  chapterNo: chapter['chapterNo'],
-                                  subject: chapter['subject'],
-                                  standard: chapter['standard'],
                                   chapterId: chapter['id'],
                                 ),
                               ),
@@ -312,12 +306,6 @@ class _ChapterscreenState extends State<Chapterscreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => Sectionscreen(
-                        chapterName: chapter['name'],
-                        sections: chapter['sections'],
-                        chapterImage: chapter['image'],
-                        chapterNo: chapter['chapterNo'],
-                        subject: chapter['subject'],
-                        standard: chapter['standard'],
                         chapterId: chapter['id'],
                       ),
                     ),

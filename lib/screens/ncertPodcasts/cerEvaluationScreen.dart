@@ -1,3 +1,4 @@
+import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:flutter/material.dart';
 
 class CEREvaluationScreen extends StatefulWidget {
@@ -8,17 +9,19 @@ class CEREvaluationScreen extends StatefulWidget {
   final String correctClaim;
   final List<String> correctEvidences;
   final String correctReasoning;
+  final String chapterId;
 
-  const CEREvaluationScreen({
-    Key? key,
-    required this.problemStatement,
-    required this.selectedClaim,
-    required this.selectedEvidences,
-    required this.studentReasoning,
-    required this.correctClaim,
-    required this.correctEvidences,
-    required this.correctReasoning,
-  }) : super(key: key);
+  const CEREvaluationScreen(
+      {Key? key,
+      required this.problemStatement,
+      required this.selectedClaim,
+      required this.selectedEvidences,
+      required this.studentReasoning,
+      required this.correctClaim,
+      required this.correctEvidences,
+      required this.correctReasoning,
+      required this.chapterId})
+      : super(key: key);
 
   @override
   _CEREvaluationScreenState createState() => _CEREvaluationScreenState();
@@ -125,13 +128,19 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(
-                          context); // Navigate back to the chapter screen
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => Sectionscreen(
+                                  chapterId: widget.chapterId,
+                                )), // Assuming ChapterScreen is your chapter screen widget
+                        (route) => true, // Remove all other routes in the stack
+                      );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Colors.green,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       padding: const EdgeInsets.all(16),
                     ),

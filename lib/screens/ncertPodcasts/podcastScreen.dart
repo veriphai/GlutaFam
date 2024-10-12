@@ -11,6 +11,7 @@ class PodcastScreen extends StatefulWidget {
   final String chapterName;
   final int chapterNo;
   final Map<String, dynamic> cerData;
+  final String chapterId;
 
   const PodcastScreen(
       {Key? key,
@@ -21,7 +22,8 @@ class PodcastScreen extends StatefulWidget {
       required this.duration,
       required this.chapterName,
       required this.chapterNo,
-      required this.cerData})
+      required this.cerData,
+      required this.chapterId})
       : super(key: key);
 
   @override
@@ -60,7 +62,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CERPage(data: widget.cerData),
+          builder: (context) =>
+              CERPage(data: widget.cerData, chapterId: widget.chapterId),
         ),
       );
     });
@@ -77,7 +80,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CERPage(data: widget.cerData),
+        builder: (context) =>
+            CERPage(data: widget.cerData, chapterId: widget.chapterId),
       ),
     );
   }

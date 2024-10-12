@@ -5,10 +5,12 @@ import 'dart:async';
 
 class CERPage extends StatefulWidget {
   final Map<String, dynamic> data;
+  final String chapterId;
 
   const CERPage({
     Key? key,
     required this.data,
+    required this.chapterId,
   }) : super(key: key);
 
   @override
@@ -256,7 +258,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                   ),
                   shape: MaterialStateProperty.all(
                     RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
@@ -311,7 +313,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                   child: Card(
                     color: color,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Stack(
                       children: [
@@ -377,7 +379,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                   ),
                   shape: MaterialStateProperty.all(
                     RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
@@ -402,7 +404,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
           Container(
             decoration: BoxDecoration(
               color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
@@ -433,32 +435,28 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                   context,
                   MaterialPageRoute(
                     builder: (context) => CEREvaluationScreen(
-                      problemStatement: widget.data['problemStatement'],
-                      selectedClaim: widget.data['claimSelection']['options']
-                          .firstWhere((option) =>
-                              option['id'] == selectedClaim)['text'],
-                      selectedEvidences: selectedEvidencesTexts,
-                      studentReasoning: userReasoning,
-                      correctClaim: widget.data['claimSelection']['options']
-                          .firstWhere((option) =>
-                              option['id'] ==
-                              widget.data['claimSelection']
-                                  ['correctClaim'])['text'],
-                      correctEvidences: widget.data['correctEvidences']
-                          .map<String>((id) => widget.data['observations']
-                              .firstWhere((observation) =>
-                                  observation['id'] == id)['text']
-                              .toString())
-                          .toList(),
-                      correctReasoning: widget.data['reasoning'],
-                    ),
+                        problemStatement: widget.data['problemStatement'],
+                        selectedClaim: widget.data['claimSelection']['options'].firstWhere(
+                            (option) => option['id'] == selectedClaim)['text'],
+                        selectedEvidences: selectedEvidencesTexts,
+                        studentReasoning: userReasoning,
+                        correctClaim: widget.data['claimSelection']['options']
+                                .firstWhere((option) => option['id'] == widget.data['claimSelection']['correctClaim'])[
+                            'text'],
+                        correctEvidences: widget.data['correctEvidences']
+                            .map<String>((id) => widget.data['observations']
+                                .firstWhere((observation) => observation['id'] == id)['text']
+                                .toString())
+                            .toList(),
+                        correctReasoning: widget.data['reasoning'],
+                        chapterId: widget.chapterId),
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 // padding: const EdgeInsets.all(16),
               ),

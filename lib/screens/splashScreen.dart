@@ -20,12 +20,13 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Image.asset('lib/assets/glutaFamLogo.png',
-                height: 100.0), // Ensure you have this image in your assets
+            Image.asset('lib/assets/glutaclassLogo.png',
+                height: 120.0), // Ensure you have this image in your assets
             SizedBox(height: 20),
             CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
