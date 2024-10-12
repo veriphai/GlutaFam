@@ -1,3 +1,4 @@
+import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -7,15 +8,21 @@ class PodcastScreen extends StatefulWidget {
   final String imageUrl;
   final String audioUrl;
   final int duration;
+  final String chapterName;
+  final int chapterNo;
+  final Map<String, dynamic> cerData;
 
-  const PodcastScreen({
-    Key? key,
-    required this.title,
-    required this.description,
-    required this.imageUrl,
-    required this.audioUrl,
-    required this.duration,
-  }) : super(key: key);
+  const PodcastScreen(
+      {Key? key,
+      required this.title,
+      required this.description,
+      required this.imageUrl,
+      required this.audioUrl,
+      required this.duration,
+      required this.chapterName,
+      required this.chapterNo,
+      required this.cerData})
+      : super(key: key);
 
   @override
   _PodcastScreenState createState() => _PodcastScreenState();
@@ -50,9 +57,29 @@ class _PodcastScreenState extends State<PodcastScreen> {
         isPlaying = false;
         currentPosition = Duration.zero;
       });
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CERPage(data: widget.cerData),
+        ),
+      );
     });
 
     playPauseAudio();
+  }
+
+  void stopAudioAndJumpToCER() async {
+    await _audioPlayer.pause(); // Stop the audio playback
+    setState(() {
+      isPlaying = false;
+    });
+    // Navigate to CER
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CERPage(data: widget.cerData),
+      ),
+    );
   }
 
   @override
@@ -111,7 +138,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                     children: [
                       Text(
                         widget.title,
-                        textAlign: TextAlign.center,
+                        // textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -123,17 +150,18 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       //   style: TextStyle(fontSize: 16),
                       // ),
                       // SizedBox(height: 10),
-                      // Text(
-                      //   "Duration: ${widget.duration}",
-                      //   style: TextStyle(fontSize: 16, color: Colors.grey),
-                      // ),
+                      Text(
+                        "Chapter ${widget.chapterNo} • ${widget.chapterName}",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        // textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
               ),
               // Music controls
               Padding(
-                padding: EdgeInsets.only(bottom: 20),
+                padding: EdgeInsets.only(bottom: 40),
                 child: Column(
                   children: [
                     Slider(
@@ -174,6 +202,23 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       ),
                       onPressed: playPauseAudio,
                     ),
+                    // IconButton(
+                    //   iconSize: 80,
+                    //   icon: Icon(
+                    //     isPlaying
+                    //         ? Icons.sports_gymnastics
+                    //         : Icons.sports_gymnastics,
+                    //     color: Colors.white,
+                    //   ),
+                    //   onPressed: () {
+                    //     Navigator.push(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder: (context) => CERPage(),
+                    //       ),
+                    //     );
+                    //   },
+                    // )
                   ],
                 ),
               ),
@@ -187,15 +232,33 @@ class _PodcastScreenState extends State<PodcastScreen> {
       backgroundColor: Colors.transparent,
       automaticallyImplyLeading: true,
       elevation: 0,
-      title: Text(
-        'Now Playing',
-        style: TextStyle(
-            fontSize: 24.0, color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      centerTitle: true,
       iconTheme: const IconThemeData(
         color: Colors.white, // Set the back button color to white
       ),
+      actions: [
+        Padding(
+          padding:
+              const EdgeInsets.only(right: 16.0), // Add padding to the right
+          child: TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.green,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            onPressed: stopAudioAndJumpToCER,
+            child: const Text(
+              'Go to Case',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
+    ;
   }
 }

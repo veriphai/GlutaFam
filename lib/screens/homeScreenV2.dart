@@ -42,8 +42,7 @@ class HomePageV2 extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => Chapterscreen(
-                          subject: subjectList[index], standard: 8),
+                      builder: (context) => Chapterscreen(),
                     ),
                   );
                 },
