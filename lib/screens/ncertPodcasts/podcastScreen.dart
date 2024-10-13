@@ -59,13 +59,15 @@ class _PodcastScreenState extends State<PodcastScreen> {
         isPlaying = false;
         currentPosition = Duration.zero;
       });
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              CERPage(data: widget.cerData, chapterId: widget.chapterId),
-        ),
-      );
+      if (widget.cerData.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                CERPage(data: widget.cerData, chapterId: widget.chapterId),
+          ),
+        );
+      }
     });
 
     playPauseAudio();
@@ -175,9 +177,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       onChanged: (value) {
                         _audioPlayer.seek(Duration(seconds: value.toInt()));
                       },
-                      activeColor: Colors.white,
+                      activeColor: Color.fromRGBO(255, 217, 0, 1),
                       inactiveColor: Colors.grey[700],
-                      thumbColor: Colors.white,
+                      thumbColor: Color.fromRGBO(255, 217, 0, 1),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -202,7 +204,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         isPlaying
                             ? Icons.pause_circle_filled
                             : Icons.play_circle_fill,
-                        color: Colors.white,
+                        color: Color.fromRGBO(255, 217, 0, 1),
                       ),
                       onPressed: playPauseAudio,
                     ),
@@ -240,27 +242,29 @@ class _PodcastScreenState extends State<PodcastScreen> {
         color: Colors.white, // Set the back button color to white
       ),
       actions: [
-        Padding(
-          padding:
-              const EdgeInsets.only(right: 16.0), // Add padding to the right
-          child: TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
+        if (widget.cerData.isNotEmpty)
+          Padding(
+            padding:
+                const EdgeInsets.only(right: 16.0), // Add padding to the right
+            child: TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
-            ),
-            onPressed: stopAudioAndJumpToCER,
-            child: const Text(
-              'Go to Case',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
+              onPressed: stopAudioAndJumpToCER,
+              child: const Text(
+                'Go to Case',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
     ;

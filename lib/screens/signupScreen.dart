@@ -1,15 +1,10 @@
-import "dart:ui";
-
-import "package:eureka_app/screens/otpPage.dart";
 import "package:flutter/material.dart";
-import "package:flutter/painting.dart";
-import "package:flutter/rendering.dart";
-import "package:flutter/services.dart";
-import "package:flutter/widgets.dart";
-import "package:google_fonts/google_fonts.dart";
+import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
-import '../firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../firebase_options.dart';
+import 'otpPage.dart';
+import 'package:flutter/services.dart';
 
 class Signupscreen extends StatefulWidget {
   const Signupscreen({super.key});
@@ -22,6 +17,7 @@ class _SignupscreenState extends State<Signupscreen> {
   final TextEditingController _controller = TextEditingController();
   String _phoneNumber = "";
   String _errorMessage = "";
+  bool _isLoading = false; // Loading state
 
   @override
   void initState() {
@@ -46,17 +42,28 @@ class _SignupscreenState extends State<Signupscreen> {
         _errorMessage = "";
       });
     }
-    ;
+
+    setState(() {
+      _isLoading = true; // Start loading when OTP is being sent
+    });
 
     await FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: '+91$_phoneNumber',
-      verificationCompleted: (PhoneAuthCredential credential) {},
+      verificationCompleted: (PhoneAuthCredential credential) {
+        setState(() {
+          _isLoading = false; // Stop loading on verification complete
+        });
+      },
       verificationFailed: (FirebaseAuthException ex) {
         setState(() {
-          _errorMessage = ex.message ?? "verfication failed";
+          _errorMessage = ex.message ?? "Verification failed";
+          _isLoading = false; // Stop loading if verification fails
         });
       },
       codeSent: (String verificationId, int? resendToken) {
+        setState(() {
+          _isLoading = false; // Stop loading once code is sent
+        });
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -66,69 +73,104 @@ class _SignupscreenState extends State<Signupscreen> {
                   )),
         );
       },
-      codeAutoRetrievalTimeout: (String verificationId) {},
+      codeAutoRetrievalTimeout: (String verificationId) {
+        setState(() {
+          _isLoading = false; // Stop loading on timeout
+        });
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black, // Set background to black
       resizeToAvoidBottomInset: true,
       body: SingleChildScrollView(
         child: Container(
           margin: EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start, // Align at the top
             children: [
-              SizedBox(
-                height: 24,
+              const SizedBox(
+                height: 100,
               ),
-              Text(
-                "Phone Number ☎️",
-                style: GoogleFonts.nunito(
-                    fontSize: 32,
-                    color: Color.fromRGBO(33, 33, 33, 1),
-                    fontWeight: FontWeight.w700),
-              ),
-              SizedBox(height: 12),
-              Text(
-                "Enter your Phone Number to get an OTP code via a text message", // Add your desired text here
-                style: GoogleFonts.nunito(
-                  // Customize style if needed
-                  fontSize: 18,
-                  color: Color.fromRGBO(33, 33, 33, 1),
-                  fontWeight: FontWeight.w400,
+              // Top Text
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "OTP Verification",
+                  style: GoogleFonts.nunito(
+                    fontSize: 28,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-              SizedBox(height: 32),
-              Text(
-                "Phone Number",
-                style: GoogleFonts.nunito(
-                  fontSize: 16,
-                  color: Color.fromRGBO(33, 33, 33, 1),
-                  fontWeight: FontWeight.w700,
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Enter phone number to send one-time password",
+                  style: GoogleFonts.nunito(
+                    fontSize: 22,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 100),
+              // Center Image
+              Center(
+                child: Image.asset(
+                  'lib/assets/signup.png', // Add your image path here
+                  width: 300, // Adjust width accordingly
+                  height: 300, // Adjust height accordingly
+                ),
+              ),
+              const SizedBox(height: 100),
+              // Phone Number Input
+
               TextField(
                 controller: _controller,
                 keyboardType: TextInputType.phone,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly,
+                inputFormatters: [
+                  FilteringTextInputFormatter
+                      .digitsOnly, // Ensures only digits are entered
                   LengthLimitingTextInputFormatter(10),
                 ],
                 decoration: InputDecoration(
+                  labelText: "Phone Number", // Floating label text
+                  labelStyle: TextStyle(
+                    color: Colors.orange, // Label color
+                    fontWeight: FontWeight.bold,
+                  ),
+                  contentPadding:
+                      EdgeInsets.only(left: 20, top: 16, bottom: 16),
                   hintText: "Enter Phone Number",
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.orange,
+                      width: 2,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(
+                      color: Colors.orange,
+                      width: 2,
+                    ),
+                  ),
+                  floatingLabelBehavior: FloatingLabelBehavior
+                      .always, // Label floats automatically
                 ),
                 style: GoogleFonts.nunito(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color.fromRGBO(33, 33, 33, 1),
+                  color: Colors.white,
                 ),
                 onChanged: (value) {
                   setState(() {
@@ -136,29 +178,57 @@ class _SignupscreenState extends State<Signupscreen> {
                   });
                 },
               ),
+
               if (_errorMessage.isNotEmpty)
                 Padding(
                     padding: EdgeInsets.only(top: 8),
-                    child: Text(_errorMessage,
-                        style: GoogleFonts.nunito(
-                            color: Colors.red, fontSize: 14)))
+                    child: Text(
+                      _errorMessage,
+                      style: GoogleFonts.nunito(
+                        color: Colors.red,
+                        fontSize: 14,
+                      ),
+                    )),
+              const SizedBox(height: 32),
+              // Show loading spinner if OTP is being sent
+              _isLoading
+                  ? CircularProgressIndicator(
+                      color: Colors.orange, // Optional: color of the spinner
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(100),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 58,
+                          child: ElevatedButton(
+                            onPressed: _isLoading
+                                ? null
+                                : _verifyPhoneNumber, // Disable button while loading
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    100), // Circular button
+                              ),
+                            ),
+                            child: Text(
+                              "Continue",
+                              style: GoogleFonts.nunito(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black, // Text color
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
             ],
           ),
         ),
       ),
-      floatingActionButton: ClipRRect(
-          borderRadius: BorderRadius.circular(100),
-          child: Container(
-              height: 58,
-              width: MediaQuery.of(context).size.width -
-                  48, // total screen width - 48 so that "Continue" button dynamically changes according to the different screens
-              child: FloatingActionButton.extended(
-                onPressed: _verifyPhoneNumber,
-                label: Text("Continue"),
-                foregroundColor: Colors.white,
-                backgroundColor: Color.fromRGBO(105, 73, 255, 1),
-              ))),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

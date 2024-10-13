@@ -1,0 +1,196 @@
+import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
+import 'package:flutter/material.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+
+class ClassSelectionPage extends StatefulWidget {
+  @override
+  _ClassSelection createState() => _ClassSelection();
+}
+
+class _ClassSelection extends State<ClassSelectionPage> {
+  final PageController _controller = PageController();
+  int currentPageIndex = 0;
+  int selectedClass = -1;
+
+  // Define your onboarding data
+  final List<Map<String, String>> onboardingData = [
+    {
+      "topText": "Learn & revise anytime,",
+      "secondTopText": "anywhere",
+      "imagePath": "lib/assets/on-1.png",
+      "bottomText": "Replace boring books with",
+      "bottomMidText": "engaging Interest-Led",
+      "bottomBoldText": "audio lessons"
+    }
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black, // Background color
+      body: SafeArea(
+        child: Stack(
+          children: [
+            if (currentPageIndex < onboardingData.length)
+              Positioned(
+                top: -700,
+                left: -200,
+                right: -200,
+                child: Image.asset(
+                  'lib/assets/yellow_circle.png',
+                  width: 1200,
+                  height: 1200,
+                ),
+              ),
+            Column(
+              children: [
+                Expanded(
+                  child: PageView.builder(
+                    controller: _controller,
+                    onPageChanged: (index) {
+                      setState(() {
+                        currentPageIndex = index;
+                      });
+                    },
+                    itemCount: onboardingData.length,
+                    itemBuilder: (context, index) {
+                      return _buildClassSelectionPage();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      bottomSheet: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildClassSelectionPage() {
+    return Column(
+      children: [
+        const SizedBox(height: 100),
+        Center(
+            child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.0),
+          child: Text(
+            "Select Your Class",
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        )),
+        const Spacer(flex: 2),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 20,
+          runSpacing: 20,
+          children: List.generate(8, (index) {
+            int classNumber = index + 5;
+            bool isSelected = selectedClass == classNumber;
+            return GestureDetector(
+              onTap: () async {
+                setState(() {
+                  selectedClass = classNumber;
+                });
+
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                await prefs.setInt('selected_class', classNumber);
+              },
+              child: Container(
+                width: 150,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Color.fromRGBO(255, 217, 0, 1)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: isSelected
+                        ? Color.fromRGBO(213, 177, 0, 1)
+                        : Colors.white,
+                    width: 2,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    'Class $classNumber',
+                    style: TextStyle(
+                      color: isSelected ? Colors.black : Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+        const Spacer(flex: 2),
+      ],
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 30.0),
+      color: Colors.black,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              if (selectedClass == -1) {
+                Fluttertoast.showToast(
+                  msg: "Please select your class to proceed",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                  timeInSecForIosWeb: 1,
+                  backgroundColor: Colors.red,
+                  textColor: Colors.white,
+                  fontSize: 16.0,
+                );
+              } else {
+                classSelected();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              padding: EdgeInsets.zero,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Image.asset(
+                  'lib/assets/hex.png',
+                  width: 60,
+                  height: 60,
+                ),
+                const Icon(
+                  Icons.arrow_forward,
+                  color: Colors.black,
+                  size: 24,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> classSelected() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('firstLaunch', false);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => Chapterscreen()),
+    );
+  }
+}

@@ -71,7 +71,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
               const Text(
                 'Your Claim:',
                 style: TextStyle(
-                  color: Colors.green,
+                  color: Color.fromRGBO(255, 217, 0, 1),
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -82,7 +82,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
               const Text(
                 'Your Evidence:',
                 style: TextStyle(
-                  color: Colors.green,
+                  color: Color.fromRGBO(255, 217, 0, 1),
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -93,7 +93,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
               const Text(
                 'Your Reasoning:',
                 style: TextStyle(
-                  color: Colors.green,
+                  color: Color.fromRGBO(255, 217, 0, 1),
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -107,7 +107,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
                   child: ElevatedButton(
                     onPressed: isEvaluated ? null : evaluateCER,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -116,7 +116,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
                     child: const Text(
                       'Evaluate CER',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontSize: 16,
                       ),
                     ),
@@ -138,7 +138,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
                       ),
@@ -147,7 +147,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
                     child: const Text(
                       'Back to Chapter',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontSize: 16,
                       ),
                     ),

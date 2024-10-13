@@ -127,7 +127,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
             alignment: Alignment.centerLeft,
             child: TabBar(
               controller: _tabController,
-              indicatorColor: Colors.green,
+              indicatorColor: Color.fromRGBO(255, 217, 0, 1),
               indicatorWeight: 2.0,
               labelColor: Colors.white,
               unselectedLabelColor: Colors.grey,
@@ -253,7 +253,8 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                       if (states.contains(MaterialState.disabled)) {
                         return Colors.grey; // Color when the button is disabled
                       }
-                      return Colors.green; // Color when the button is enabled
+                      return Color.fromRGBO(
+                          255, 217, 0, 1); // Color when the button is enabled
                     },
                   ),
                   shape: MaterialStateProperty.all(
@@ -265,7 +266,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                 child: const Text(
                   'Submit',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.black,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -374,7 +375,8 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                       if (states.contains(MaterialState.disabled)) {
                         return Colors.grey; // Color when the button is disabled
                       }
-                      return Colors.green; // Color when the button is enabled
+                      return Color.fromRGBO(
+                          255, 217, 0, 1); // Color when the button is enabled
                     },
                   ),
                   shape: MaterialStateProperty.all(
@@ -385,7 +387,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                 ),
                 child: const Text(
                   'Submit',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: Colors.black, fontSize: 16),
                 ),
               )),
         ),
@@ -454,7 +456,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -462,7 +464,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
               ),
               child: const Text(
                 'Submit',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+                style: TextStyle(color: Colors.black, fontSize: 16),
               ),
             ),
           ),

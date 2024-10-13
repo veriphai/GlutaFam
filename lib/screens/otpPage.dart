@@ -1,52 +1,33 @@
 import "dart:async";
 import "dart:math";
-
-import "package:eureka_app/screens/homeScreen.dart";
-import "package:eureka_app/screens/homeScreenV2.dart";
-import "package:eureka_app/screens/profileCreationScreen.dart";
+import "package:eureka_app/screens/ncertPodcasts/classSelection.dart";
 import "package:firebase_auth/firebase_auth.dart";
-import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:flutter/widgets.dart";
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "package:google_fonts/google_fonts.dart";
-import "package:shared_preferences/shared_preferences.dart";
-import '../apis/authApi.dart';
 
 class OtpPage extends StatefulWidget {
   String verificationId;
   String phoneNumber;
-  OtpPage(
-      {super.key,
-      required this.verificationId,
-      required this.phoneNumber}); // FOR PRODUCTION
-  // OtpPage({super.key, this.verificationId = "", this.phoneNumber = ""}); // FOR DEVELOPMENT  because here we giving a default verificationId and phoneNumber
+  OtpPage({super.key, required this.verificationId, required this.phoneNumber});
 
   @override
   State<OtpPage> createState() => _OtpPageState();
 }
 
 class _OtpPageState extends State<OtpPage> {
-  final _otpControllers = List<TextEditingController>.generate(
-      6, (index) => TextEditingController());
-  final _focusNodes = List<FocusNode>.generate(6, (index) => FocusNode());
+  final TextEditingController _otpController = TextEditingController();
+
   String _errorMessage = "";
   int _resendTimer = 60;
   late Timer _timer;
+  bool _isLoading = false; // Loading state
 
   @override
   void initState() {
     super.initState();
     _startTimer();
-  }
-
-  @override
-  void dispose() {
-    _otpControllers.forEach((controller) => controller.dispose());
-    _focusNodes.forEach((FocusNode) => FocusNode.dispose());
-    _timer.cancel();
-    super.dispose();
   }
 
   void _startTimer() {
@@ -62,25 +43,33 @@ class _OtpPageState extends State<OtpPage> {
     });
   }
 
-  String get _otpCode {
-    return _otpControllers.map((controller) => controller.text).join();
-  }
-
   Future<void> _verifyOtp() async {
-    if (_otpCode.length < 6) {
-      _setErrorMessage("Please enter all 6 digits of the OTP");
+    if (_otpController.text.length < 6) {
+      setState(() {
+        _errorMessage = "Please enter all 6 digits of the OTP";
+      });
+      return;
     }
+
+    setState(() {
+      _isLoading = true; // Start loading state when OTP verification begins
+    });
+
     try {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: widget.verificationId,
-        smsCode: _otpCode,
+        smsCode: _otpController.text,
       );
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
       await getIdTokenAndSendToBackend();
       Navigator.push(context,
-          MaterialPageRoute(builder: (context) => ProfileCreationScreen()));
+          MaterialPageRoute(builder: (context) => ClassSelectionPage()));
     } catch (ex) {
+      setState(() {
+        _isLoading = false; // Stop loading if there's an error
+      });
+
       if (ex is FirebaseAuthException) {
         switch (ex.code) {
           case 'invalid-verification-code':
@@ -92,46 +81,29 @@ class _OtpPageState extends State<OtpPage> {
                 "The OTP session has expired. Please request a new OTP");
             break;
           default:
-            _setErrorMessage("An error occured. Please try again.");
+            _setErrorMessage("An error occurred. Please try again.");
         }
       } else {
-        _setErrorMessage("An unexpected error occured. Please try again.");
+        _setErrorMessage("An unexpected error occurred. Please try again.");
       }
     }
   }
 
   Future<void> getIdTokenAndSendToBackend() async {
     User? user = FirebaseAuth.instance.currentUser;
-    final secureStorage = new FlutterSecureStorage();
+    final secureStorage = FlutterSecureStorage();
     if (user != null) {
       try {
         String? idToken = await user.getIdToken();
-        print("IdToken: $idToken");
         if (idToken != null) {
           await secureStorage.write(key: "IdToken", value: idToken);
-          await sendIdTokenToBackend();
-          // await printStoredValues();
-        } else {
-          print("Failed to get ID token: idToken is null");
+          // Send token to the backend...
         }
-        // Send token to your backend via HTTPS
       } catch (e) {
-        // Handle error - could not get ID token
         print("Failed to get ID token: $e");
       }
     }
   }
-
-  // Future<void> printStoredValues() async {
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   bool? newUser = prefs.getBool('newUser');
-  //   String? token = prefs.getString('token');
-  //   bool? isSuccess = prefs.getBool('isSuccess');
-
-  //   print("newUser: $newUser");
-  //   print("token: $token");
-  //   print("isSuccess: $isSuccess");
-  // }
 
   void _setErrorMessage(String message) {
     setState(() {
@@ -161,7 +133,6 @@ class _OtpPageState extends State<OtpPage> {
         codeAutoRetrievalTimeout: (String verificationId) {},
       );
     } catch (ex) {
-      print("Error: $ex");
       setState(() {
         _errorMessage = ex.toString();
       });
@@ -171,130 +142,143 @@ class _OtpPageState extends State<OtpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black,
       body: SingleChildScrollView(
         child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 24),
+          margin: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              SizedBox(
-                height: 24,
-              ),
-              Text("You've got OTP 💌",
+              const SizedBox(height: 100),
+              // Heading
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Verification Code",
                   style: GoogleFonts.nunito(
-                    fontSize: 32,
-                    color: Color.fromRGBO(33, 33, 33, 1),
-                    fontWeight: FontWeight.w700,
-                  )),
-              Text(
-                "We have sent the OTP verification code to your Mobile. Check your messages and enter the code below.",
-                style: GoogleFonts.nunito(
-                  fontSize: 18,
-                  color: Color.fromRGBO(33, 33, 33, 1),
-                  fontWeight: FontWeight.w400,
+                    fontSize: 28,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                      width: 50,
-                      child: TextField(
-                        controller: _otpControllers[index],
-                        focusNode: _focusNodes[index],
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        maxLength: 1,
-                        inputFormatters: <TextInputFormatter>[
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                            counterText: "",
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            )),
-                        style: GoogleFonts.nunito(
-                          fontSize: 18,
-                          color: Color.fromRGBO(33, 33, 33, 1),
-                          fontWeight: FontWeight.w700,
-                        ),
-                        onChanged: (value) {
-                          if (value.isNotEmpty) {
-                            if (index < 5) {
-                              FocusScope.of(context).nextFocus();
-                            } else {
-                              FocusScope.of(context).unfocus();
-                            }
-                          } else if (index > 0) {
-                            FocusScope.of(context).previousFocus();
-                          }
-                        },
-                      ));
-                }),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "We have sent the verification code to ${widget.phoneNumber}",
+                  style: GoogleFonts.nunito(
+                    fontSize: 18,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 100),
+              // Image in the center
+              Center(
+                child: Image.asset(
+                  'lib/assets/signup.png', // Replace with your image asset
+                  width: 300,
+                  height: 300,
+                ),
+              ),
+              const SizedBox(height: 100),
+              // OTP Input Field
+              TextField(
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [LengthLimitingTextInputFormatter(6)],
+                decoration: InputDecoration(
+                  labelText: "Enter OTP",
+                  labelStyle: const TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  contentPadding:
+                      const EdgeInsets.only(left: 20, top: 16, bottom: 16),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Colors.orange,
+                      width: 2,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: const BorderSide(
+                      color: Colors.orange,
+                      width: 2,
+                    ),
+                  ),
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                ),
+                style: GoogleFonts.nunito(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _errorMessage = "";
+                  });
+                },
               ),
               if (_errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     _errorMessage,
-                    style: TextStyle(color: Colors.red, fontSize: 14),
+                    style: const TextStyle(color: Colors.red, fontSize: 14),
                   ),
                 ),
-              SizedBox(height: 30),
-              GestureDetector(
-                  onTap: _resendTimer == 0 ? _resendOtp : null,
-                  child: Text("Didn't Receive OTP?",
-                      style: GoogleFonts.nunito(
-                          fontSize: 18,
-                          color: _resendTimer == 0
-                              ? Color.fromRGBO(105, 73, 255, 1)
-                              : Color.fromRGBO(33, 33, 33, 1)))),
-              Text.rich(TextSpan(
-                children: [
-                  TextSpan(
-                    text: "You can resend code in ",
-                    style: GoogleFonts.nunito(
-                      fontSize: 18,
-                      color: Color.fromRGBO(33, 33, 33, 1),
-                      fontWeight: FontWeight.w400,
+              const SizedBox(height: 32),
+              // Display loading spinner if OTP is being verified
+              _isLoading
+                  ? CircularProgressIndicator(
+                      color: Colors.orange, // Spinner color
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(100),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 58,
+                          child: ElevatedButton(
+                            onPressed: _isLoading
+                                ? null
+                                : _verifyOtp, // Disable button during loading
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromRGBO(
+                                  255, 217, 0, 1), // Button color
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                            ),
+                            child: Text(
+                              "Confirm",
+                              style: GoogleFonts.nunito(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black, // Text color
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  TextSpan(
-                    text: "$_resendTimer s",
-                    style: GoogleFonts.nunito(
-                      fontSize: 18,
-                      color: Color.fromRGBO(105, 73, 255, 1),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ))
             ],
           ),
         ),
       ),
-      floatingActionButton: ClipRRect(
-        borderRadius: BorderRadius.circular(100),
-        child: Container(
-          height: 58,
-          width: MediaQuery.of(context).size.width - 48,
-          child: FloatingActionButton.extended(
-            onPressed: _verifyOtp,
-            label: Text(
-              "Confirm",
-              style:
-                  GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            foregroundColor: Colors.white,
-            backgroundColor: Color.fromRGBO(105, 73, 255, 1),
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
   }
 }

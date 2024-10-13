@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'sectionsListingScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Chapterscreen extends StatefulWidget {
   final int standard = 8;
@@ -14,6 +15,7 @@ class Chapterscreen extends StatefulWidget {
 
 class _ChapterscreenState extends State<Chapterscreen> {
   Set<String> bookmarkedChapters = {};
+  int standard = 8; // Default standard
 
   Map<String, List<Map<String, dynamic>>> subjectChapters = {
     'Science': [],
@@ -28,6 +30,18 @@ class _ChapterscreenState extends State<Chapterscreen> {
   @override
   void initState() {
     super.initState();
+    _loadSelectedClass(); // Fetch the selected class before fetching chapters
+  }
+
+  // Fetch the selected class from SharedPreferences
+  Future<void> _loadSelectedClass() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      standard = prefs.getInt('selected_class') ??
+          8; // Default to class 8 if not found
+      print(standard);
+    });
+    // Now that the standard is loaded, fetch the chapters
     fetchAllChapters();
   }
 
@@ -53,7 +67,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
   Future<void> fetchChapterList(String subject) async {
     final String url =
-        'https://glutaclass.com:8080/gluta/fam/chapters?subject=$subject&standard=${widget.standard}';
+        'https://glutaclass.com:8080/gluta/fam/chapters?subject=$subject&standard=$standard';
 
     try {
       print("Fetching data for $subject from API: $url");
@@ -63,7 +77,6 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
-        // Sorting the chapters based on the 'chapterNo'
         List<Map<String, dynamic>> sortedChapters = data
             .map((e) => e as Map<String, dynamic>)
             .toList()
@@ -110,12 +123,11 @@ class _ChapterscreenState extends State<Chapterscreen> {
       children: subjectChapters.keys.map((subject) {
         final chapters = subjectChapters[subject] ?? [];
         if (chapters.isEmpty) {
-          return const SizedBox.shrink(); // Don't display empty subjects
+          return const SizedBox.shrink();
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fixed subject title
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
@@ -128,19 +140,16 @@ class _ChapterscreenState extends State<Chapterscreen> {
               ),
             ),
             const SizedBox(height: 10),
-            // Scrollable chapters for the subject
             SizedBox(
-              height: 350, // Adjust height as needed for chapters view
+              height: 350,
               child: PageView.builder(
-                controller: PageController(
-                    viewportFraction: 0.9), // Fraction for better visibility
+                controller: PageController(viewportFraction: 0.9),
                 itemCount: (chapters.length / 4).ceil(),
                 itemBuilder: (context, pageIndex) {
                   final pageChapters =
                       chapters.skip(pageIndex * 4).take(4).toList();
                   return Transform.translate(
-                    offset:
-                        Offset(-16, 0), // Shift each item slightly to the left
+                    offset: Offset(-16, 0),
                     child: ListView.builder(
                       physics: NeverScrollableScrollPhysics(),
                       itemCount: pageChapters.length,
