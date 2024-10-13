@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         ),
         debugShowCheckedModeBanner: false,
-        home: firstLaunch ? LandingScreen() : ClassSelectionPage(),
+        home: firstLaunch ? LandingScreen() : Chapterscreen(),
         routes: {
           '/home': (context) => Chapterscreen(),
           '/explore': (context) => CommunityPage(),

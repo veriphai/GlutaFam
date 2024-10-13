@@ -33,6 +33,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
   List<String> incorrectEvidences = [];
   List<String> missingEvidences = [];
   bool isReasoningCorrect = false;
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +123,10 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
                     ),
                   ),
                 ),
+              // if (isLoading) // Display loader when loading
+              //   Center(
+              //     child: CircularProgressIndicator(),
+              //   ),
               const SizedBox(height: 20),
               if (isEvaluated)
                 SizedBox(
@@ -398,6 +403,11 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
   }
 
   void evaluateCER() {
+    // setState(() {
+    //   isLoading = true; // Start loading
+    // });
+
+    // await Future.delayed(const Duration(seconds: 3));
     setState(() {
       isClaimCorrect = widget.selectedClaim == widget.correctClaim;
 

@@ -135,7 +135,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           child: Image.asset(
             imagePath, // Replace with your image
             width: double.infinity,
-            height: 400,
+            // height: 350,
           ),
         ),
         const SizedBox(height: 20),
