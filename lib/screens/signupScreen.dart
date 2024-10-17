@@ -86,6 +86,13 @@ class _SignupscreenState extends State<Signupscreen> {
     return Scaffold(
       backgroundColor: Colors.black, // Set background to black
       resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          automaticallyImplyLeading: true,
+          elevation: 0,
+          iconTheme: const IconThemeData(
+            color: Colors.white, // Set the back button color to white
+          )),
       body: SingleChildScrollView(
         child: Container(
           margin: EdgeInsets.symmetric(horizontal: 24),
@@ -94,7 +101,7 @@ class _SignupscreenState extends State<Signupscreen> {
             mainAxisAlignment: MainAxisAlignment.start, // Align at the top
             children: [
               const SizedBox(
-                height: 100,
+                height: 10,
               ),
               // Top Text
               Align(
@@ -120,111 +127,117 @@ class _SignupscreenState extends State<Signupscreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 100),
+              const SizedBox(height: 60),
               // Center Image
-              Center(
-                child: Image.asset(
-                  'lib/assets/signup.png', // Add your image path here
-                  width: 300, // Adjust width accordingly
-                  height: 300, // Adjust height accordingly
-                ),
-              ),
-              const SizedBox(height: 100),
+              // Center(
+              //   child: Image.asset(
+              //     'lib/assets/signup.png', // Add your image path here
+              //     width: 300, // Adjust width accordingly
+              //     height: 300, // Adjust height accordingly
+              //   ),
+              // ),
+              // const SizedBox(height: 60),
               // Phone Number Input
-
-              TextField(
-                controller: _controller,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter
-                      .digitsOnly, // Ensures only digits are entered
-                  LengthLimitingTextInputFormatter(10),
-                ],
-                decoration: InputDecoration(
-                  labelText: "Phone Number", // Floating label text
-                  labelStyle: TextStyle(
-                    color: Colors.orange, // Label color
-                    fontWeight: FontWeight.bold,
-                  ),
-                  contentPadding:
-                      EdgeInsets.only(left: 20, top: 16, bottom: 16),
-                  hintText: "Enter Phone Number",
-                  hintStyle: TextStyle(color: Colors.grey[600]),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Colors.orange,
-                      width: 2,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(
-                      color: Colors.orange,
-                      width: 2,
-                    ),
-                  ),
-                  floatingLabelBehavior: FloatingLabelBehavior
-                      .always, // Label floats automatically
-                ),
-                style: GoogleFonts.nunito(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _phoneNumber = value;
-                  });
-                },
-              ),
-
-              if (_errorMessage.isNotEmpty)
-                Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: Text(
-                      _errorMessage,
-                      style: GoogleFonts.nunito(
-                        color: Colors.red,
-                        fontSize: 14,
+              Padding(
+                padding: EdgeInsets.only(bottom: 30),
+                child: Column(children: [
+                  TextField(
+                    controller: _controller,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter
+                          .digitsOnly, // Ensures only digits are entered
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: "Phone Number", // Floating label text
+                      labelStyle: TextStyle(
+                        color: Colors.orange, // Label color
+                        fontWeight: FontWeight.bold,
                       ),
-                    )),
-              const SizedBox(height: 32),
-              // Show loading spinner if OTP is being sent
-              _isLoading
-                  ? CircularProgressIndicator(
-                      color: Colors.orange, // Optional: color of the spinner
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(100),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 58,
-                          child: ElevatedButton(
-                            onPressed: _isLoading
-                                ? null
-                                : _verifyPhoneNumber, // Disable button while loading
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    100), // Circular button
-                              ),
-                            ),
-                            child: Text(
-                              "Continue",
-                              style: GoogleFonts.nunito(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black, // Text color
+                      contentPadding:
+                          EdgeInsets.only(left: 20, top: 16, bottom: 16),
+                      hintText: "Enter Phone Number",
+                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.orange,
+                          width: 2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(
+                          color: Colors.orange,
+                          width: 2,
+                        ),
+                      ),
+                      floatingLabelBehavior: FloatingLabelBehavior
+                          .always, // Label floats automatically
+                    ),
+                    style: GoogleFonts.nunito(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _phoneNumber = value;
+                      });
+                    },
+                  ),
+
+                  if (_errorMessage.isNotEmpty)
+                    Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          _errorMessage,
+                          style: GoogleFonts.nunito(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                        )),
+                  const SizedBox(height: 20),
+                  // Show loading spinner if OTP is being sent
+                  _isLoading
+                      ? CircularProgressIndicator(
+                          color:
+                              Colors.orange, // Optional: color of the spinner
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(100),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 58,
+                              child: ElevatedButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : _verifyPhoneNumber, // Disable button while loading
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Color.fromRGBO(255, 217, 0, 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        100), // Circular button
+                                  ),
+                                ),
+                                child: Text(
+                                  "Continue",
+                                  style: GoogleFonts.nunito(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black, // Text color
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                ]),
+              ),
             ],
           ),
         ),

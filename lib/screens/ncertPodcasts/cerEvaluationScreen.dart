@@ -110,7 +110,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       padding: const EdgeInsets.all(16),
                     ),

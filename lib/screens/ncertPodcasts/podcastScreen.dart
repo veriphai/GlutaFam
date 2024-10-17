@@ -147,8 +147,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         // textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w500,
                             color: Colors.white),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.left,
                       ),
                       SizedBox(height: 10),
                       // Text(
@@ -158,8 +161,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       // SizedBox(height: 10),
                       Text(
                         "Chapter ${widget.chapterNo} • ${widget.chapterName}",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                        // textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.left,
                       ),
                     ],
                   ),
@@ -167,7 +172,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
               ),
               // Music controls
               Padding(
-                padding: EdgeInsets.only(bottom: 40),
+                padding: EdgeInsets.only(bottom: 30),
                 child: Column(
                   children: [
                     Slider(

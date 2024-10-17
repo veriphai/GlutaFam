@@ -182,10 +182,9 @@ class _SectionscreenState extends State<Sectionscreen>
 
   // Function to handle sharing the chapter link
   void shareChapter() {
-    final String deepLink =
-        "https://glutaclass.com/chapter/${widget.chapterId}"; // Construct deeplink
+    final String deepLink = "https://glutaclass.com";
 
-    Share.share('Check out this chapter: $deepLink');
+    Share.share('Download GlutaClass App: $deepLink');
   }
 
   void shareSimulation(simulationId) {
@@ -542,6 +541,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                             color: Colors.grey,
                                                           ),
                                                           onPressed: () {
+                                                            shareChapter();
                                                             // Handle share action
                                                           },
                                                         ),
@@ -875,6 +875,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                             color: Colors.grey,
                                                           ),
                                                           onPressed: () {
+                                                            shareChapter();
                                                             // Handle share action
                                                           },
                                                         ),

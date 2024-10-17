@@ -1,3 +1,4 @@
+import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/signupScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -112,8 +113,8 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
             topText,
             style: const TextStyle(
               color: Colors.black,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
@@ -124,8 +125,8 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
             secondTopText,
             style: const TextStyle(
               color: Colors.black,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
@@ -145,7 +146,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           child: Text(
             bottomText,
             style: const TextStyle(
-                color: Colors.white, fontSize: 28, fontWeight: FontWeight.w300),
+                color: Colors.white, fontSize: 25, fontWeight: FontWeight.w300),
             textAlign: TextAlign.center,
           ),
         ),
@@ -154,7 +155,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           child: Text(
             bottomMidText,
             style: const TextStyle(
-                color: Colors.white, fontSize: 28, fontWeight: FontWeight.w300),
+                color: Colors.white, fontSize: 25, fontWeight: FontWeight.w300),
             textAlign: TextAlign.center,
           ),
         ),
@@ -163,7 +164,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           child: Text(
             bottomBoldText,
             style: const TextStyle(
-                color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
         ),
@@ -288,7 +289,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
               if (currentPageIndex == onboardingData.length - 1) {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => Signupscreen()),
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
                 );
                 // Go to next action or final action when class selection is done
               } else {

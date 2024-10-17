@@ -1,10 +1,13 @@
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/podcastListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'sectionsListingScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
 
 class Chapterscreen extends StatefulWidget {
   final int standard = 8;
@@ -18,498 +21,7 @@ class Chapterscreen extends StatefulWidget {
 class _ChapterscreenState extends State<Chapterscreen> {
   Set<String> bookmarkedChapters = {};
   int standard = 8; // Default standard
-  List<dynamic> carouselData = [
-    {
-      "_id": "carousal_data_1",
-      "title": "Interests",
-      "type": "interest_led",
-      "items": [
-        {
-          "_id": "interest_1",
-          "name": "Technology",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "interest_2",
-          "name": "Space",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "interest_3",
-          "name": "Travelling",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "interest_2",
-          "name": "Space",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "interest_2",
-          "name": "Space",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "interest_2",
-          "name": "Space",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "interest_2",
-          "name": "Space",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-      ]
-    },
-    {
-      "_id": "carousal_data_2",
-      "title": "Scientists",
-      "type": "scientist",
-      "items": [
-        {
-          "_id": "scientist_1",
-          "name": "Albert Einstein",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "scientist_2",
-          "name": "Sir Issac Newton",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "scientist_3",
-          "name": "Madam Curie",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "scientist_3",
-          "name": "Madam Curie",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "scientist_3",
-          "name": "Madam Curie",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        },
-        {
-          "_id": "scientist_3",
-          "name": "Madam Curie",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description": ""
-        }
-      ]
-    },
-    {
-      "_id": "carousal_data_3",
-      "title": "Episodes",
-      "type": "episode",
-      "items": [
-        {
-          "_id": "episode_1",
-          "name": "Episode 1",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description":
-              "In the inaugural episode of \"The Learning Curve - by Glutaclass,\" host Jane welcomes guest Alex to explore the fundamentals of agriculture. They discuss Alex's experiences on his uncle's farm, the significance of crop production, the difference between Kharif and Rabi crops, and the essential role agriculture plays in feeding the population. This episode sets the stage for a deeper understanding of the various practices involved in crop production and management.",
-          "chapterName": "Crop Production",
-          "standard": 8,
-          "subject": "Science",
-          "audioUrl":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-1.mp3",
-          "chapterId": "chapter_1",
-          "chapterNo": 1,
-          "cer": {
-            "problemStatement":
-                "Why are specific crops grown in different seasons?",
-            "claimSelection": {
-              "options": [
-                {
-                  "id": "option_1",
-                  "text":
-                      "The choice of crops depends mainly on soil type and has little to do with the season."
-                },
-                {
-                  "id": "option_2",
-                  "text":
-                      "Crops are grown based on climate conditions like temperature, rainfall, and the season, which are crucial for their growth."
-                },
-                {
-                  "id": "option_3",
-                  "text":
-                      "Any crop can be grown in any season if the soil is well prepared and fertilized."
-                },
-                {
-                  "id": "option_4",
-                  "text":
-                      "Crops grow better when they are rotated frequently regardless of climate conditions."
-                }
-              ],
-              "correctClaim": "option_2"
-            },
-            "observations": [
-              {
-                "id": "obs_1",
-                "text":
-                    "Kharif crops are sown with the onset of the monsoon and harvested by October, while Rabi crops are sown in winter and harvested in spring.",
-                "relevanceScore": 9,
-                "reasoning":
-                    "This directly explains the dependence of crop types on seasonal conditions, supporting the claim."
-              },
-              {
-                "id": "obs_2",
-                "text":
-                    "Paddy is grown in the rainy season because it requires a lot of water for growth.",
-                "relevanceScore": 9,
-                "reasoning":
-                    "It provides a clear example of how climate conditions, like rainfall, are essential for certain crops, making it highly relevant."
-              },
-              {
-                "id": "obs_3",
-                "text":
-                    "Farming tools like ploughs and sickles are used for various agricultural practices.",
-                "relevanceScore": 5,
-                "reasoning":
-                    "This information is related to farming but less directly relevant to the claim about seasonal dependence of crops."
-              },
-              {
-                "id": "obs_4",
-                "text":
-                    "Early humans transitioned from being hunters and gatherers to growing crops around 10,000 B.C.E., leading to settled communities.",
-                "relevanceScore": 4,
-                "reasoning":
-                    "It provides historical context for agriculture but does not directly address the role of climate conditions in crop selection."
-              },
-              {
-                "id": "obs_5",
-                "text":
-                    "Farming requires preparing soil, sowing, irrigation, adding fertilizers, and protecting crops from pests and weeds.",
-                "relevanceScore": 7,
-                "reasoning":
-                    "It outlines essential agricultural practices, which is relevant but not as focused on seasonal factors."
-              },
-              {
-                "id": "obs_6",
-                "text":
-                    "The success of agriculture depends on regular production, proper management, and effective food distribution.",
-                "relevanceScore": 6,
-                "reasoning":
-                    "This is relevant to the broader concept of agriculture but not directly focused on the role of climate conditions."
-              },
-              {
-                "id": "obs_7",
-                "text":
-                    "The birth of agriculture allowed the formation of societies and civilizations due to settled crop cultivation.",
-                "relevanceScore": 4,
-                "reasoning":
-                    "It adds context but does not directly contribute to understanding the role of seasons in agriculture."
-              },
-              {
-                "id": "obs_8",
-                "text":
-                    "Proper storage of harvested crops prevents food loss by protecting them from moisture and pests.",
-                "relevanceScore": 6,
-                "reasoning":
-                    "While important to agriculture, this observation is not directly tied to the claim about seasonal crop growth."
-              }
-            ],
-            "correctEvidences": ["obs_1", "obs_2"],
-            "reasoning":
-                "The choice of crops depends on the season, as different crops have varying requirements for temperature, rainfall, and humidity. Kharif crops are suited to the wet conditions of the monsoon, while Rabi crops grow well in cooler, drier winter conditions. These climate factors determine when and where specific crops can be grown. Understanding these seasonal dependencies allows farmers to plan their planting and harvesting cycles effectively, ensuring optimal growth and yield for each crop."
-          }
-        },
-        {
-          "_id": "episode_2",
-          "name": "Episode 2",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description":
-              "In the inaugural episode of \"The Learning Curve - by Glutaclass,\" host Jane welcomes guest Alex to explore the fundamentals of agriculture. They discuss Alex's experiences on his uncle's farm, the significance of crop production, the difference between Kharif and Rabi crops, and the essential role agriculture plays in feeding the population. This episode sets the stage for a deeper understanding of the various practices involved in crop production and management.",
-          "chapterName": "",
-          "standard": 8,
-          "subject": "Science",
-          "chapterImage": "",
-          "audioUrl": "",
-          "cer": {
-            "problemStatement":
-                "Why are specific crops grown in different seasons?",
-            "claimSelection": {
-              "options": [
-                {
-                  "id": "option_1",
-                  "text":
-                      "The choice of crops depends mainly on soil type and has little to do with the season."
-                },
-                {
-                  "id": "option_2",
-                  "text":
-                      "Crops are grown based on climate conditions like temperature, rainfall, and the season, which are crucial for their growth."
-                },
-                {
-                  "id": "option_3",
-                  "text":
-                      "Any crop can be grown in any season if the soil is well prepared and fertilized."
-                },
-                {
-                  "id": "option_4",
-                  "text":
-                      "Crops grow better when they are rotated frequently regardless of climate conditions."
-                }
-              ],
-              "correctClaim": "option_2"
-            },
-            "observations": [
-              {
-                "id": "obs_1",
-                "text":
-                    "Kharif crops are sown with the onset of the monsoon and harvested by October, while Rabi crops are sown in winter and harvested in spring.",
-                "relevanceScore": 9,
-                "reasoning":
-                    "This directly explains the dependence of crop types on seasonal conditions, supporting the claim."
-              },
-              {
-                "id": "obs_2",
-                "text":
-                    "Paddy is grown in the rainy season because it requires a lot of water for growth.",
-                "relevanceScore": 9,
-                "reasoning":
-                    "It provides a clear example of how climate conditions, like rainfall, are essential for certain crops, making it highly relevant."
-              },
-              {
-                "id": "obs_3",
-                "text":
-                    "Farming tools like ploughs and sickles are used for various agricultural practices.",
-                "relevanceScore": 5,
-                "reasoning":
-                    "This information is related to farming but less directly relevant to the claim about seasonal dependence of crops."
-              },
-              {
-                "id": "obs_4",
-                "text":
-                    "Early humans transitioned from being hunters and gatherers to growing crops around 10,000 B.C.E., leading to settled communities.",
-                "relevanceScore": 4,
-                "reasoning":
-                    "It provides historical context for agriculture but does not directly address the role of climate conditions in crop selection."
-              },
-              {
-                "id": "obs_5",
-                "text":
-                    "Farming requires preparing soil, sowing, irrigation, adding fertilizers, and protecting crops from pests and weeds.",
-                "relevanceScore": 7,
-                "reasoning":
-                    "It outlines essential agricultural practices, which is relevant but not as focused on seasonal factors."
-              },
-              {
-                "id": "obs_6",
-                "text":
-                    "The success of agriculture depends on regular production, proper management, and effective food distribution.",
-                "relevanceScore": 6,
-                "reasoning":
-                    "This is relevant to the broader concept of agriculture but not directly focused on the role of climate conditions."
-              },
-              {
-                "id": "obs_7",
-                "text":
-                    "The birth of agriculture allowed the formation of societies and civilizations due to settled crop cultivation.",
-                "relevanceScore": 4,
-                "reasoning":
-                    "It adds context but does not directly contribute to understanding the role of seasons in agriculture."
-              },
-              {
-                "id": "obs_8",
-                "text":
-                    "Proper storage of harvested crops prevents food loss by protecting them from moisture and pests.",
-                "relevanceScore": 6,
-                "reasoning":
-                    "While important to agriculture, this observation is not directly tied to the claim about seasonal crop growth."
-              }
-            ],
-            "correctEvidences": ["obs_1", "obs_2"],
-            "reasoning":
-                "The choice of crops depends on the season, as different crops have varying requirements for temperature, rainfall, and humidity. Kharif crops are suited to the wet conditions of the monsoon, while Rabi crops grow well in cooler, drier winter conditions. These climate factors determine when and where specific crops can be grown. Understanding these seasonal dependencies allows farmers to plan their planting and harvesting cycles effectively, ensuring optimal growth and yield for each crop."
-          }
-        },
-        {
-          "_id": "episode_2",
-          "name": "Episode 2",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description":
-              "In the inaugural episode of \"The Learning Curve - by Glutaclass,\" host Jane welcomes guest Alex to explore the fundamentals of agriculture. They discuss Alex's experiences on his uncle's farm, the significance of crop production, the difference between Kharif and Rabi crops, and the essential role agriculture plays in feeding the population. This episode sets the stage for a deeper understanding of the various practices involved in crop production and management.",
-          "chapterName": "",
-          "standard": 8,
-          "subject": "Science",
-          "chapterImage": "",
-          "audioUrl": "",
-          "cer": {
-            "problemStatement":
-                "Why are specific crops grown in different seasons?",
-            "claimSelection": {
-              "options": [
-                {
-                  "id": "option_1",
-                  "text":
-                      "The choice of crops depends mainly on soil type and has little to do with the season."
-                },
-                {
-                  "id": "option_2",
-                  "text":
-                      "Crops are grown based on climate conditions like temperature, rainfall, and the season, which are crucial for their growth."
-                },
-                {
-                  "id": "option_3",
-                  "text":
-                      "Any crop can be grown in any season if the soil is well prepared and fertilized."
-                },
-                {
-                  "id": "option_4",
-                  "text":
-                      "Crops grow better when they are rotated frequently regardless of climate conditions."
-                }
-              ],
-              "correctClaim": "option_2"
-            },
-            "observations": [
-              {
-                "id": "obs_1",
-                "text":
-                    "Kharif crops are sown with the onset of the monsoon and harvested by October, while Rabi crops are sown in winter and harvested in spring.",
-                "relevanceScore": 9,
-                "reasoning":
-                    "This directly explains the dependence of crop types on seasonal conditions, supporting the claim."
-              },
-              {
-                "id": "obs_2",
-                "text":
-                    "Paddy is grown in the rainy season because it requires a lot of water for growth.",
-                "relevanceScore": 9,
-                "reasoning":
-                    "It provides a clear example of how climate conditions, like rainfall, are essential for certain crops, making it highly relevant."
-              },
-              {
-                "id": "obs_3",
-                "text":
-                    "Farming tools like ploughs and sickles are used for various agricultural practices.",
-                "relevanceScore": 5,
-                "reasoning":
-                    "This information is related to farming but less directly relevant to the claim about seasonal dependence of crops."
-              },
-              {
-                "id": "obs_4",
-                "text":
-                    "Early humans transitioned from being hunters and gatherers to growing crops around 10,000 B.C.E., leading to settled communities.",
-                "relevanceScore": 4,
-                "reasoning":
-                    "It provides historical context for agriculture but does not directly address the role of climate conditions in crop selection."
-              },
-              {
-                "id": "obs_5",
-                "text":
-                    "Farming requires preparing soil, sowing, irrigation, adding fertilizers, and protecting crops from pests and weeds.",
-                "relevanceScore": 7,
-                "reasoning":
-                    "It outlines essential agricultural practices, which is relevant but not as focused on seasonal factors."
-              },
-              {
-                "id": "obs_6",
-                "text":
-                    "The success of agriculture depends on regular production, proper management, and effective food distribution.",
-                "relevanceScore": 6,
-                "reasoning":
-                    "This is relevant to the broader concept of agriculture but not directly focused on the role of climate conditions."
-              },
-              {
-                "id": "obs_7",
-                "text":
-                    "The birth of agriculture allowed the formation of societies and civilizations due to settled crop cultivation.",
-                "relevanceScore": 4,
-                "reasoning":
-                    "It adds context but does not directly contribute to understanding the role of seasons in agriculture."
-              },
-              {
-                "id": "obs_8",
-                "text":
-                    "Proper storage of harvested crops prevents food loss by protecting them from moisture and pests.",
-                "relevanceScore": 6,
-                "reasoning":
-                    "While important to agriculture, this observation is not directly tied to the claim about seasonal crop growth."
-              }
-            ],
-            "correctEvidences": ["obs_1", "obs_2"],
-            "reasoning":
-                "The choice of crops depends on the season, as different crops have varying requirements for temperature, rainfall, and humidity. Kharif crops are suited to the wet conditions of the monsoon, while Rabi crops grow well in cooler, drier winter conditions. These climate factors determine when and where specific crops can be grown. Understanding these seasonal dependencies allows farmers to plan their planting and harvesting cycles effectively, ensuring optimal growth and yield for each crop."
-          }
-        },
-        {
-          "_id": "episode_2",
-          "name": "Episode 2",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description":
-              "In the inaugural episode of \"The Learning Curve - by Glutaclass,\" host Jane welcomes guest Alex to explore the fundamentals of agriculture. They discuss Alex's experiences on his uncle's farm, the significance of crop production, the difference between Kharif and Rabi crops, and the essential role agriculture plays in feeding the population. This episode sets the stage for a deeper understanding of the various practices involved in crop production and management.",
-          "chapterName": "",
-          "standard": 8,
-          "subject": "Science",
-          "chapterImage": "",
-          "audioUrl": "",
-          "cer": {}
-        },
-        {
-          "_id": "episode_2",
-          "name": "Episode 2",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description":
-              "In the inaugural episode of \"The Learning Curve - by Glutaclass,\" host Jane welcomes guest Alex to explore the fundamentals of agriculture. They discuss Alex's experiences on his uncle's farm, the significance of crop production, the difference between Kharif and Rabi crops, and the essential role agriculture plays in feeding the population. This episode sets the stage for a deeper understanding of the various practices involved in crop production and management.",
-          "chapterName": "",
-          "standard": 8,
-          "subject": "Science",
-          "chapterImage": "",
-          "audioUrl": "",
-          "cer": {}
-        },
-        {
-          "_id": "episode_2",
-          "name": "Episode 2",
-          "image":
-              "https://gluta.s3.ap-south-1.amazonaws.com/audio-podcasts/Class+8/Science/Chapter+1/Class8-Chapter1-Album.webp",
-          "description":
-              "In the inaugural episode of \"The Learning Curve - by Glutaclass,\" host Jane welcomes guest Alex to explore the fundamentals of agriculture. They discuss Alex's experiences on his uncle's farm, the significance of crop production, the difference between Kharif and Rabi crops, and the essential role agriculture plays in feeding the population. This episode sets the stage for a deeper understanding of the various practices involved in crop production and management.",
-          "chapterName": "",
-          "standard": 8,
-          "subject": "Science",
-          "chapterImage": "",
-          "audioUrl": "",
-          "cer": {}
-        }
-      ]
-    }
-  ];
-
+  List<dynamic> carouselData = [];
   Map<String, List<Map<String, dynamic>>> subjectChapters = {
     'Science': [],
     'Maths': [],
@@ -517,8 +29,12 @@ class _ChapterscreenState extends State<Chapterscreen> {
     'Geography': [],
   };
 
+  List<dynamic> podcasts = [];
+
   bool isLoading = true;
   bool hasError = false;
+
+  Set<String> bookmarkedSections = {};
 
   @override
   void initState() {
@@ -535,7 +51,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
       print(standard);
     });
     // Now that the standard is loaded, fetch the chapters
+    fetchRecommendedPodcasts();
     fetchAllChapters();
+    fetchCarouselData();
   }
 
   Future<void> fetchAllChapters() async {
@@ -552,6 +70,41 @@ class _ChapterscreenState extends State<Chapterscreen> {
       });
     } catch (e) {
       setState(() {
+        isLoading = false;
+        hasError = true;
+      });
+    }
+  }
+
+  Future<void> fetchRecommendedPodcasts() async {
+    final String url =
+        'https://glutaclass.com:8080/gluta/fam/recommended-podcasts?standard=${widget.standard}';
+
+    try {
+      print("Fetching recommended-podcasts details from API: $url");
+
+      final response = await http.get(Uri.parse(url));
+      print("response: ${json.decode(response.body)}");
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        print("Decoded data: $data");
+
+        // Use null-aware operators to assign default values if a key is missing or null.
+        setState(() {
+          podcasts = data;
+          // isLoading = false;
+        });
+      } else {
+        setState(() {
+          print("Error: Status code ${response.statusCode}");
+          // isLoading = false;
+          // hasError = true;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        print("catch error $e");
         isLoading = false;
         hasError = true;
       });
@@ -632,6 +185,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
                       // Fetch updated chapters for the new class
                       fetchAllChapters();
+                      fetchCarouselData();
 
                       // Close the bottom sheet
                       Navigator.pop(context);
@@ -652,12 +206,13 @@ class _ChapterscreenState extends State<Chapterscreen> {
   // Fetch carousel data from API
   Future<void> fetchCarouselData() async {
     final String url =
-        'https://your-api-url.com/carousal-data'; // Replace with your actual API URL
+        'https://glutaclass.com:8080/gluta/fam/carousal-data?standard=$standard'; // Replace with your actual API URL
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         setState(() {
           carouselData = json.decode(response.body);
+          print(carouselData);
         });
       } else {
         setState(() {
@@ -671,8 +226,14 @@ class _ChapterscreenState extends State<Chapterscreen> {
     }
   }
 
+  void share() {
+    final String deepLink = "https://glutaclass.com";
+
+    Share.share('Download GlutaClass App: $deepLink');
+  }
+
   // Carousel Widget for Interest and Scientist
-  Widget buildCarousel(String title, List<dynamic> items) {
+  Widget buildCarousel(String title, List<dynamic> items, String type) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -689,7 +250,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
         ),
         const SizedBox(height: 10),
         Container(
-          height: 150,
+          height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
@@ -697,35 +258,51 @@ class _ChapterscreenState extends State<Chapterscreen> {
               final item = items[index];
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Container(
-                  width:
-                      100, // Fixed width for each item to maintain consistent spacing
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Circular container for the image
-                      ClipOval(
-                        child: Image.network(
-                          item['image'],
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PodcastListingScreen(
+                          filter: type == 'interest_led'
+                              ? 'interest'
+                              : 'personality',
+                          standard: standard,
+                          searchParam: item['id'],
+                          item: item,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      // Name of the item (Scientist or Interest)
-                      Text(
-                        item['name'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+                    );
+                  },
+                  child: Container(
+                    width: 100, // Fixed width for each item
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Circular container for the image
+                        ClipOval(
+                          child: Image.network(
+                            item['image'],
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1, // Ensures single line for the name
-                        overflow:
-                            TextOverflow.ellipsis, // Truncates if too long
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        // Name of the item (Scientist or Interest)
+                        Text(
+                          item['name'],
+                          style: TextStyle(
+                            color: Colors.grey[200],
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow:
+                              TextOverflow.ellipsis, // Truncates if too long
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -736,14 +313,14 @@ class _ChapterscreenState extends State<Chapterscreen> {
     );
   }
 
-  Widget buildEpisodeCarousel(List<dynamic> episodes) {
+  Widget buildEpisodeCarousel(List<dynamic> episodes, String title) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            'Episodes',
+            title,
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -751,12 +328,12 @@ class _ChapterscreenState extends State<Chapterscreen> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        // const SizedBox(height: 10),
         SizedBox(
           height: 230, // Adjust the height of the card
           child: PageView.builder(
             controller:
-                PageController(viewportFraction: 0.9), // Adjusts the page view
+                PageController(viewportFraction: 0.95), // Adjusts the page view
             itemCount: episodes.length,
             itemBuilder: (context, index) {
               final episode = episodes[index];
@@ -812,6 +389,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
     // Choose a gradient based on the index.
     final cardBackgroundGradient = gradients[index % gradients.length];
+    String episodeId = episode['id'];
 
     return GestureDetector(
       onTap: () {
@@ -863,19 +441,38 @@ class _ChapterscreenState extends State<Chapterscreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Flexible(
-                        child: Text(
-                          episode[
-                              'name'], // Replace with your episode name field
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                      Expanded(
+                          child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            episode[
+                                'name'], // Replace with your episode name field
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+                          SizedBox(
+                            height: 5,
+                          ),
+                          Text(
+                            episode['chapterName'] != null &&
+                                    episode['chapterName'].isNotEmpty
+                                ? "${episode['subject']} • ${episode['chapterName']}"
+                                : "${episode['subject']}",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ))
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -899,12 +496,21 @@ class _ChapterscreenState extends State<Chapterscreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(
-                            Icons.bookmark_outline,
+                          icon: Icon(
+                            bookmarkedSections.contains(episodeId)
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
                             color: Colors.grey,
                           ),
                           onPressed: () {
-                            // Handle bookmark functionality
+                            setState(() {
+                              // Toggle the bookmark state.
+                              if (bookmarkedSections.contains(episodeId)) {
+                                bookmarkedSections.remove(episodeId);
+                              } else {
+                                bookmarkedSections.add(episodeId);
+                              }
+                            });
                           },
                         ),
                         // Share Button
@@ -914,6 +520,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                             color: Colors.grey,
                           ),
                           onPressed: () {
+                            share();
                             // Handle share functionality
                           },
                         ),
@@ -1012,20 +619,43 @@ class _ChapterscreenState extends State<Chapterscreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildChapterContent(),
+                        if (podcasts.isNotEmpty)
+                          buildEpisodeCarousel(podcasts, "Just For You"),
+                        // Chapter List rendering
                         const SizedBox(height: 20),
-                        // Iterate over carousel data and create carousel for "interest_led" and "scientist"
+
+                        _buildChapterContent(),
+                        const SizedBox(height: 10),
+
+                        // Spacing between chapter list and carousels
+                        // const SizedBox(height: 20),
+
+                        // Render carousels dynamically from carouselData
                         ...carouselData.map((carousel) {
-                          if (carousel['type'] == 'interest_led' ||
-                              carousel['type'] == 'scientist') {
-                            return buildCarousel(
-                                carousel['title'], carousel['items']);
-                          } else if (carousel['type'] == 'episode') {
-                            return buildEpisodeCarousel(carousel['items']);
-                          }
-                          return SizedBox
-                              .shrink(); // In case the type doesn't match anything
+                          return Column(
+                            children: [
+                              if ((carousel['type'] == 'interest_led' ||
+                                      carousel['type'] ==
+                                          'famous_personality') &&
+                                  carousel['items'] != null &&
+                                  carousel['items'].isNotEmpty)
+                                buildCarousel(carousel['title'],
+                                    carousel['items'], carousel['type']),
+
+                              if (carousel['type'] == 'episode' &&
+                                  carousel['episodes'] != null &&
+                                  carousel['episodes'].isNotEmpty)
+                                buildEpisodeCarousel(
+                                    carousel['episodes'], carousel['title']),
+
+                              // Add spacing between carousels
+                              const SizedBox(height: 20),
+                            ],
+                          );
                         }).toList(),
+
+                        // Spacing below the last carousel
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -1055,9 +685,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            // const SizedBox(height: 10),
             SizedBox(
-              height: 350, // Giving a constrained height to the PageView
+              height: 330, // Giving a constrained height to the PageView
               child: PageView.builder(
                 controller: PageController(viewportFraction: 0.9),
                 itemCount: (chapters.length / 4).ceil(),
@@ -1104,11 +734,12 @@ class _ChapterscreenState extends State<Chapterscreen> {
       backgroundColor: Colors.transparent,
       automaticallyImplyLeading: false,
       elevation: 0,
-      title: const Text("GlutaClass",
-          style: TextStyle(
+      centerTitle: false,
+      title: Text("GlutaClass",
+          style: GoogleFonts.raleway(
             fontSize: 24,
             color: Colors.white,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
           )),
       actions: [
         // Display selected class on the right side of the app bar
@@ -1159,7 +790,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                     chapter['name'],
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       color: Colors.white,
                     ),
                     maxLines: 2,
@@ -1167,7 +798,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Chapter ${chapter['chapterNo']} • ${chapter['sections'].length} Sections • ${chapter['timeToComplete']} mins",
+                    "${chapter['sections'].length} Sections • ${chapter['timeToComplete']} mins",
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,

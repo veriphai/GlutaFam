@@ -23,7 +23,7 @@ class LandingScreen extends StatelessWidget {
                       Text(
                         "GlutaClass",
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.raleway(
                           fontSize: 36,
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -38,9 +38,18 @@ class LandingScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 30),
                       Text(
-                        "Interest-led Audio Lessons for Your Curriculum",
+                        "Interest-led Audio Lessons",
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.raleway(
+                          fontSize: 24,
+                          color: Color.fromRGBO(182, 182, 182, 1),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        "for Your Curriculum",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.raleway(
                           fontSize: 24,
                           color: Color.fromRGBO(182, 182, 182, 1),
                           fontWeight: FontWeight.w700,
@@ -59,18 +68,18 @@ class LandingScreen extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => OnboardingScreenV2()),
                 );
               },
-              child: Text(
-                'Get Started',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
               style: ElevatedButton.styleFrom(
                 minimumSize:
                     Size.fromHeight(50), // Make the button fill the width
                 backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+              ),
+              child: Text(
+                'Get Started',
+                style: GoogleFonts.nunito(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

@@ -70,11 +70,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyC2exTnrvCadz1qEZCJgEQKgePNEayN3uM',
-    appId: '1:290193356646:ios:f250f163b792830e79baa7',
-    messagingSenderId: '290193356646',
-    projectId: 'glutafam',
-    storageBucket: 'glutafam.appspot.com',
+    apiKey: 'AIzaSyCg4QmAXGEB7quxji9a7KxXjnG5cjwstgc',
+    appId: '1:550557666388:ios:0e682e3eb390ed398f31c1',
+    messagingSenderId: '550557666388',
+    projectId: 'glutafam-4aa2f',
+    storageBucket: 'glutafam-4aa2f.appspot.com',
     iosBundleId: 'com.example.eurekaApp',
   );
 
@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     projectId: 'glutafam-4aa2f',
     storageBucket: 'glutafam-4aa2f.appspot.com',
   );
-
 }

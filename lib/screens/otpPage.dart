@@ -1,5 +1,6 @@
 import "dart:async";
 import "dart:math";
+import "package:eureka_app/apis/authApi.dart";
 import "package:eureka_app/screens/ncertPodcasts/classSelection.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
@@ -98,6 +99,7 @@ class _OtpPageState extends State<OtpPage> {
         if (idToken != null) {
           await secureStorage.write(key: "IdToken", value: idToken);
           // Send token to the backend...
+          await sendIdTokenToBackend();
         }
       } catch (e) {
         print("Failed to get ID token: $e");
@@ -143,14 +145,21 @@ class _OtpPageState extends State<OtpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          automaticallyImplyLeading: true,
+          elevation: 0,
+          iconTheme: const IconThemeData(
+            color: Colors.white, // Set the back button color to white
+          )),
       body: SingleChildScrollView(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            // crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              const SizedBox(height: 100),
+              const SizedBox(height: 10),
               // Heading
               Align(
                 alignment: Alignment.centerLeft,
@@ -175,100 +184,106 @@ class _OtpPageState extends State<OtpPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 100),
+              const SizedBox(height: 60),
               // Image in the center
-              Center(
-                child: Image.asset(
-                  'lib/assets/signup.png', // Replace with your image asset
-                  width: 300,
-                  height: 300,
-                ),
-              ),
-              const SizedBox(height: 100),
+              // Center(
+              //   child: Image.asset(
+              //     'lib/assets/signup.png', // Replace with your image asset
+              //     width: 300,
+              //     height: 300,
+              //   ),
+              // ),
+              // const SizedBox(height: 60),
               // OTP Input Field
-              TextField(
-                controller: _otpController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [LengthLimitingTextInputFormatter(6)],
-                decoration: InputDecoration(
-                  labelText: "Enter OTP",
-                  labelStyle: const TextStyle(
-                    color: Colors.orange,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  contentPadding:
-                      const EdgeInsets.only(left: 20, top: 16, bottom: 16),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Colors.orange,
-                      width: 2,
+              Padding(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  child: Column(children: [
+                    TextField(
+                      controller: _otpController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [LengthLimitingTextInputFormatter(6)],
+                      decoration: InputDecoration(
+                        labelText: "Enter OTP",
+                        labelStyle: const TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        contentPadding: const EdgeInsets.only(
+                            left: 20, top: 16, bottom: 16),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Colors.orange,
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: const BorderSide(
+                            color: Colors.orange,
+                            width: 2,
+                          ),
+                        ),
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                      ),
+                      style: GoogleFonts.nunito(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _errorMessage = "";
+                        });
+                      },
                     ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(
-                      color: Colors.orange,
-                      width: 2,
-                    ),
-                  ),
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                ),
-                style: GoogleFonts.nunito(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _errorMessage = "";
-                  });
-                },
-              ),
-              if (_errorMessage.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    _errorMessage,
-                    style: const TextStyle(color: Colors.red, fontSize: 14),
-                  ),
-                ),
-              const SizedBox(height: 32),
-              // Display loading spinner if OTP is being verified
-              _isLoading
-                  ? CircularProgressIndicator(
-                      color: Colors.orange, // Spinner color
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(100),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 58,
-                          child: ElevatedButton(
-                            onPressed: _isLoading
-                                ? null
-                                : _verifyOtp, // Disable button during loading
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromRGBO(
-                                  255, 217, 0, 1), // Button color
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(100),
-                              ),
-                            ),
-                            child: Text(
-                              "Confirm",
-                              style: GoogleFonts.nunito(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black, // Text color
+                    if (_errorMessage.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _errorMessage,
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 14),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    // Display loading spinner if OTP is being verified
+                    _isLoading
+                        ? CircularProgressIndicator(
+                            color: Colors.orange, // Spinner color
+                          )
+                        : Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 0.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(100),
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: 58,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading
+                                      ? null
+                                      : _verifyOtp, // Disable button during loading
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color.fromRGBO(
+                                        255, 217, 0, 1), // Button color
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "Confirm",
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black, // Text color
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
+                  ])),
             ],
           ),
         ),

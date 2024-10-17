@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ClassSelectionPage extends StatefulWidget {
   @override
@@ -91,7 +94,7 @@ class _ClassSelection extends State<ClassSelectionPage> {
           alignment: WrapAlignment.center,
           spacing: 20,
           runSpacing: 20,
-          children: List.generate(8, (index) {
+          children: List.generate(6, (index) {
             int classNumber = index + 5;
             bool isSelected = selectedClass == classNumber;
             return GestureDetector(
@@ -187,10 +190,51 @@ class _ClassSelection extends State<ClassSelectionPage> {
 
   Future<void> classSelected() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('firstLaunch', false);
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => Chapterscreen()),
-    );
+    final secureStorage = FlutterSecureStorage();
+
+    // Retrieve the saved class and auth token
+    int? selectedClass = prefs.getInt('selected_class');
+    String? authToken = await secureStorage.read(key: "authKey");
+
+    // Check if authToken and selectedClass are valid
+    if (authToken != null && selectedClass != null) {
+      // Prepare the API URL (replace with your actual backend URL)
+      final url = 'https://glutaclass.com:8080/gluta/fam/profile';
+
+      try {
+        // Make the POST request with the Authorization header
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            "Authorization":
+                "Bearer $authToken", // Pass the token in the header
+            "Content-Type": "application/json"
+          },
+          body: jsonEncode({
+            "standard":
+                selectedClass, // Include the selected class in the request body
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          // If the API call is successful, navigate to the next screen
+          print("Class selection saved successfully");
+          await prefs.setBool('firstLaunch', false);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => Chapterscreen()),
+            (Route<dynamic> route) => false, // Removes all previous routes
+          );
+        } else {
+          // Handle API errors
+          print("Failed to save class selection: ${response.statusCode}");
+        }
+      } catch (e) {
+        // Handle any errors during the HTTP request
+        print("Error occurred while saving class selection: $e");
+      }
+    } else {
+      print("Auth token or selected class is missing");
+    }
   }
 }

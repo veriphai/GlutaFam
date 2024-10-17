@@ -16,10 +16,8 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Visual Studio Code related
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -27,9 +25,40 @@ migrate_working_dir/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.flutter-plugins-private
+.packages
 .pub-cache/
 .pub/
 /build/
+**/ios/build/
+**/android/app/build/
+**/android/.gradle/
+**/android/.idea/
+**/android/local.properties
+**/android/.gradle/
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/android/.idea/
+**/android/.settings/
+**/android/captures/
+**/android/gradle/
+**/android/app/local.properties
+**/android/gradlew
+**/android/gradlew.bat
+**/android/gradle-wrapper.properties
+
+# macOS related
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/Flutter.podspec
+**/macos/.flutter-plugins
+**/macos/.flutter-plugins-dependencies
+
+# Windows related
+**/windows/flutter/ephemeral/
+
+# Web related
+**/web/flutter/ephemeral/
 
 # Symbolication related
 app.*.symbols
@@ -41,3 +70,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Xcode specific
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ServiceDefinitions.json
+**/ios/.generated/
+
+# CocoaPods related
+**/ios/Podfile.lock
+**/ios/.flutter-plugins/
+**/ios/.flutter-plugins-dependencies/

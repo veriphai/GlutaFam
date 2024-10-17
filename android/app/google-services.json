@@ -12,7 +12,44 @@
           "package_name": "com.gluta.glutafam"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "550557666388-d7c6s8f5g2u806a34oigl53ev5nfkn74.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gluta.glutafam",
+            "certificate_hash": "0c015e5fbb4b5c62e753ca934c547e606a282ac6"
+          }
+        },
+        {
+          "client_id": "550557666388-gd06ubq9gcvkifj6adv4fk3s59989a0s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gluta.glutafam",
+            "certificate_hash": "b38290b83aa11b478934cee15261d783712edcbe"
+          }
+        },
+        {
+          "client_id": "550557666388-ht9dd5ggmgavpkviqmg83uubo6s5vegl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gluta.glutafam",
+            "certificate_hash": "fef6bf81c9749b954e3afe88ce63fa7445a47258"
+          }
+        },
+        {
+          "client_id": "550557666388-qj15pqkp8k0atf2vdksegfgp01j7ep8q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gluta.glutafam",
+            "certificate_hash": "829481ab2c6f9cfb087ff9b9c05b27e7ba0e4245"
+          }
+        },
+        {
+          "client_id": "550557666388-63droq2fcbdbp6b0is1seudikinugev3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDPgVAU8njyBAsllR5S6lnMbynAYj5NcPk"
@@ -20,7 +57,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "550557666388-63droq2fcbdbp6b0is1seudikinugev3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "550557666388-s22v50bou60prpld306p4ml35qt34gav.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.eurekaApp"
+              }
+            }
+          ]
         }
       }
     }

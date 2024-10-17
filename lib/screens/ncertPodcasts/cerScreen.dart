@@ -164,11 +164,29 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
 
   Widget _buildClaimTab() {
     final options = widget.data['claimSelection']['options'] as List<dynamic>;
-    final List<Color> claimColors = [
-      Colors.blue,
-      Color.fromRGBO(220, 21, 140, 1),
-      Colors.green,
-      Colors.purple,
+
+    // Define gradient colors similar to the previous solid colors
+    final List<LinearGradient> claimGradients = [
+      LinearGradient(
+        colors: [Colors.blue.shade500, Colors.blue.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
+      LinearGradient(
+        colors: [Color.fromRGBO(220, 21, 140, 1), Colors.pink.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
+      LinearGradient(
+        colors: [Colors.green.shade500, Colors.green.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
+      LinearGradient(
+        colors: [Colors.purple.shade500, Colors.purple.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
     ];
 
     return Column(
@@ -178,7 +196,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
             itemCount: options.length,
             itemBuilder: (context, index) {
               final option = options[index];
-              final color = claimColors[index % claimColors.length];
+              final gradient = claimGradients[index % claimGradients.length];
 
               return Padding(
                 padding:
@@ -187,13 +205,12 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                   onTap: () {
                     setState(() {
                       selectedClaim = option['id'];
-                      // isClaimCompleted = true; // Mark the claim as completed.
                     });
                   },
-                  child: Card(
-                    color: color,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: gradient, // Apply the gradient to the card
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Stack(
                       children: [
@@ -216,7 +233,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                               child: Container(
                                 width: 20,
                                 height: 20,
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Colors.white,
                                 ),
@@ -239,39 +256,36 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: selectedClaim != null
-                    ? () {
-                        isClaimCompleted = true;
-                        _tabController.animateTo(1);
-                      }
-                    : null, // Disable the button if no claim is selected
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                    (Set<MaterialState> states) {
-                      if (states.contains(MaterialState.disabled)) {
-                        return Colors.grey; // Color when the button is disabled
-                      }
-                      return Color.fromRGBO(
-                          255, 217, 0, 1); // Color when the button is enabled
-                    },
-                  ),
-                  shape: MaterialStateProperty.all(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: selectedClaim != null
+                  ? () {
+                      isClaimCompleted = true;
+                      _tabController.animateTo(1);
+                    }
+                  : null, // Disable the button if no claim is selected
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                  (Set<MaterialState> states) {
+                    if (states.contains(MaterialState.disabled)) {
+                      return Colors.grey; // Color when the button is disabled
+                    }
+                    return const Color.fromRGBO(
+                        255, 217, 0, 1); // Color when the button is enabled
+                  },
+                ),
+                shape: MaterialStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-                child: const Text(
-                  'Submit',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )),
+              ),
+              child: const Text(
+                'Submit',
+                style: TextStyle(color: Colors.black, fontSize: 16),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -279,13 +293,39 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
 
   Widget _buildEvidenceTab() {
     final observations = widget.data['observations'] as List<dynamic>;
-    final List<Color> evidenceColors = [
-      Color.fromRGBO(220, 21, 140, 1),
-      Colors.green,
-      Colors.purple,
-      Color.fromRGBO(71, 125, 148, 1),
-      Colors.teal,
-      Colors.red,
+
+    // Define gradient colors similar to the previous solid colors
+    final List<LinearGradient> evidenceGradients = [
+      LinearGradient(
+        colors: [Color.fromRGBO(220, 21, 140, 1), Colors.pink.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
+      LinearGradient(
+        colors: [Colors.green.shade500, Colors.green.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
+      LinearGradient(
+        colors: [Colors.purple.shade500, Colors.purple.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
+      LinearGradient(
+        colors: [Color.fromRGBO(71, 125, 148, 1), Colors.blueGrey.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
+      LinearGradient(
+        colors: [Colors.red.shade500, Colors.red.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
+      LinearGradient(
+        colors: [Colors.teal.shade500, Colors.teal.shade900],
+        end: Alignment.topLeft,
+        begin: Alignment.bottomRight,
+      ),
     ];
 
     return Column(
@@ -296,7 +336,8 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
             itemBuilder: (context, index) {
               final observation = observations[index];
               final isSelected = selectedEvidence.contains(observation['id']);
-              final color = evidenceColors[index % evidenceColors.length];
+              final gradient =
+                  evidenceGradients[index % evidenceGradients.length];
 
               return Padding(
                 padding:
@@ -311,9 +352,9 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                       }
                     });
                   },
-                  child: Card(
-                    color: color,
-                    shape: RoundedRectangleBorder(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: gradient, // Apply the gradient to the card
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Stack(
@@ -337,7 +378,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                               child: Container(
                                 width: 20,
                                 height: 20,
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Colors.white,
                                 ),
@@ -375,7 +416,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                       if (states.contains(MaterialState.disabled)) {
                         return Colors.grey; // Color when the button is disabled
                       }
-                      return Color.fromRGBO(
+                      return const Color.fromRGBO(
                           255, 217, 0, 1); // Color when the button is enabled
                     },
                   ),
