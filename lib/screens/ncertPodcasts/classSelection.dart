@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -28,6 +29,16 @@ class _ClassSelection extends State<ClassSelectionPage> {
       "bottomBoldText": "audio lessons"
     }
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Log the event when this page is opened using the generic function
+    logPageOpenEvent(
+      screenName: "ClassSelectionPage",
+      eventDetails: {"description": "User opened the class selection page"},
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +209,15 @@ class _ClassSelection extends State<ClassSelectionPage> {
 
     // Check if authToken and selectedClass are valid
     if (authToken != null && selectedClass != null) {
+      int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      Map<String, dynamic> eventDetails = {"selectedClass": selectedClass};
+
+      await logEvent(
+        eventType: "buttonClick",
+        screenName: "ClassSelectionPage",
+        eventDetails: eventDetails,
+        eventTime: currentTimestamp,
+      );
       // Prepare the API URL (replace with your actual backend URL)
       final url = 'https://glutaclass.com:8080/gluta/fam/profile';
 

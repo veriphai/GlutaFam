@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerEvaluationScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -23,10 +24,19 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
   Set<String> selectedEvidence = {};
   bool isClaimCompleted = false;
   bool isEvidenceCompleted = false;
+  final String screenName = "CERScreen";
 
   @override
   void initState() {
     super.initState();
+    logPageOpenEvent(
+      screenName: screenName,
+      eventDetails: {
+        "description": "User opened the CER",
+        "chapterId": widget.chapterId,
+        "cerProblem": widget.data['problemStatement'],
+      },
+    );
     _tabController = TabController(length: 3, vsync: this);
 
     _tabController.addListener(() {
@@ -436,6 +446,22 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
     );
   }
 
+  Future<void> logEvents() async {
+    int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    Map<String, dynamic> eventDetails = {
+      "chapterId": widget.chapterId,
+      "cerProblem": widget.data['problemStatement'],
+      "description": "Clicked on CER Evaluation"
+    };
+
+    await logEvent(
+      eventType: "buttonClick",
+      screenName: screenName,
+      eventDetails: eventDetails,
+      eventTime: currentTimestamp,
+    );
+  }
+
   Widget _buildReasoningTab() {
     final TextEditingController reasoningController = TextEditingController();
 
@@ -474,6 +500,7 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
                     .map<String>(
                         (observation) => observation['text'].toString())
                     .toList();
+                logEvents();
                 Navigator.push(
                   context,
                   MaterialPageRoute(

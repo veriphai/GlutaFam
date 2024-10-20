@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
@@ -8,6 +9,7 @@ import 'sectionsListingScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class Chapterscreen extends StatefulWidget {
   final int standard = 8;
@@ -22,11 +24,14 @@ class _ChapterscreenState extends State<Chapterscreen> {
   Set<String> bookmarkedChapters = {};
   int standard = 8; // Default standard
   List<dynamic> carouselData = [];
+  final String screenName = "HomePage-ChapterListingScreen";
+
   Map<String, List<Map<String, dynamic>>> subjectChapters = {
     'Science': [],
     'Maths': [],
     'History': [],
     'Geography': [],
+    'English - It So Happened': []
   };
 
   List<dynamic> podcasts = [];
@@ -40,6 +45,19 @@ class _ChapterscreenState extends State<Chapterscreen> {
   void initState() {
     super.initState();
     _loadSelectedClass(); // Fetch the selected class before fetching chapters
+
+    Future<void> _setCurrentScreen() async {
+      await FirebaseAnalytics.instance
+          .logEvent(name: 'screen_view', parameters: {
+        'firebase_screen': "HomeScreen - Chapter Listing",
+        'firebase_screen_class': "Chapterscreen",
+      });
+    }
+
+    logPageOpenEvent(
+      screenName: "HomePage-ChapterListingScreen",
+      eventDetails: {"description": "User opened the chapter listing page"},
+    );
   }
 
   // Fetch the selected class from SharedPreferences
@@ -64,7 +82,21 @@ class _ChapterscreenState extends State<Chapterscreen> {
         fetchChapterList('Maths'),
         fetchChapterList('History'),
         fetchChapterList('Geography'),
+        fetchChapterList('English - It So Happened')
       ]);
+
+      int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      Map<String, dynamic> eventDetails = {
+        "selectedClass": standard,
+        "description": "Class Selection Button clicked"
+      };
+
+      await logEvent(
+        eventType: "buttonClick",
+        screenName: screenName,
+        eventDetails: eventDetails,
+        eventTime: currentTimestamp,
+      );
       setState(() {
         isLoading = false;
       });
@@ -677,7 +709,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                subject,
+                subject == 'English-1' ? 'English Read Along' : subject,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -687,7 +719,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
             ),
             // const SizedBox(height: 10),
             SizedBox(
-              height: 330, // Giving a constrained height to the PageView
+              height: 340, // Giving a constrained height to the PageView
               child: PageView.builder(
                 controller: PageController(viewportFraction: 0.9),
                 itemCount: (chapters.length / 4).ceil(),
@@ -705,14 +737,25 @@ class _ChapterscreenState extends State<Chapterscreen> {
                         final chapter = pageChapters[index];
                         return GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => Sectionscreen(
-                                  chapterId: chapter['id'],
+                            if (subject == 'Englis-1') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => Sectionscreen(
+                                    chapterId: chapter['id'],
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => Sectionscreen(
+                                    chapterId: chapter['id'],
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           child: _buildChapterItem(chapter),
                         );

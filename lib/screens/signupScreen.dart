@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../firebase_options.dart';
 import 'otpPage.dart';
 import 'package:flutter/services.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart'; // Import the package
 
 class Signupscreen extends StatefulWidget {
   const Signupscreen({super.key});
@@ -18,6 +19,8 @@ class _SignupscreenState extends State<Signupscreen> {
   String _phoneNumber = "";
   String _errorMessage = "";
   bool _isLoading = false; // Loading state
+  String initialCountry = 'IN'; // Default to India
+  PhoneNumber number = PhoneNumber(isoCode: 'IN'); // Default country code
 
   @override
   void initState() {
@@ -32,9 +35,9 @@ class _SignupscreenState extends State<Signupscreen> {
   }
 
   void _verifyPhoneNumber() async {
-    if (_phoneNumber.length != 10) {
+    if (_phoneNumber.length < 10) {
       setState(() {
-        _errorMessage = "Phone Number should be of 10 digits";
+        _errorMessage = "Please enter a valid phone number";
       });
       return;
     } else {
@@ -48,7 +51,7 @@ class _SignupscreenState extends State<Signupscreen> {
     });
 
     await FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: '+91$_phoneNumber',
+      phoneNumber: _phoneNumber, // Now includes country code
       verificationCompleted: (PhoneAuthCredential credential) {
         setState(() {
           _isLoading = false; // Stop loading on verification complete
@@ -128,31 +131,36 @@ class _SignupscreenState extends State<Signupscreen> {
                 ),
               ),
               const SizedBox(height: 60),
-              // Center Image
-              // Center(
-              //   child: Image.asset(
-              //     'lib/assets/signup.png', // Add your image path here
-              //     width: 300, // Adjust width accordingly
-              //     height: 300, // Adjust height accordingly
-              //   ),
-              // ),
-              // const SizedBox(height: 60),
-              // Phone Number Input
+
+              // Phone Number Input with Flag Selector
               Padding(
                 padding: EdgeInsets.only(bottom: 30),
                 child: Column(children: [
-                  TextField(
-                    controller: _controller,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter
-                          .digitsOnly, // Ensures only digits are entered
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: "Phone Number", // Floating label text
+                  InternationalPhoneNumberInput(
+                    onInputChanged: (PhoneNumber number) {
+                      setState(() {
+                        _phoneNumber = number.phoneNumber!;
+                      });
+                    },
+                    onInputValidated: (bool value) {
+                      print(value);
+                    },
+                    selectorConfig: SelectorConfig(
+                      selectorType: PhoneInputSelectorType.BOTTOM_SHEET,
+                      leadingPadding:
+                          10, // Reduce padding between flag and input
+                      useEmoji: true,
+                      setSelectorButtonAsPrefixIcon:
+                          true, // Align flag to the left
+                      trailingSpace: false, // Minimize space after country code
+                      showFlags: true, // Show flags only
+                    ),
+                    initialValue: number,
+                    textFieldController: _controller,
+                    inputDecoration: InputDecoration(
+                      labelText: "Phone Number",
                       labelStyle: TextStyle(
-                        color: Colors.orange, // Label color
+                        color: Colors.orange,
                         fontWeight: FontWeight.bold,
                       ),
                       contentPadding:
@@ -173,21 +181,18 @@ class _SignupscreenState extends State<Signupscreen> {
                           width: 2,
                         ),
                       ),
-                      floatingLabelBehavior: FloatingLabelBehavior
-                          .always, // Label floats automatically
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
                     ),
-                    style: GoogleFonts.nunito(
+                    formatInput: false,
+                    maxLength: 15,
+                    keyboardType: TextInputType.numberWithOptions(
+                        signed: true, decimal: true),
+                    textStyle: GoogleFonts.nunito(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
-                    onChanged: (value) {
-                      setState(() {
-                        _phoneNumber = value;
-                      });
-                    },
                   ),
-
                   if (_errorMessage.isNotEmpty)
                     Padding(
                         padding: EdgeInsets.only(top: 8),
@@ -199,6 +204,7 @@ class _SignupscreenState extends State<Signupscreen> {
                           ),
                         )),
                   const SizedBox(height: 20),
+
                   // Show loading spinner if OTP is being sent
                   _isLoading
                       ? CircularProgressIndicator(
@@ -213,15 +219,13 @@ class _SignupscreenState extends State<Signupscreen> {
                               width: double.infinity,
                               height: 58,
                               child: ElevatedButton(
-                                onPressed: _isLoading
-                                    ? null
-                                    : _verifyPhoneNumber, // Disable button while loading
+                                onPressed:
+                                    _isLoading ? null : _verifyPhoneNumber,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:
                                       Color.fromRGBO(255, 217, 0, 1),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        100), // Circular button
+                                    borderRadius: BorderRadius.circular(100),
                                   ),
                                 ),
                                 child: Text(
@@ -229,7 +233,7 @@ class _SignupscreenState extends State<Signupscreen> {
                                   style: GoogleFonts.nunito(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black, // Text color
+                                    color: Colors.black,
                                   ),
                                 ),
                               ),

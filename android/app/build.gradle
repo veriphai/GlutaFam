@@ -83,7 +83,17 @@ flutter {
 dependencies {
     implementation 'com.google.gms:google-services:4.3.15'
     implementation 'com.google.firebase:firebase-bom:32.7.0'
+    implementation 'com.google.firebase:firebase-analytics'
+    
+
 }
+
+// configurations.all {
+//     resolutionStrategy {
+//         // Use a stable version of androidx.core:core-ktx
+//         force 'androidx.core:core-ktx:1.13.1'  // You can also use newer versions like 1.8.0
+//     }
+// }
 
 
 apply plugin: 'com.google.gms.google-services'

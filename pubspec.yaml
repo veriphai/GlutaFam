@@ -4,7 +4,7 @@ description: "Bond constructively with your child"
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+4
+version: 1.0.1+6
 
 environment:
   sdk: ^3.1.1
@@ -21,7 +21,7 @@ dependencies:
   url_launcher: ^6.2.5
   flutter_local_notifications: ^9.0.0
   timezone: ^0.8.0
-  device_info_plus: ^10.0.0
+  device_info_plus: ^9.1.2
   shared_preferences: ^2.2.3
   smooth_page_indicator: ^1.1.0
   google_fonts: ^6.2.1
@@ -39,6 +39,11 @@ dependencies:
   fluttertoast: ^8.2.8
   share_plus: ^10.0.3
   google_sign_in: ^6.2.0
+  intl_phone_number_input: ^0.7.4
+  firebase_analytics: ^11.3.3
+  flutter_native_splash: ^2.4.1
+  libphonenumber_plugin: ^0.3.3
+  pdfx: ^2.6.0
 
 dev_dependencies:
   flutter_test:
@@ -50,3 +55,11 @@ flutter:
   uses-material-design: true
   assets:
     - lib/assets/
+
+flutter_native_splash:
+  color: "#000000" # Background color
+  image: assets/logo-latest.png # Path to your logo or splash image
+  android: true
+  ios: true
+  fullscreen: true # Optional: Set to true for full-screen splash
+  android_gravity: center # Gravity for the splash image on Android (center)

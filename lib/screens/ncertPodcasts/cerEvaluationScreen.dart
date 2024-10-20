@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:flutter/material.dart';
 
@@ -34,6 +35,7 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
   List<String> missingEvidences = [];
   bool isReasoningCorrect = false;
   bool isLoading = false;
+  final String screenName = "CEREvaluationScreen";
 
   @override
   Widget build(BuildContext context) {
@@ -400,6 +402,22 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
         style: const TextStyle(color: Colors.white, fontSize: 16),
       );
     }
+  }
+
+  Future<void> logEvents() async {
+    int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    Map<String, dynamic> eventDetails = {
+      "chapterId": widget.chapterId,
+      "cerProblem": widget.problemStatement,
+      "description": "CER Evaluated"
+    };
+
+    await logEvent(
+      eventType: "buttonClick",
+      screenName: screenName,
+      eventDetails: eventDetails,
+      eventTime: currentTimestamp,
+    );
   }
 
   void evaluateCER() {

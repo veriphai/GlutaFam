@@ -19,6 +19,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import './screens/homeScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_analytics/observer.dart';
 
 // Ensure this path matches your file structure
 
@@ -39,6 +41,9 @@ void main() async {
 class MyApp extends StatelessWidget {
   final bool firstLaunch;
 
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  static FirebaseAnalyticsObserver observer =
+      FirebaseAnalyticsObserver(analytics: analytics);
   const MyApp({super.key, required this.firstLaunch});
 
   @override
@@ -63,6 +68,10 @@ class MyApp extends StatelessWidget {
                       fontSizeFactor: 1.0,
                     ),
               ),
+
+              navigatorObservers: [
+                observer,
+              ],
               debugShowCheckedModeBanner: false,
               home: firstLaunch ? LandingScreen() : Chapterscreen(),
               // home: firstLaunch ? LoginScreen() : LoginScreen(),

@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:share_plus/share_plus.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class Sectionscreen extends StatefulWidget {
   final String chapterId;
@@ -21,9 +23,12 @@ class Sectionscreen extends StatefulWidget {
 class _SectionscreenState extends State<Sectionscreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final String screenName = "SectionListingScreen";
 
   String chapterName = '';
   String chapterImage = '';
+  String pdfUrl = '';
+
   int chapterNo = 0;
   String subject = '';
   int standard = 0;
@@ -61,6 +66,7 @@ class _SectionscreenState extends State<Sectionscreen>
           subject = data['subject'] ?? 'Unknown Subject';
           sections = data['sections'] ?? [];
           standard = data['standard'] ?? 0;
+          pdfUrl = data['pdfUrl'] ?? '';
           isLoading = false;
         });
       } else {
@@ -163,9 +169,23 @@ class _SectionscreenState extends State<Sectionscreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    logPageOpenEvent(
+      screenName: screenName,
+      eventDetails: {
+        "description": "User opened the section listing page",
+        "chapterId": widget.chapterId
+      },
+    );
     fetchInterestLedDetails();
 
     fetchChapterDetails().then((_) => fetchSimulations());
+    Future<void> _setCurrentScreen() async {
+      await FirebaseAnalytics.instance
+          .logEvent(name: 'screen_view', parameters: {
+        'firebase_screen': "Section Listing Screen",
+        'firebase_screen_class': "Sectionscreen",
+      });
+    }
   }
 
   @override
@@ -394,6 +414,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                       [0]
                                                   : <String, dynamic>{},
                                               chapterId: widget.chapterId,
+                                              pdfUrl: pdfUrl,
                                             ),
                                           ),
                                         );
@@ -478,7 +499,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                       horizontal: 8.0,
                                                     ),
                                                     child: Text(
-                                                      "${sections[index]['timeToComplete']} mins",
+                                                      "${(sections[index]['timeToComplete'] / 60).ceil()} mins",
                                                       style: const TextStyle(
                                                         fontSize: 14,
                                                         color: Colors.grey,
@@ -665,6 +686,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                           dynamic>{},
                                                                   chapterId: widget
                                                                       .chapterId,
+                                                                  pdfUrl:
+                                                                      pdfUrl,
                                                                 ),
                                                               ),
                                                             );
@@ -728,6 +751,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                       ['cer']
                                                   : <String, dynamic>{},
                                               chapterId: widget.chapterId,
+                                              pdfUrl: pdfUrl,
                                             ),
                                           ),
                                         );

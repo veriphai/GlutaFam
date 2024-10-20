@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
@@ -33,6 +34,7 @@ class _PodcastListingScreenState extends State<PodcastListingScreen>
   Set<String> bookmarkedSections = {};
   Set<String> bookmarkedInterestLedLesson = {};
   List<dynamic> podcasts = [];
+  final String screenName = "PodcastListingScreen";
 
   bool isBookmarked = false;
 
@@ -75,6 +77,15 @@ class _PodcastListingScreenState extends State<PodcastListingScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 1, vsync: this);
+    logPageOpenEvent(
+      screenName: screenName,
+      eventDetails: {
+        "description": "User opened the podcast listing screen",
+        "standard": widget.standard,
+        "filter": widget.filter,
+        "searchParam": widget.searchParam
+      },
+    );
     fetchPodcasts();
   }
 

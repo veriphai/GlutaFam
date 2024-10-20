@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -17,6 +18,14 @@ class _SimulationScreenState extends State<SimulationScreen> {
   @override
   void initState() {
     super.initState();
+
+    logPageOpenEvent(
+      screenName: "SimulationScreen",
+      eventDetails: {
+        "description": "User opened the simulation",
+        "simulationUrl": widget.simulationUrl
+      },
+    );
 
     // Ensure that WebView is initialized for the platform
     _controller = WebViewController()
