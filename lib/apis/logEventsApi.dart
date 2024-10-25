@@ -28,30 +28,28 @@ Future<void> logEvent({
   // Retrieve the auth token from secure storage
   final authToken = await secureStorage.read(key: 'authKey');
 
-  if (authToken == null) {
-    throw Exception("Authorization token is missing.");
-  }
+  if (authToken != null) {
+    final body = {
+      "eventType": eventType,
+      "screenName": screenName,
+      "eventDetails": eventDetails,
+      "eventTime": eventTime,
+    };
 
-  final body = {
-    "eventType": eventType,
-    "screenName": screenName,
-    "eventDetails": eventDetails,
-    "eventTime": eventTime,
-  };
+    // Construct the request
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {
+        'Authorization': 'Bearer $authToken', // Use the stored auth token
+        'Content-Type': 'application/json',
+      },
+      body: json.encode(body),
+    );
 
-  // Construct the request
-  final response = await http.post(
-    Uri.parse(apiUrl),
-    headers: {
-      'Authorization': 'Bearer $authToken', // Use the stored auth token
-      'Content-Type': 'application/json',
-    },
-    body: json.encode(body),
-  );
-
-  if (response.statusCode == 200) {
-    print("Event logged successfully: $body");
-  } else {
-    throw Exception("Failed to log event. Status code: ${response.statusCode}");
+    if (response.statusCode == 200) {
+      print("Event logged successfully: $body");
+    } else {
+      print("Failed to log event. Status code: ${response.statusCode}");
+    }
   }
 }

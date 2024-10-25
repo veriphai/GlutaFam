@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 
 class Chapterscreen extends StatefulWidget {
   final int standard = 8;
@@ -37,6 +38,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
   bool hasError = false;
 
   Set<String> bookmarkedSections = {};
+
+  final http.Client client = http.Client();
 
   @override
   void initState() {
@@ -76,11 +79,10 @@ class _ChapterscreenState extends State<Chapterscreen> {
       // Fetch chapters for each subject
       await Future.wait([
         fetchChapterList('Science'),
-        fetchChapterList('Maths'),
-        fetchChapterList('History'),
-        fetchChapterList('Geography'),
         fetchChapterList('English - It So Happened')
       ]);
+      // await fetchChapterList('Science');
+      // await fetchChapterList('English - It So Happened');
 
       int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       Map<String, dynamic> eventDetails = {
@@ -112,12 +114,17 @@ class _ChapterscreenState extends State<Chapterscreen> {
     try {
       print("Fetching recommended-podcasts details from API: $url");
 
-      final response = await http.get(Uri.parse(url));
-      print("response: ${json.decode(response.body)}");
+      final response = await client.get(
+        Uri.parse(url),
+        headers: {
+          'Accept-Encoding': 'gzip', // Enable gzip compression
+        },
+      );
+      // print("response: ${json.decode(response.body)}");
 
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
-        print("Decoded data: $data");
+        // print("Decoded data: $data");
 
         // Use null-aware operators to assign default values if a key is missing or null.
         setState(() {
@@ -134,8 +141,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
     } catch (e) {
       setState(() {
         print("catch error $e");
-        isLoading = false;
-        hasError = true;
+        // isLoading = false;
+        // hasError = true;
       });
     }
   }
@@ -147,7 +154,12 @@ class _ChapterscreenState extends State<Chapterscreen> {
     try {
       print("Fetching data for $subject from API: $url");
 
-      final response = await http.get(Uri.parse(url));
+      final response = await client.get(
+        Uri.parse(url),
+        headers: {
+          'Accept-Encoding': 'gzip', // Enable gzip compression
+        },
+      );
       print("response for $subject: $response");
 
       if (response.statusCode == 200) {
@@ -237,7 +249,12 @@ class _ChapterscreenState extends State<Chapterscreen> {
     final String url =
         'https://glutaclass.com:8080/gluta/fam/carousal-data?standard=$standard'; // Replace with your actual API URL
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await client.get(
+        Uri.parse(url),
+        headers: {
+          'Accept-Encoding': 'gzip', // Enable gzip compression
+        },
+      );
       if (response.statusCode == 200) {
         setState(() {
           carouselData = json.decode(response.body);
@@ -245,12 +262,12 @@ class _ChapterscreenState extends State<Chapterscreen> {
         });
       } else {
         setState(() {
-          hasError = true;
+          // hasError = true;
         });
       }
     } catch (e) {
       setState(() {
-        hasError = true;
+        // hasError = true;
       });
     }
   }
