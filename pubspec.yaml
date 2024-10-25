@@ -44,6 +44,9 @@ dependencies:
   flutter_native_splash: ^2.4.1
   libphonenumber_plugin: ^0.3.3
   pdfx: ^2.6.0
+  flutter_sound: ^9.6.0
+  flutter_audio_waveforms: ^1.2.1+8
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_test:

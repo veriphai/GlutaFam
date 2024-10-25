@@ -28,9 +28,6 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
   Map<String, List<Map<String, dynamic>>> subjectChapters = {
     'Science': [],
-    'Maths': [],
-    'History': [],
-    'Geography': [],
     'English - It So Happened': []
   };
 

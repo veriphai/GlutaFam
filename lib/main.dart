@@ -6,7 +6,9 @@ import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
+import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/testing.dart';
 import 'package:eureka_app/screens/onboardingScreen.dart';
 import 'package:eureka_app/screens/onboardingScreenV2.dart';
 import 'package:eureka_app/screens/otpPage.dart';
@@ -73,8 +75,8 @@ class MyApp extends StatelessWidget {
                 observer,
               ],
               debugShowCheckedModeBanner: false,
-              home: firstLaunch ? LandingScreen() : Chapterscreen(),
-              // home: firstLaunch ? LoginScreen() : LoginScreen(),
+              // home: firstLaunch ? EndQuestionScreen() : EndQuestionScreen(),
+              home: firstLaunch ? Chapterscreen() : Chapterscreen(),
 
               routes: {
                 '/home': (context) => Chapterscreen(),
