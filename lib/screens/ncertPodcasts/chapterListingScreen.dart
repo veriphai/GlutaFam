@@ -278,6 +278,18 @@ class _ChapterscreenState extends State<Chapterscreen> {
     Share.share('Download GlutaClass App: $deepLink');
   }
 
+  String formatTimeToComplete(int timeInMillis) {
+    final int hours = (timeInMillis / (1000 * 60 * 60)).floor();
+    final int minutes =
+        ((timeInMillis % (1000 * 60 * 60)) / (1000 * 60)).floor();
+
+    if (hours > 0) {
+      return "$hours hr ${minutes.toString().padLeft(2, '0')} min";
+    } else {
+      return "$minutes min";
+    }
+  }
+
   // Carousel Widget for Interest and Scientist
   Widget buildCarousel(String title, List<dynamic> items, String type) {
     return Column(
@@ -452,6 +464,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
               chapterNo: episode['chapterNo'],
               cerData: episode['cer'] ?? <String, dynamic>{},
               chapterId: episode['chapterId'],
+              sectionNumber: episode['order'] - 1,
             ),
           ),
         );
@@ -628,6 +641,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                                   cerData:
                                       episode['cer'] ?? <String, dynamic>{},
                                   chapterId: episode['chapterId'],
+                                  sectionNumber: episode['order'] - 1,
                                 ),
                               ),
                             );
@@ -855,7 +869,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "${chapter['sections'].length} Sections • ${chapter['timeToComplete']} mins",
+                    "${chapter['sections'].length} Sections • ${formatTimeToComplete(chapter['timeToComplete'])}",
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,

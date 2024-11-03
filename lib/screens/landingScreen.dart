@@ -80,7 +80,7 @@ class _LandingScreenState extends State<LandingScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
             child: ElevatedButton(
               onPressed: () {
                 Navigator.push(

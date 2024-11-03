@@ -75,7 +75,7 @@ class MyApp extends StatelessWidget {
                 observer,
               ],
               debugShowCheckedModeBanner: false,
-              home: firstLaunch ? EndQuestionScreen() : EndQuestionScreen(),
+              home: firstLaunch ? LandingScreen() : Chapterscreen(),
               // home: firstLaunch ? LandingScreen() : Chapterscreen(),
 
               routes: {

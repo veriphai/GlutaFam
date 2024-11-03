@@ -300,6 +300,7 @@ class _PodcastListingScreenState extends State<PodcastListingScreen>
                                                   <String, dynamic>{},
                                               chapterId: podcasts[index]
                                                   ['chapterId'],
+                                              sectionNumber: index,
                                             ),
                                           ),
                                         );
@@ -595,6 +596,8 @@ class _PodcastListingScreenState extends State<PodcastListingScreen>
                                                                           index]
                                                                       [
                                                                       'chapterId'],
+                                                                  sectionNumber:
+                                                                      index,
                                                                 ),
                                                               ),
                                                             );

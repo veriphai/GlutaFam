@@ -3,12 +3,10 @@ import 'package:http/http.dart' as http;
 
 // Function to fetch chapter questions from API
 Future<Map<String, dynamic>?> fetchChapterQuestions(
-    {required int standard,
-    required int chapterNo,
-    required String subject}) async {
+    {required String chapterId}) async {
   try {
     final url =
-        'https://glutaclass.com:8080/gluta/fam/fetch-chapter-questions?standard=$standard&chapterNo=$chapterNo&subject=$subject';
+        'https://glutaclass.com:8080/gluta/fam/fetch-chapter-questions?chapterId=$chapterId';
 
     final response = await http.get(Uri.parse(url));
 

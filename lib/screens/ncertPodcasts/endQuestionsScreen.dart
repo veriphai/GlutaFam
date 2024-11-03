@@ -7,18 +7,28 @@ import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
+import 'dart:math';
+import 'package:audio_session/audio_session.dart' as audioSession;
+import 'package:http_parser/http_parser.dart';
 
 class EndQuestionScreen extends StatefulWidget {
-  const EndQuestionScreen({Key? key}) : super(key: key);
+  final String chapterId;
+
+  const EndQuestionScreen({Key? key, required this.chapterId})
+      : super(key: key);
 
   @override
   _EndQuestionScreenState createState() => _EndQuestionScreenState();
 }
 
-class _EndQuestionScreenState extends State<EndQuestionScreen> {
+class _EndQuestionScreenState extends State<EndQuestionScreen>
+    with SingleTickerProviderStateMixin {
   FlutterSoundRecorder? _audioRecorder;
+  FlutterSoundPlayer? _audioPlayer;
   bool _isRecording = false;
+  bool _showFeedback = false;
   bool _isLoading = false;
+  bool _questionAnswered = false;
 
   String? _audioPath;
   List<double> waveformData = []; // Data for the waveform visualization
@@ -26,33 +36,82 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
   int currentQuestionIndex = 0;
   int currentSubQuestionIndex = 0;
 
-  // Mock question data
-  final List<Map<String, dynamic>> mockQuestions = [
-    {
-      "question": "Explain how fertilsers are different from manure.",
-      "question_type": "subjective",
-      "answer":
-          "Manure is an organic substance obtained from the decomposition of plant or animal wastes but fertilsers are inorganic substance prepared in factories. Fertilsers are rich in nutrients but manure has relatively less nutrients. Manure do not harm the soil if used in greater quantity but fertilsers may harm the plants as well as soil. Manure is cheap and mostly prepared by farmers itself on the other hand fertilsers are costly and prepared in factories using chemicals."
-    }
+  String feedbackText = "";
+  String audioFeedbackPath = "";
+
+  late PageController _pageController;
+
+  // Animation controller for the flipping effect
+  late AnimationController _controller;
+  late Animation<double> _flipAnimation;
+
+  final List<LinearGradient> gradients = [
+    LinearGradient(
+      colors: [Colors.blueGrey[900]!, Colors.blueGrey[700]!],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Colors.deepPurple[900]!, Colors.deepPurple[700]!],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Colors.teal[900]!, Colors.teal[700]!],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    // LinearGradient(
+    //   colors: [Colors.orange[900]!, Colors.orange[700]!],
+    //   begin: Alignment.topLeft,
+    //   end: Alignment.bottomRight,
+    // ),
+    LinearGradient(
+      colors: [Colors.brown[900]!, Colors.brown[700]!],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Colors.indigo[900]!, Colors.indigo[700]!],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
   ];
+
+  late LinearGradient selectedGradient;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
+
     _audioRecorder = FlutterSoundRecorder();
+    _audioPlayer = FlutterSoundPlayer();
     _initializeRecorder();
     _loadChapterQuestions();
+    _initializeAudioSession();
+
+    // Initialize the animation controller
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(_controller);
+    _chooseNewGradient();
+  }
+
+  void _chooseNewGradient() {
+    final random = Random();
+    selectedGradient = gradients[random.nextInt(gradients.length)];
   }
 
   Future<void> _loadChapterQuestions() async {
-    // Replace these parameters with actual values if needed
-    int standard = 8;
-    int chapterNo = 1;
-    String subject = 'Science';
+    // int standard = 8;
+    // int chapterNo = 1;
+    // String subject = 'Science';
 
-    // Fetch chapter questions
-    final data = await fetchChapterQuestions(
-        standard: standard, chapterNo: chapterNo, subject: subject);
+    final data = await fetchChapterQuestions(chapterId: widget.chapterId);
 
     if (data != null) {
       setState(() {
@@ -64,20 +123,14 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
   }
 
   Future<void> _initializeRecorder() async {
-    // Request microphone permission
     await Permission.microphone.request();
-
-    // Initialize the audio recorder
     await _audioRecorder!.openRecorder();
     _audioRecorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
     _audioRecorder!.onProgress!.listen((event) {
       if (_isRecording) {
         setState(() {
-          // Update waveform data with real-time decibel values during recording
-          double decibels = (event.decibels ?? 0) + 100; // Mock waveform data
+          double decibels = (event.decibels ?? 0) + 100;
           waveformData.add(decibels);
-
-          // Keep waveformData length manageable for smoother visualization
           if (waveformData.length > 50) {
             waveformData.removeAt(0);
           }
@@ -86,38 +139,49 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
     });
   }
 
+  Future<void> _initializeAudioSession() async {
+    final session = await audioSession.AudioSession.instance;
+    await session.configure(audioSession.AudioSessionConfiguration(
+      avAudioSessionCategory: audioSession.AVAudioSessionCategory.playAndRecord,
+      avAudioSessionCategoryOptions:
+          audioSession.AVAudioSessionCategoryOptions.allowBluetooth |
+              audioSession.AVAudioSessionCategoryOptions.defaultToSpeaker,
+      avAudioSessionMode: audioSession.AVAudioSessionMode.spokenAudio,
+    ));
+  }
+
   @override
   void dispose() {
     _audioRecorder!.closeRecorder();
+    _audioPlayer!.closePlayer();
+    _controller.dispose();
     super.dispose();
   }
 
   Future<void> _toggleRecording() async {
+    if (_isLoading) {
+      return;
+    }
     if (_isRecording) {
-      // Stop recording
       await _audioRecorder!.stopRecorder();
-
-      // Ensure the audio file is saved at the specified path
       setState(() {
         _isRecording = false;
-        waveformData.clear(); // Clear the waveform after stopping
+        waveformData.clear();
       });
 
       if (_audioPath != null && _audioPath!.isNotEmpty) {
-        print('Audio path: $_audioPath'); // Debug line to check audio path
+        print('Audio path: $_audioPath');
         _sendAudioToBackend(File(_audioPath!));
       } else {
         print('Audio path is null or empty');
       }
     } else {
-      // Set the path where the audio file will be saved
       final tempDir = await getTemporaryDirectory();
       _audioPath = '${tempDir.path}/audio_record.wav';
 
-      // Start recording
       await _audioRecorder!.startRecorder(
-        toFile: _audioPath, // Use the absolute file path
-        codec: Codec.pcm16WAV, // Use WAV codec
+        toFile: _audioPath,
+        codec: Codec.pcm16WAV,
       );
 
       setState(() {
@@ -139,7 +203,6 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
             'https://glutaclass.com:8080/gluta/fam/evaluate-oral-answers'),
       );
 
-      // Add the audio file, question, and answer as form data
       final currentQuestion =
           chapterQuestions!['questions'][currentQuestionIndex];
       String questionText = currentQuestion['question'];
@@ -154,32 +217,35 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
         answer =
             currentQuestion['subQuestions'][currentSubQuestionIndex]['answer'];
       }
-      print(questionText);
-      print(answer);
-      request.files
-          .add(await http.MultipartFile.fromPath('audio', audioFile.path));
-      request.fields['questionText'] = questionText;
-      request.fields['answer'] = answer;
+      request.files.add(await http.MultipartFile.fromPath(
+        'audio',
+        audioFile.path,
+        contentType: MediaType('audio', 'wav'),
+      ));
+      request.fields['chapterQuestionsId'] = chapterQuestions!["id"];
+      request.fields['questionNumber'] = currentQuestionIndex.toString();
+      request.fields['subQuestionNumber'] = currentSubQuestionIndex.toString();
 
       final response = await request.send();
       if (response.statusCode == 200) {
         final responseData = await response.stream.bytesToString();
         final Map<String, dynamic> responseJson = json.decode(responseData);
 
-        // Get the evaluation result and audio message from the response
-        final evaluationResult =
-            responseJson['evaluationResponse']['evaluationResult'];
         final evaluationMessage = responseJson['evaluationResponse']['message'];
         final audioBase64 = responseJson['evaluationResponse']['audioMessage'];
 
-        // Decode base64 audio and play it
+        setState(() {
+          feedbackText = evaluationMessage;
+          _showFeedback = true;
+          _questionAnswered = true;
+        });
+
+        // Flip the card when showing feedback
+        _controller.forward();
+
         if (audioBase64 != null) {
           _playBase64Audio(audioBase64);
         }
-
-        // You can show the evaluation result and message to the user
-        print('Evaluation Result: $evaluationResult');
-        print('Evaluation Message: $evaluationMessage');
       } else {
         print('Failed to upload audio. Status code: ${response.statusCode}');
       }
@@ -194,71 +260,60 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
 
   Future<void> _playBase64Audio(String base64Audio) async {
     try {
-      // Decode the base64 string to binary data
       final audioBytes = base64Decode(base64Audio);
-
-      // Get the temporary directory to save the audio file
       final tempDir = await getTemporaryDirectory();
       final audioFile = File('${tempDir.path}/response_audio.wav');
-
-      // Write the binary data to a file
       await audioFile.writeAsBytes(audioBytes);
+      audioFeedbackPath = audioFile.path;
 
-      // Initialize FlutterSoundPlayer
-      final player = FlutterSoundPlayer();
-      await player.openPlayer(); // Open the player session
-
-      // Subscribe to player events to handle when the audio finishes
-      player.setSubscriptionDuration(
-          Duration(milliseconds: 500)); // Adjust as needed
-      player.onProgress!.listen((event) {
-        if (event.position == event.duration) {
-          // Playback is complete
-          player.stopPlayer();
-          player.closePlayer();
-        }
-      });
-
-      // Play the saved audio file
-      await player.startPlayer(fromURI: audioFile.path);
+      await _audioPlayer!.openPlayer();
+      await _audioPlayer!.startPlayer(fromURI: audioFile.path);
     } catch (e) {
       print('Error playing base64 audio: $e');
     }
   }
 
-  void _goToNext() {
+  void _goToNext() async {
+    if (_audioPlayer!.isPlaying) {
+      await _audioPlayer!.pausePlayer();
+    }
+
+    final isFront = _controller.value <= 0.5;
+
+    // If the card is showing the back (feedback), flip it to the front before moving to the next question
+    if (!isFront) {
+      await _controller.reverse();
+    }
+    setState(() {
+      _showFeedback = false;
+      _chooseNewGradient();
+    });
+
     if (chapterQuestions != null && chapterQuestions!['questions'] != null) {
       final questions = chapterQuestions!['questions'];
-
-      // Ensure there is a current question
       if (questions.isNotEmpty) {
         final currentQuestion = questions[currentQuestionIndex];
 
-        // Check if the current question has subQuestions
         if (currentQuestion['subQuestions'] != null &&
             currentQuestion['subQuestions'].isNotEmpty) {
-          // If more subquestions are available, go to the next subquestion
           if (currentSubQuestionIndex <
               currentQuestion['subQuestions'].length - 1) {
             setState(() {
               currentSubQuestionIndex++;
             });
           } else {
-            // If no more subquestions, move to the next question
             setState(() {
               currentSubQuestionIndex = 0;
               currentQuestionIndex++;
             });
           }
         } else {
-          // If there are no subquestions, move to the next question
           setState(() {
             currentSubQuestionIndex = 0;
             currentQuestionIndex++;
           });
         }
 
-        // Reset if we go beyond the last question
         if (currentQuestionIndex >= questions.length) {
           setState(() {
             currentQuestionIndex = 0;
@@ -269,28 +324,99 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    String mainQuestionText = "Loading question...";
-    String subQuestionText = "";
+  void _goToPrevious() async {
+    // Determine if the card is currently showing the front or back
+    if (_audioPlayer!.isPlaying) {
+      await _audioPlayer!.pausePlayer();
+    }
+    final isFront = _controller.value <= 0.5;
 
-    // Check if the questions are loaded and set the question text
+    // If the card is showing the back (feedback), flip it to the front before moving to the previous question
+    if (!isFront) {
+      await _controller.reverse();
+    }
+
+    setState(() {
+      _showFeedback = false; // Reset feedback state for the previous question
+      _chooseNewGradient();
+    });
+
     if (chapterQuestions != null && chapterQuestions!['questions'] != null) {
       final questions = chapterQuestions!['questions'];
-
-      // Ensure there is a question to display
-      if (questions.isNotEmpty && currentQuestionIndex < questions.length) {
+      if (questions.isNotEmpty) {
+        // If there are subQuestions, navigate within them
         final currentQuestion = questions[currentQuestionIndex];
 
-        // Set the main question text
+        if (currentQuestion['subQuestions'] != null &&
+            currentQuestion['subQuestions'].isNotEmpty) {
+          if (currentSubQuestionIndex > 0) {
+            // Go to the previous subQuestion
+            setState(() {
+              currentSubQuestionIndex--;
+            });
+          } else if (currentQuestionIndex > 0) {
+            // Go to the last subQuestion of the previous question if it exists
+            setState(() {
+              currentQuestionIndex--;
+              currentSubQuestionIndex =
+                  questions[currentQuestionIndex]['subQuestions']?.length ?? 0;
+              if (currentSubQuestionIndex > 0) {
+                currentSubQuestionIndex--; // Adjust to the last valid subQuestion
+              }
+            });
+          }
+        } else if (currentQuestionIndex > 0) {
+          // If there are no subQuestions, go to the previous question
+          setState(() {
+            currentQuestionIndex--;
+            currentSubQuestionIndex = 0;
+          });
+        }
+
+        // Wrap to the last question if we go below 0
+        if (currentQuestionIndex < 0) {
+          setState(() {
+            currentQuestionIndex = questions.length - 1;
+            currentSubQuestionIndex =
+                questions[currentQuestionIndex]['subQuestions']?.length ?? 0;
+            if (currentSubQuestionIndex > 0) {
+              currentSubQuestionIndex--;
+            }
+          });
+        }
+      }
+    }
+  }
+
+  void _flipCard() {
+    if (_showFeedback) {
+      setState(() {
+        if (_controller.isCompleted) {
+          _controller.reverse();
+        } else {
+          _controller.forward();
+        }
+      });
+    }
+  }
+
+  Widget build(BuildContext context) {
+    String mainQuestionText = "";
+    String subQuestionText = "";
+    Map<String, dynamic>? currentSubQuestion;
+
+    if (chapterQuestions != null && chapterQuestions!['questions'] != null) {
+      final questions = chapterQuestions!['questions'];
+      if (questions.isNotEmpty && currentQuestionIndex < questions.length) {
+        final currentQuestion = questions[currentQuestionIndex];
         mainQuestionText = currentQuestion["question"];
 
-        // Check if the current question has subQuestions and set the subQuestion text
         if (currentQuestion['subQuestions'] != null &&
             currentQuestion['subQuestions'].isNotEmpty &&
             currentSubQuestionIndex < currentQuestion['subQuestions'].length) {
-          subQuestionText = currentQuestion['subQuestions']
-              [currentSubQuestionIndex]['question'];
+          currentSubQuestion =
+              currentQuestion['subQuestions'][currentSubQuestionIndex];
+          subQuestionText = currentSubQuestion?['question'];
         }
       }
     }
@@ -300,9 +426,10 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: true,
-        title: Text(
-          'End Question Screen',
-          style: const TextStyle(
+        centerTitle: false,
+        title: const Text(
+          'Book Q&A',
+          style: TextStyle(
             fontSize: 24,
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -312,109 +439,362 @@ class _EndQuestionScreenState extends State<EndQuestionScreen> {
           color: Colors.white,
         ),
       ),
-      body: Padding(
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onHorizontalDragEnd: (details) {
+                        if (details.primaryVelocity != null) {
+                          // Swipe right
+                          if (details.primaryVelocity! > 0) {
+                            _goToPrevious();
+                          }
+                          // Swipe left
+                          else if (details.primaryVelocity! < 0) {
+                            _goToNext();
+                          }
+                        }
+                      },
+                      onTap: _flipCard,
+                      child: AnimatedBuilder(
+                        animation: _flipAnimation,
+                        builder: (context, child) {
+                          final angle = _flipAnimation.value * pi;
+                          final isFront = angle <= pi / 2;
+
+                          return Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.rotationY(angle),
+                            child: isFront
+                                ? _buildQuestionCard(
+                                    mainQuestionText,
+                                    subQuestionText,
+                                    constraints.maxWidth,
+                                    constraints.maxHeight - 150,
+                                    currentSubQuestion)
+                                : Transform(
+                                    alignment: Alignment.center,
+                                    transform: Matrix4.rotationY(pi),
+                                    child: _buildFeedbackCard(
+                                        constraints.maxWidth,
+                                        constraints.maxHeight - 150),
+                                  ),
+                          );
+                        },
+                      ),
+                    ),
+                    const Spacer(),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 30),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[850],
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 20,
+                                ),
+                                alignment: Alignment
+                                    .centerLeft, // Align text to the left
+
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.arrow_back_ios,
+                                color: Color.fromRGBO(255, 217, 0, 1),
+                              ),
+                              label: Text(
+                                'Previous',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              onPressed: _goToPrevious,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 60,
+                          ),
+                          Expanded(
+                              child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[850],
+                              padding: EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 20,
+                              ),
+                              alignment: Alignment
+                                  .centerRight, // Align text to the left
+
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: _goToNext,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Next',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(
+                                    width:
+                                        8), // Add some space between text and icon
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Color.fromRGBO(255, 217, 0, 1),
+                                ),
+                              ],
+                            ),
+                          ))
+                        ],
+                      ),
+                    )
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(String mainQuestionText, String subQuestionText,
+      double width, double height, Map<String, dynamic>? subQuestion) {
+    return Container(
+      width: width, // Use the full width available
+      height: height, // Use the full height available
+      decoration: BoxDecoration(
+        gradient: selectedGradient, // Apply the selected gradient
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(
-              '${currentQuestionIndex + 1}. $mainQuestionText',
-              style: const TextStyle(
+            // Question Number at the top
+            Align(
+              alignment: Alignment.topCenter,
+              child: Text(
+                'Question ${currentQuestionIndex + 1}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20), // Spacing after question number
+
+            // Center-aligned content
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    mainQuestionText,
+                    style: TextStyle(
+                      fontSize: subQuestionText.isNotEmpty ? 20 : 24,
+                      fontWeight: subQuestionText.isNotEmpty
+                          ? FontWeight.normal
+                          : FontWeight.w500,
+                      color: subQuestionText.isNotEmpty
+                          ? Colors.white70
+                          : Colors.white,
+                    ),
+                    textAlign:
+                        TextAlign.center, // Center-align the main question text
+                  ),
+                  if (subQuestionText.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      '${String.fromCharCode(97 + currentSubQuestionIndex)}) $subQuestionText',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                      textAlign:
+                          TextAlign.center, // Center-align the subquestion text
+                    ),
+                  ],
+                  if (subQuestion != null &&
+                      subQuestion.containsKey('options')) ...[
+                    const SizedBox(height: 20),
+                    _buildOptions(subQuestion['options'])
+                  ],
+                  // const SizedBox(
+                  //   height: 100,
+                  // ),
+                  Spacer(
+                    flex: 1,
+                  ),
+                  GestureDetector(
+                    onTap: _toggleRecording,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: _isRecording
+                            ? LinearGradient(
+                                colors: [Colors.redAccent, Colors.red],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : LinearGradient(
+                                colors: [
+                                  Color.fromRGBO(255, 217, 0, 1),
+                                  Color.fromRGBO(255, 217, 0, 1),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _isRecording
+                                ? Colors.redAccent
+                                : Color.fromRGBO(255, 217, 0, 1),
+                            blurRadius: 20,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: _isLoading
+                          ? SizedBox(
+                              width: 50, // Set the desired width
+                              height: 50, // Set the desired height
+                              child: Center(
+                                child: Transform.scale(
+                                  scale:
+                                      1, // Adjust this scale to make it bigger or smaller
+                                  child: CircularProgressIndicator(
+                                    color: Colors
+                                        .white, // Adjust the color to your preference
+                                    strokeWidth:
+                                        4.0, // Adjust the thickness of the progress indicator
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              _isRecording ? Icons.mic : Icons.mic_none,
+                              color: Colors.white,
+                              size: 50,
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _isLoading
+                        ? 'AI Tutor is validating your answer... Please wait'
+                        : (_isRecording
+                            ? 'Recording... Tap to submit answer'
+                            : 'Tap to answer'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign
+                        .center, // Center-align the microphone hint text
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptions(Map<String, dynamic> options) {
+    return Column(
+      children: options.entries.map((entry) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Text(
+            '${entry.key}) ${entry.value}',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w400,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.left,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildFeedbackCard(double width, double height) {
+    return Container(
+      width: width, // Use the full width available
+      height: height, // Use the full height available
+      decoration: BoxDecoration(
+        gradient: selectedGradient, // Apply the selected gradient
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Feedback',
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
-              // textAlign: TextAlign.center,
             ),
-
-            // SubQuestion Text (if available)
-            if (subQuestionText.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              Text(
-                '${String.fromCharCode(97 + currentSubQuestionIndex)}) $subQuestionText',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
-            const SizedBox(height: 40),
-
-            // Waveform Visualization
-            if (_isRecording && waveformData.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: PolygonWaveform(
-                  maxDuration: Duration(minutes: 1), // Set max duration
-                  elapsedDuration: Duration(seconds: 10), // Example duration
-                  samples: waveformData,
-                  height: 150,
-                  width: MediaQuery.of(context).size.width,
-                  inactiveColor: Colors.grey[300]!,
-                  activeColor: Colors.blueAccent,
-                ),
-              ),
-
-            if (_isLoading)
-              Center(
-                child: CircularProgressIndicator(
-                  color: Colors.blueAccent,
-                ),
-              ),
-
-            const Spacer(),
-            ElevatedButton(
-              onPressed: _goToNext,
-              child: const Text('Next'),
-            ),
-
             const SizedBox(height: 20),
-
-            // Microphone Button
-            GestureDetector(
-              onTap: _toggleRecording,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 100,
-                height: 100,
+            Expanded(
+              child: Container(
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: _isRecording
-                      ? LinearGradient(
-                          colors: [Colors.redAccent, Colors.red],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : LinearGradient(
-                          colors: [Colors.blueAccent, Colors.blue],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          _isRecording ? Colors.redAccent : Colors.blueAccent,
-                      blurRadius: 20,
-                      spreadRadius: 1,
-                    ),
-                  ],
+                  color: Colors.black.withOpacity(
+                      0.3), // Optional background color for better readability
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  _isRecording ? Icons.mic : Icons.mic_none,
-                  color: Colors.white,
-                  size: 50,
+                padding: const EdgeInsets.all(12.0),
+                child: SingleChildScrollView(
+                  child: Text(
+                    feedbackText,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.white70,
+                    ),
+                  ),
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            Text(
-              _isRecording
-                  ? 'Recording... Tap to stop'
-                  : 'Tap the microphone to start recording',
-              style: const TextStyle(fontSize: 16, color: Colors.white),
+            ElevatedButton(
+              onPressed: () async {
+                if (audioFeedbackPath.isNotEmpty) {
+                  await _audioPlayer!.startPlayer(fromURI: audioFeedbackPath);
+                }
+              },
+              child: const Text('Replay Feedback'),
             ),
           ],
         ),

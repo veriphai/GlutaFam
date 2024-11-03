@@ -75,6 +75,8 @@
         <key>UIViewControllerBasedStatusBarAppearance</key>
         <false/>
         <key>NSMicrophoneUsageDescription</key>
-        <string>We need access to your microphone to record audio.</string>
+        <string>Permission to access microphone</string>
+        <key>NSFileProtectionComplete</key>
+        <string>File needs to be accessible for recording</string>
     </dict>
 </plist>

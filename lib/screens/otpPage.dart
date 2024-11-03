@@ -7,6 +7,9 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "package:google_fonts/google_fonts.dart";
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class OtpPage extends StatefulWidget {
   String verificationId;
@@ -141,29 +144,90 @@ class _OtpPageState extends State<OtpPage> {
     }
   }
 
+  Future<UserCredential> signInWithGoogle() async {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+    if (googleUser == null) {
+      return Future.error("Google sign-in cancelled");
+    }
+
+    setState(() {
+      _isLoading = true; // Show loader
+    });
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    final OAuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    return await FirebaseAuth.instance.signInWithCredential(credential);
+  }
+
+  Future<void> saveProfile(
+      String? name, String? emailId, String? uid, String? photoUrl) async {
+    // Retrieve the saved class and auth token
+
+    // Check if authToken and selectedClass are valid
+    // Prepare the API URL (replace with your actual backend URL)
+    final url = 'https://glutaclass.com:8080/gluta/fam/add-profile';
+
+    try {
+      // Make the POST request with the Authorization header
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "uid": uid,
+          "firstName": name,
+          "emailId": emailId,
+          "profilePic": photoUrl
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // If the API call is successful, navigate to the next screen
+        Map<String, dynamic> data = json.decode(response.body);
+        final secureStorage = FlutterSecureStorage();
+
+        print("Auth api:$data");
+
+        await secureStorage.write(key: "authKey", value: data['token']);
+      } else {
+        // Handle API errors
+        print("Failed to save profile data: ${response.statusCode}");
+      }
+    } catch (e) {
+      // Handle any errors during the HTTP request
+      print("Error occurred while saving profile data: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          automaticallyImplyLeading: true,
-          elevation: 0,
-          iconTheme: const IconThemeData(
-            color: Colors.white, // Set the back button color to white
-          )),
-      body: SingleChildScrollView(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            // crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-              // Heading
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
+        backgroundColor: Colors.transparent,
+        automaticallyImplyLeading: true,
+        elevation: 0,
+        iconTheme: const IconThemeData(
+          color: Colors.white, // Set the back button color to white
+        ),
+      ),
+      body: Container(
+        height: MediaQuery.of(context).size.height, // Full screen height
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                Text(
                   "Verification Code",
                   style: GoogleFonts.nunito(
                     fontSize: 28,
@@ -171,11 +235,8 @@ class _OtpPageState extends State<OtpPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
+                const SizedBox(height: 8),
+                Text(
                   "We have sent the verification code to ${widget.phoneNumber}",
                   style: GoogleFonts.nunito(
                     fontSize: 18,
@@ -183,109 +244,181 @@ class _OtpPageState extends State<OtpPage> {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-              ),
-              const SizedBox(height: 60),
-              // Image in the center
-              // Center(
-              //   child: Image.asset(
-              //     'lib/assets/signup.png', // Replace with your image asset
-              //     width: 300,
-              //     height: 300,
-              //   ),
-              // ),
-              // const SizedBox(height: 60),
-              // OTP Input Field
-              Padding(
+                const SizedBox(height: 60),
+                Padding(
                   padding: const EdgeInsets.only(bottom: 30),
-                  child: Column(children: [
-                    TextField(
-                      controller: _otpController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [LengthLimitingTextInputFormatter(6)],
-                      decoration: InputDecoration(
-                        labelText: "Enter OTP",
-                        labelStyle: const TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        contentPadding: const EdgeInsets.only(
-                            left: 20, top: 16, bottom: 16),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _otpController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [LengthLimitingTextInputFormatter(6)],
+                        decoration: InputDecoration(
+                          labelText: "Enter OTP",
+                          labelStyle: const TextStyle(
                             color: Colors.orange,
-                            width: 2,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          contentPadding: const EdgeInsets.only(
+                              left: 20, top: 16, bottom: 16),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Colors.orange,
+                              width: 2,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(
+                              color: Colors.orange,
+                              width: 2,
+                            ),
+                          ),
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                        ),
+                        style: GoogleFonts.nunito(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _errorMessage = "";
+                          });
+                        },
+                      ),
+                      if (_errorMessage.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            _errorMessage,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 14),
                           ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(
-                            color: Colors.orange,
-                            width: 2,
-                          ),
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.always,
-                      ),
-                      style: GoogleFonts.nunito(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _errorMessage = "";
-                        });
-                      },
-                    ),
-                    if (_errorMessage.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          _errorMessage,
-                          style:
-                              const TextStyle(color: Colors.red, fontSize: 14),
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-                    // Display loading spinner if OTP is being verified
-                    _isLoading
-                        ? CircularProgressIndicator(
-                            color: Colors.orange, // Spinner color
-                          )
-                        : Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 0.0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(100),
-                              child: SizedBox(
-                                width: double.infinity,
-                                height: 58,
-                                child: ElevatedButton(
-                                  onPressed: _isLoading
-                                      ? null
-                                      : _verifyOtp, // Disable button during loading
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color.fromRGBO(
-                                        255, 217, 0, 1), // Button color
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(100),
+                      const SizedBox(height: 20),
+                      _isLoading
+                          ? CircularProgressIndicator(
+                              color: Colors.orange,
+                            )
+                          : Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 0.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(100),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 58,
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : _verifyOtp,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          Color.fromRGBO(255, 217, 0, 1),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(100),
+                                      ),
                                     ),
-                                  ),
-                                  child: Text(
-                                    "Confirm",
-                                    style: GoogleFonts.nunito(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black, // Text color
+                                    child: Text(
+                                      "Confirm",
+                                      style: GoogleFonts.nunito(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            // Spacer to push content up
+            // Spacer(),
+            // Google Sign-In option
+            Padding(
+              padding: EdgeInsets.only(bottom: 30),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start, // Add this for left alignment
+
+                children: [
+                  Text(
+                    "Not able to get OTP?",
+                    style: GoogleFonts.nunito(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  OutlinedButton(
+                    onPressed: () async {
+                      try {
+                        UserCredential userCredential =
+                            await signInWithGoogle();
+                        User? user = userCredential.user;
+
+                        if (user != null) {
+                          String? displayName = user.displayName;
+                          String? email = user.email;
+                          String? photoURL = user.photoURL;
+                          String? uid = user.uid;
+                          print(user);
+                          print(uid);
+                          saveProfile(displayName, email, uid, photoURL);
+                        }
+
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ClassSelectionPage()));
+                      } catch (error) {
+                        print("Google Sign-In Failed: $error");
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Color.fromRGBO(128, 128, 128, 1)),
+                      minimumSize: const Size(double.infinity, 50),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Image.asset(
+                          'lib/assets/google_logo.png',
+                          height: 24,
+                          width: 24,
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Continue with Google',
+                              style: GoogleFonts.raleway(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
-                  ])),
-            ],
-          ),
+                        ),
+                        const SizedBox(
+                          width: 24,
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          ],
         ),
       ),
     );

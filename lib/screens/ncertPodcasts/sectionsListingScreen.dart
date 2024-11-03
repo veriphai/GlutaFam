@@ -1,6 +1,7 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/simulationScreen.dart';
 import 'package:flutter/material.dart';
@@ -41,6 +42,7 @@ class _SectionscreenState extends State<Sectionscreen>
   Set<String> bookmarkedSimulations = {};
   Set<String> bookmarkedSections = {};
   Set<String> bookmarkedInterestLedLesson = {};
+  final http.Client client = http.Client();
 
   bool isBookmarked = false;
 
@@ -51,7 +53,12 @@ class _SectionscreenState extends State<Sectionscreen>
     try {
       print("Fetching chapter details from API: $url");
 
-      final response = await http.get(Uri.parse(url));
+      final response = await client.get(
+        Uri.parse(url),
+        headers: {
+          'Accept-Encoding': 'gzip',
+        },
+      );
       print("response: ${json.decode(response.body)}");
 
       if (response.statusCode == 200) {
@@ -92,7 +99,12 @@ class _SectionscreenState extends State<Sectionscreen>
     try {
       print("Fetching chapter details from API: $url");
 
-      final response = await http.get(Uri.parse(url));
+      final response = await client.get(
+        Uri.parse(url),
+        headers: {
+          'Accept-Encoding': 'gzip',
+        },
+      );
       print("response: ${json.decode(response.body)}");
 
       if (response.statusCode == 200) {
@@ -137,7 +149,12 @@ class _SectionscreenState extends State<Sectionscreen>
     try {
       print("Fetching data from API: $url");
 
-      final response = await http.get(Uri.parse(url));
+      final response = await client.get(
+        Uri.parse(url),
+        headers: {
+          'Accept-Encoding': 'gzip',
+        },
+      );
       print("response: ${json.decode(response.body)}");
 
       if (response.statusCode == 200) {
@@ -344,6 +361,49 @@ class _SectionscreenState extends State<Sectionscreen>
                                       onPressed:
                                           shareChapter, // Call share function
                                     ),
+                                    Spacer(),
+                                    Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 10),
+                                        child: ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.grey[850],
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 8,
+                                              horizontal: 10,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          icon: Icon(
+                                            Icons.question_answer_outlined,
+                                            color:
+                                                Color.fromRGBO(255, 217, 0, 1),
+                                          ),
+                                          label: Text(
+                                            'Go To Book Q&A',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          onPressed: () async {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    EndQuestionScreen(
+                                                        chapterId:
+                                                            widget.chapterId),
+                                              ),
+                                            );
+
+                                            // Add functionality for the microphone button here
+                                          },
+                                        ))
                                   ],
                                 ),
                               ],
@@ -391,31 +451,32 @@ class _SectionscreenState extends State<Sectionscreen>
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) => PodcastScreen(
-                                              title: sections[index]['name'],
-                                              description: sections[index]
-                                                      ['description'] ??
-                                                  "No description available",
-                                              imageUrl: sections[index]
-                                                  ['imageUrl'],
-                                              audioUrl: sections[index]
-                                                      ['audioUrl'] ??
-                                                  "",
-                                              duration: sections[index]
-                                                      ['timeToComplete'] ??
-                                                  "Unknown",
-                                              chapterName: chapterName,
-                                              chapterNo: chapterNo,
-                                              cerData: sections[index]
-                                                              ['cerList'] !=
-                                                          null &&
-                                                      sections[index]['cerList']
-                                                          .isNotEmpty
-                                                  ? sections[index]['cerList']
-                                                      [0]
-                                                  : <String, dynamic>{},
-                                              chapterId: widget.chapterId,
-                                              pdfUrl: pdfUrl,
-                                            ),
+                                                title: sections[index]['name'],
+                                                description: sections[index]
+                                                        ['description'] ??
+                                                    "No description available",
+                                                imageUrl: sections[index]
+                                                    ['imageUrl'],
+                                                audioUrl: sections[index]
+                                                        ['audioUrl'] ??
+                                                    "",
+                                                duration: sections[index]
+                                                        ['timeToComplete'] ??
+                                                    "Unknown",
+                                                chapterName: chapterName,
+                                                chapterNo: chapterNo,
+                                                cerData: sections[index]['cerList'] != null &&
+                                                        sections[index]
+                                                                ['cerList']
+                                                            .isNotEmpty
+                                                    ? sections[index]['cerList']
+                                                        [0]
+                                                    : <String, dynamic>{},
+                                                chapterId: widget.chapterId,
+                                                pdfUrl: pdfUrl,
+                                                sectionNumber: index,
+                                                subsections: sections[index]
+                                                    ['subSections']),
                                           ),
                                         );
                                       },
@@ -499,7 +560,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                       horizontal: 8.0,
                                                     ),
                                                     child: Text(
-                                                      "${(sections[index]['timeToComplete'] / 60).ceil()} mins",
+                                                      "${(sections[index]['timeToComplete'] / 60000).ceil()} mins",
                                                       style: const TextStyle(
                                                         fontSize: 14,
                                                         color: Colors.grey,
@@ -688,6 +749,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                       .chapterId,
                                                                   pdfUrl:
                                                                       pdfUrl,
+                                                                  sectionNumber:
+                                                                      index,
                                                                 ),
                                                               ),
                                                             );
@@ -752,6 +815,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                   : <String, dynamic>{},
                                               chapterId: widget.chapterId,
                                               pdfUrl: pdfUrl,
+                                              sectionNumber: index,
                                             ),
                                           ),
                                         );
@@ -1019,6 +1083,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                           dynamic>{},
                                                                   chapterId: widget
                                                                       .chapterId,
+                                                                  sectionNumber:
+                                                                      index,
                                                                 ),
                                                               ),
                                                             );

@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           Padding(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
               child: Column(
                 children: [
                   OutlinedButton(
