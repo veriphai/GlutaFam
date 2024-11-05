@@ -1,28 +1,17 @@
 import 'package:eureka_app/screens/communityScreen.dart';
-import 'package:eureka_app/screens/exploreScreen.dart';
-import 'package:eureka_app/screens/homeScreenV2.dart';
 import 'package:eureka_app/screens/landingScreen.dart';
-import 'package:eureka_app/screens/loginScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
-import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/testing.dart';
-import 'package:eureka_app/screens/onboardingScreen.dart';
-import 'package:eureka_app/screens/onboardingScreenV2.dart';
-import 'package:eureka_app/screens/otpPage.dart';
-import 'package:eureka_app/screens/profileCreationScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/screens/signupScreen.dart';
+import 'package:eureka_app/services/notificationService.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import './screens/homeScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_analytics/observer.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io' show Platform;
 
 // Ensure this path matches your file structure
 
@@ -34,19 +23,41 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool? firstLaunchBool = prefs.getBool('firstLaunch');
   bool firstLaunch = firstLaunchBool ?? true; // Default to true if null
+
+  // Initialize notifications
+  final notificationService = NotificationService();
+  await notificationService.initNotifications();
+
+  bool isRealDevice = await checkIfRealDevice();
+  if (isRealDevice) {
+    // For targeted notifications, retrieve and print device token
+    String? token = await notificationService.getDeviceToken();
+    print("FCM Device Token: $token");
+
+    // Subscribe to a topic for broadcast notifications
+    await notificationService.subscribeToTopic("all_users");
+  }
   print(
       "First Launch: $firstLaunch"); // This should print true or false, not null
 
-  runApp(MyApp(firstLaunch: firstLaunch));
+  runApp(MyApp(
+    firstLaunch: firstLaunch,
+    notificationService: notificationService,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final bool firstLaunch;
+  final NotificationService notificationService;
 
   static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   static FirebaseAnalyticsObserver observer =
       FirebaseAnalyticsObserver(analytics: analytics);
-  const MyApp({super.key, required this.firstLaunch});
+  const MyApp({
+    super.key,
+    required this.firstLaunch,
+    required this.notificationService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -101,4 +112,12 @@ class MyAppState extends ChangeNotifier {
     _currentIndex = index;
     notifyListeners(); // This will trigger the widgets that depend on this state to rebuild
   }
+}
+
+Future<bool> checkIfRealDevice() async {
+  if (Platform.isIOS) {
+    final iosDeviceInfo = await DeviceInfoPlugin().iosInfo;
+    return iosDeviceInfo.isPhysicalDevice; // Returns true for real devices
+  }
+  return true; // Non-iOS platforms are considered real devices
 }

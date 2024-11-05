@@ -78,5 +78,7 @@
         <string>Permission to access microphone</string>
         <key>NSFileProtectionComplete</key>
         <string>File needs to be accessible for recording</string>
+        <key>FirebaseAppDelegateProxyEnabled</key>
+        <false/>
     </dict>
 </plist>

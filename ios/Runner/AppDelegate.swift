@@ -1,15 +1,16 @@
 import UIKit
 import Flutter
-import Firebase  // Add Firebase import
+import Firebase
+import UserNotifications
 
 @UIApplicationMain
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate { // Remove redundant UNUserNotificationCenterDelegate
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Register Firebase and APNs
-    FirebaseApp.configure()  // Initialize Firebase
+    // Register Firebase
+    FirebaseApp.configure()
 
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self
@@ -36,12 +37,16 @@ import Firebase  // Add Firebase import
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  // Handle APNs token registration and pass it to Firebase
+  // Handle APNs token registration and pass it to Firebase Auth
   override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-    Auth.auth().setAPNSToken(deviceToken, type: .unknown)  // Pass the APNs token to Firebase
+    // Pass the APNs token to Firebase Auth for authentication purposes
+    Auth.auth().setAPNSToken(deviceToken, type: .unknown)
+    
+    // Also set the APNs token for Firebase Messaging to handle notifications
+    Messaging.messaging().apnsToken = deviceToken
   }
 
-  // Handle incoming remote notifications and pass to Firebase
+  // Handle incoming remote notifications and pass to Firebase Auth
   override func application(_ application: UIApplication, didReceiveRemoteNotification notification: [AnyHashable: Any],
                             fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
     if Auth.auth().canHandleNotification(notification) {
@@ -49,5 +54,23 @@ import Firebase  // Add Firebase import
       return
     }
     completionHandler(.newData)
+  }
+
+  // Display notifications in the foreground
+  @available(iOS 10.0, *)
+  override func userNotificationCenter(_ center: UNUserNotificationCenter, 
+                                       willPresent notification: UNNotification, 
+                                       withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    // Display notifications with alert, sound, and badge while app is in foreground
+    completionHandler([.alert, .badge, .sound])
+  }
+
+  // Handle notification taps (when app is opened from a notification)
+  @available(iOS 10.0, *)
+  override func userNotificationCenter(_ center: UNUserNotificationCenter, 
+                                       didReceive response: UNNotificationResponse, 
+                                       withCompletionHandler completionHandler: @escaping () -> Void) {
+    // This can be used to navigate to a specific screen when a notification is tapped
+    completionHandler()
   }
 }
