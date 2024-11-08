@@ -67,8 +67,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
   String audioFeedbackPath = "";
   String feedbackText = "";
   String activeSubsectionName = '';
+  List<dynamic> currentKeyPoints = [];
+  bool _isOverlayOpen = false;
+  DateTime? _lastOverlayTime;
 
   List<Map<String, dynamic>> transformedSubsections = [];
+  int currentSubsectionIndex = 0;
 
   void _prepareSubsections() {
     transformedSubsections = [];
@@ -81,6 +85,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
           'name': subsection['name'],
           'startTime': subsection['startTime'],
           'endTime': subsection['endTime'],
+          'order': subsection['order']
         });
         isFirstSubsection =
             false; // Set to false after processing the first subsection
@@ -90,12 +95,18 @@ class _PodcastScreenState extends State<PodcastScreen> {
           'name': "${subsection['name']}",
           'startTime': subsection['startTime'],
           'endTime': subsection['explanationEndTime'],
+          'keypoints': subsection['keypoints'],
+          'order': subsection['order'],
+          'mcqs': subsection['mcqs'],
+          'type': 'concept'
         });
 
         transformedSubsections.add({
           'name': "${subsection['name']} Q&A",
           'startTime': subsection['qnaStartTime'],
           'endTime': subsection['qnaEndTime'],
+          'order': subsection['order'],
+          'type': 'qna'
         });
       }
     });
@@ -110,6 +121,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
       if (currentPosition >= startTime && currentPosition < endTime) {
         setState(() {
           activeSubsectionName = subsection['name'];
+          currentSubsectionIndex =
+              (subsection['order'] != null && subsection['order'] > 0)
+                  ? subsection['order'] - 1
+                  : 0;
         });
         return;
       }
@@ -118,6 +133,366 @@ class _PodcastScreenState extends State<PodcastScreen> {
     setState(() {
       activeSubsectionName = '';
     });
+  }
+
+  void _showKeyPointsOverlay() {
+    if (_isOverlayOpen) return; // Prevent multiple overlays
+    _isOverlayOpen = true; // Set flag to indicate overlay is open
+    _audioPlayer.pause(); // Pause audio when the overlay opens
+
+    int currentQuestionIndex = 0;
+    bool showQuestions = false;
+    bool showResult = false;
+    int correctAnswers = 0;
+    int attemptedQuestions = 0;
+    String? selectedOption;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter modalSetState) {
+            return Container(
+              padding: EdgeInsets.all(16),
+              height: MediaQuery.of(context).size.height * 1, // Adjust height
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        showQuestions
+                            ? (showResult ? 'Result' : 'Question')
+                            : 'Checkpoint',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Colors.white),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10),
+                  if (!showQuestions && !showResult) ...[
+                    // Display Key Points
+                    Container(
+                      height: MediaQuery.of(context).size.height * 0.8,
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[900],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListView.builder(
+                        itemCount: currentKeyPoints.length,
+                        itemBuilder: (context, index) {
+                          final keyPoint = currentKeyPoints[index];
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                keyPoint['title'],
+                                style: TextStyle(
+                                  color: Color.fromRGBO(255, 217, 0, 1),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                keyPoint['content'],
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              if (index < currentKeyPoints.length - 1)
+                                Divider(color: Colors.white.withOpacity(0.5)),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ] else if (showQuestions &&
+                      !showResult &&
+                      currentQuestionIndex <
+                          widget.subsections![currentSubsectionIndex]['mcqs']
+                              .length) ...[
+                    // Display Questions
+                    Container(
+                      height: MediaQuery.of(context).size.height * 0.8,
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[900],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            widget.subsections![currentSubsectionIndex]['mcqs']
+                                [currentQuestionIndex]['question'],
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                          ...widget.subsections![currentSubsectionIndex]['mcqs']
+                                  [currentQuestionIndex]['options']
+                              .map<Widget>((option) {
+                            return ListTile(
+                              title: Text(option['content'],
+                                  style: TextStyle(color: Colors.white)),
+                              leading: Radio(
+                                value: option['id'],
+                                groupValue: selectedOption,
+                                onChanged: (value) {
+                                  modalSetState(() {
+                                    selectedOption = value as String?;
+                                  });
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                  ] else if (showResult) ...[
+                    // Display Result Summary
+                    Container(
+                      height: MediaQuery.of(context).size.height * 0.8,
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[900],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'You answered $correctAnswers out of $attemptedQuestions questions correctly!',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      if (!showQuestions && !showResult)
+                        Expanded(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 5.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[850],
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () {
+                                modalSetState(() {
+                                  showQuestions = widget.subsections![
+                                              currentSubsectionIndex]['mcqs'] !=
+                                          null &&
+                                      widget
+                                          .subsections![currentSubsectionIndex]
+                                              ['mcqs']
+                                          .isNotEmpty;
+                                });
+                              },
+                              child: Text("Continue"),
+                            ),
+                          ),
+                        ),
+                      if (showQuestions && !showResult)
+                        Expanded(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 5.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () {
+                                if (selectedOption != null) {
+                                  attemptedQuestions++;
+                                  if (selectedOption ==
+                                      widget.subsections![
+                                                  currentSubsectionIndex]
+                                              ['mcqs'][currentQuestionIndex]
+                                          ['correctAnswer']) {
+                                    correctAnswers++;
+                                  }
+                                }
+                                if (currentQuestionIndex <
+                                    widget
+                                            .subsections![
+                                                currentSubsectionIndex]['mcqs']
+                                            .length -
+                                        1) {
+                                  modalSetState(() {
+                                    currentQuestionIndex++;
+                                    selectedOption = null;
+                                  });
+                                } else {
+                                  modalSetState(() {
+                                    showResult = true;
+                                    showQuestions = false;
+                                  });
+                                }
+                              },
+                              child: Text(currentQuestionIndex <
+                                      widget
+                                              .subsections![
+                                                  currentSubsectionIndex]
+                                                  ['mcqs']
+                                              .length -
+                                          1
+                                  ? "Next"
+                                  : "Finish"),
+                            ),
+                          ),
+                        ),
+                      if (showResult)
+                        Container(
+                          width: MediaQuery.of(context).size.width -
+                              32, // Set a fixed width
+                          padding: const EdgeInsets.only(bottom: 0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Continue Lesson Button
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5.0),
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey[850],
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        // horizontal: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    icon: Icon(
+                                      Icons.mic,
+                                      color: Color.fromRGBO(255, 217, 0, 1),
+                                    ),
+                                    label: Text(
+                                      'Continue Lesson',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      _seekToTime((transformedSubsections[
+                                                  currentSubsectionIndex +
+                                                      2]['startTime'] /
+                                              1000)
+                                          .toInt());
+                                      Navigator.pop(context);
+                                      // Add functionality for the microphone button here
+                                    },
+                                  ),
+                                ),
+                              ),
+                              // Curious QnAs Button
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5.0),
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey[850],
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    icon: Icon(
+                                      Icons.menu_book,
+                                      color: Color.fromRGBO(255, 217, 0, 1),
+                                    ),
+                                    label: Text(
+                                      'Curious QnAs',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      _isOverlayOpen = false;
+      _lastOverlayTime = DateTime.now();
+      isPlaying = true;
+      _audioPlayer.resume();
+    });
+  }
+
+  void _checkEndOfSubsection() {
+    if (_lastOverlayTime != null &&
+        DateTime.now().difference(_lastOverlayTime!) < Duration(seconds: 2)) {
+      return;
+    }
+    for (var subsection in transformedSubsections) {
+      final endTime = Duration(seconds: (subsection['endTime'] / 1000).toInt());
+
+      if (currentPosition >= endTime - Duration(seconds: 1) &&
+          currentPosition < endTime) {
+        // Set the key points for the current subsection
+        setState(() {
+          currentKeyPoints = subsection['keypoints'];
+          isPlaying = false;
+        });
+        _showKeyPointsOverlay();
+        break;
+      }
+    }
   }
 
   @override
@@ -149,6 +524,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
       setState(() {
         currentPosition = position;
         _updateActiveSubsectionName();
+        _checkEndOfSubsection();
       });
     });
 

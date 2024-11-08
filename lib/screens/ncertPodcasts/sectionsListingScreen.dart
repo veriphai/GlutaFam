@@ -751,6 +751,10 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                       pdfUrl,
                                                                   sectionNumber:
                                                                       index,
+                                                                  subsections: sections[
+                                                                          index]
+                                                                      [
+                                                                      'subSections'],
                                                                 ),
                                                               ),
                                                             );
