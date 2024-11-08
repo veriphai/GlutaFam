@@ -66,7 +66,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
   bool _isLoading = false;
   String audioFeedbackPath = "";
   String feedbackText = "";
-  String activeSubsectionName = '';
+  String activeSubsectionName = 'Introduction';
   List<dynamic> currentKeyPoints = [];
   bool _isOverlayOpen = false;
   DateTime? _lastOverlayTime;
@@ -130,10 +130,43 @@ class _PodcastScreenState extends State<PodcastScreen> {
       }
     }
     // Reset if no subsection is active (e.g., at the beginning or end of audio)
-    setState(() {
-      activeSubsectionName = '';
-    });
+    // setState(() {
+    //   activeSubsectionName = '';
+    // });
   }
+
+  final List<LinearGradient> optionGradients = [
+    LinearGradient(
+      colors: [Color.fromRGBO(220, 21, 140, 1), Colors.pink.shade900],
+      end: Alignment.topLeft,
+      begin: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Colors.green.shade500, Colors.green.shade900],
+      end: Alignment.topLeft,
+      begin: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Colors.purple.shade500, Colors.purple.shade900],
+      end: Alignment.topLeft,
+      begin: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color.fromRGBO(71, 125, 148, 1), Colors.blueGrey.shade900],
+      end: Alignment.topLeft,
+      begin: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Colors.red.shade500, Colors.red.shade900],
+      end: Alignment.topLeft,
+      begin: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Colors.teal.shade500, Colors.teal.shade900],
+      end: Alignment.topLeft,
+      begin: Alignment.bottomRight,
+    ),
+  ];
 
   void _showKeyPointsOverlay() {
     if (_isOverlayOpen) return; // Prevent multiple overlays
@@ -154,6 +187,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      enableDrag: false,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter modalSetState) {
@@ -163,26 +197,27 @@ class _PodcastScreenState extends State<PodcastScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 20),
+                  SizedBox(height: 40),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        showQuestions
-                            ? (showResult ? 'Result' : 'Question')
-                            : 'Checkpoint',
+                        'Checkpoint',
+                        // showQuestions
+                        //     ? (showResult ? 'Result' : 'Question')
+                        //     : 'Checkpoint',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: Colors.white),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
+                      // IconButton(
+                      //   icon: Icon(Icons.close, color: Colors.white),
+                      //   onPressed: () {
+                      //     Navigator.pop(context);
+                      //   },
+                      // ),
                     ],
                   ),
                   SizedBox(height: 10),
@@ -195,77 +230,64 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         color: Colors.grey[900],
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ListView.builder(
-                        itemCount: currentKeyPoints.length,
-                        itemBuilder: (context, index) {
-                          final keyPoint = currentKeyPoints[index];
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                keyPoint['title'],
-                                style: TextStyle(
-                                  color: Color.fromRGBO(255, 217, 0, 1),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                keyPoint['content'],
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              if (index < currentKeyPoints.length - 1)
-                                Divider(color: Colors.white.withOpacity(0.5)),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ] else if (showQuestions &&
-                      !showResult &&
-                      currentQuestionIndex <
-                          widget.subsections![currentSubsectionIndex]['mcqs']
-                              .length) ...[
-                    // Display Questions
-                    Container(
-                      height: MediaQuery.of(context).size.height * 0.8,
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Add Key Points heading at the top
                           Text(
-                            widget.subsections![currentSubsectionIndex]['mcqs']
-                                [currentQuestionIndex]['question'],
-                            textAlign: TextAlign.center,
+                            'Key Points',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              color: Color.fromRGBO(255, 217, 0, 1),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
+
                           SizedBox(height: 20),
-                          ...widget.subsections![currentSubsectionIndex]['mcqs']
-                                  [currentQuestionIndex]['options']
-                              .map<Widget>((option) {
-                            return ListTile(
-                              title: Text(option['content'],
-                                  style: TextStyle(color: Colors.white)),
-                              leading: Radio(
-                                value: option['id'],
-                                groupValue: selectedOption,
-                                onChanged: (value) {
-                                  modalSetState(() {
-                                    selectedOption = value as String?;
-                                  });
-                                },
-                              ),
-                            );
-                          }).toList(),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: currentKeyPoints.length,
+                              itemBuilder: (context, index) {
+                                final keyPoint = currentKeyPoints[index];
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      keyPoint['title'],
+                                      style: TextStyle(
+                                        color: Color.fromRGBO(255, 217, 0,
+                                            1), // Set to white to show gradient properly
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    SizedBox(height: 5),
+                                    Text(
+                                      keyPoint['content'],
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    if (index < currentKeyPoints.length - 1)
+                                      Divider(
+                                          color: Colors.white.withOpacity(0.5)),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
                         ],
                       ),
+                    ),
+                  ] else if (showQuestions && !showResult) ...[
+                    renderMCQContent(
+                      modalSetState,
+                      currentQuestionIndex,
+                      selectedOption,
+                      (value) {
+                        modalSetState(() {
+                          selectedOption = value;
+                        });
+                      },
                     ),
                   ] else if (showResult) ...[
                     // Display Result Summary
@@ -299,7 +321,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                 const EdgeInsets.symmetric(horizontal: 5.0),
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey[850],
+                                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                                 padding: EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -316,7 +338,14 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                           .isNotEmpty;
                                 });
                               },
-                              child: Text("Continue"),
+                              child: Text(
+                                "Continue",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -361,15 +390,21 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                   });
                                 }
                               },
-                              child: Text(currentQuestionIndex <
-                                      widget
-                                              .subsections![
-                                                  currentSubsectionIndex]
-                                                  ['mcqs']
-                                              .length -
-                                          1
-                                  ? "Next"
-                                  : "Finish"),
+                              child: Text(
+                                  currentQuestionIndex <
+                                          widget
+                                                  .subsections![
+                                                      currentSubsectionIndex]
+                                                      ['mcqs']
+                                                  .length -
+                                              1
+                                      ? "Next"
+                                      : "Show Results",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  )),
                             ),
                           ),
                         ),
@@ -472,6 +507,116 @@ class _PodcastScreenState extends State<PodcastScreen> {
       isPlaying = true;
       _audioPlayer.resume();
     });
+  }
+
+// Function to render MCQ content
+  Widget renderMCQContent(
+    StateSetter modalSetState,
+    int currentQuestionIndex,
+    String? selectedOption,
+    ValueChanged<String?> onOptionSelected,
+  ) {
+    // Define gradient colors for each option
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            "Question ${transformedSubsections[currentSubsectionIndex]['mcqs'][currentQuestionIndex]['order']}",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color.fromRGBO(255, 217, 0, 1),
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 40),
+          Text(
+            transformedSubsections[currentSubsectionIndex]['mcqs']
+                [currentQuestionIndex]['question'],
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 20),
+          Expanded(
+            child: ListView.builder(
+              itemCount: transformedSubsections[currentSubsectionIndex]['mcqs']
+                      [currentQuestionIndex]['options']
+                  .length,
+              itemBuilder: (context, index) {
+                final option = transformedSubsections[currentSubsectionIndex]
+                    ['mcqs'][currentQuestionIndex]['options'][index];
+                final gradient =
+                    optionGradients[index % optionGradients.length];
+                final bool isSelected = option['id'] == selectedOption;
+
+                return GestureDetector(
+                  onTap: () {
+                    modalSetState(() {
+                      onOptionSelected(option['id']);
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: gradient,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Stack(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              option['content'],
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          if (isSelected)
+                            Align(
+                              alignment: Alignment.topRight,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                  child: Icon(
+                                    Icons.check,
+                                    color: Colors.green,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _checkEndOfSubsection() {
@@ -1111,7 +1256,6 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         padding: EdgeInsets.only(
                             top: 10.0), // Adjust the left padding as needed
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             GestureDetector(
                               onTap: () => _showSubsectionList(context),
@@ -1122,14 +1266,61 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               ),
                             ),
                             SizedBox(width: 4),
-                            Text(
-                              activeSubsectionName.isNotEmpty
-                                  ? activeSubsectionName
-                                  : '',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 16),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Expanded(
+                              child: Text(
+                                activeSubsectionName.isNotEmpty
+                                    ? activeSubsectionName
+                                    : '',
+                                style: TextStyle(
+                                  color: Color.fromRGBO(255, 217, 0, 1),
+                                  fontSize: 16,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Color.fromRGBO(
+                                      255, 217, 0, 1), // Set underline color
+                                ),
+                                maxLines: 1,
+                                overflow:
+                                    TextOverflow.ellipsis, // Prevent overflow
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8.0),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey[850],
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 4,
+                                      horizontal: 10,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  onPressed: playPauseAudio,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Skip QnA',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        Icons.fast_forward_rounded,
+                                        color: Color.fromRGBO(255, 217, 0, 1),
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -1139,12 +1330,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
               ),
             ),
             // Music controls
+
             Padding(
               padding: EdgeInsets.only(bottom: 0),
               child: Column(
                 children: [
                   Container(
-                    height: 30, // Set a specific height
+                    height: 20, // Set a specific height
                     child: Slider(
                       value: currentPosition.inSeconds.toDouble(),
                       min: 0,
