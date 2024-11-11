@@ -461,7 +461,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                         ['audioUrl'] ??
                                                     "",
                                                 duration: sections[index]
-                                                        ['timeToComplete'] ??
+                                                        ['timeToCompleteV2'] ??
                                                     "Unknown",
                                                 chapterName: chapterName,
                                                 chapterNo: chapterNo,
@@ -560,7 +560,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                       horizontal: 8.0,
                                                     ),
                                                     child: Text(
-                                                      "${(sections[index]['timeToComplete'] / 60000).ceil()} mins",
+                                                      "${(sections[index]['timeToCompleteV2'] / 60000).floor()} mins",
                                                       style: const TextStyle(
                                                         fontSize: 14,
                                                         color: Colors.grey,
@@ -729,7 +729,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                   duration: sections[
                                                                               index]
                                                                           [
-                                                                          'timeToComplete'] ??
+                                                                          'timeToCompleteV2'] ??
                                                                       "Unknown",
                                                                   chapterName:
                                                                       chapterName,

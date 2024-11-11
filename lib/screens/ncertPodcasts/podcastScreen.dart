@@ -74,42 +74,62 @@ class _PodcastScreenState extends State<PodcastScreen> {
   List<Map<String, dynamic>> transformedSubsections = [];
   int currentSubsectionIndex = 0;
 
+  Map<String, List<String?>> userAnswers = {};
+
   void _prepareSubsections() {
     transformedSubsections = [];
     bool isFirstSubsection = true;
+    int currentOrder = 1;
+    int checkpointNumber = 1;
 
     widget.subsections?.forEach((subsection) {
       if (isFirstSubsection) {
         // Add the first subsection as it is, without splitting
         transformedSubsections.add({
+          'id': "${subsection['id']}",
           'name': subsection['name'],
           'startTime': subsection['startTime'],
           'endTime': subsection['endTime'],
-          'order': subsection['order']
+          'order': currentOrder
         });
-        isFirstSubsection =
-            false; // Set to false after processing the first subsection
+        isFirstSubsection = false;
+        currentOrder++;
       } else {
         // Split other subsections into "Concept" and "Concept Q&A"
         transformedSubsections.add({
+          'id': "${subsection['id']}",
           'name': "${subsection['name']}",
           'startTime': subsection['startTime'],
           'endTime': subsection['explanationEndTime'],
           'keypoints': subsection['keypoints'],
-          'order': subsection['order'],
+          'order': currentOrder,
           'mcqs': subsection['mcqs'],
           'type': 'concept'
         });
+        currentOrder++;
+        transformedSubsections.add({
+          'id': "${subsection['id']}",
+          'name': " Checkpoint ${checkpointNumber}",
+          'startTime': subsection['qnaStartTime'] + 1000000000,
+          'endTime': subsection['qnaEndTime'] + 1000000000,
+          'order': currentOrder,
+          'type': 'checkpoint'
+        });
+        checkpointNumber++;
+        currentOrder++;
 
         transformedSubsections.add({
+          'id': "${subsection['id']}",
           'name': "${subsection['name']} Q&A",
           'startTime': subsection['qnaStartTime'],
           'endTime': subsection['qnaEndTime'],
-          'order': subsection['order'],
+          'order': currentOrder,
           'type': 'qna'
         });
+        currentOrder++;
       }
     });
+    print(transformedSubsections);
   }
 
   void _updateActiveSubsectionName() {
@@ -125,6 +145,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
               (subsection['order'] != null && subsection['order'] > 0)
                   ? subsection['order'] - 1
                   : 0;
+          print("current subsection: ${currentSubsectionIndex}");
         });
         return;
       }
@@ -168,17 +189,65 @@ class _PodcastScreenState extends State<PodcastScreen> {
     ),
   ];
 
-  void _showKeyPointsOverlay() {
-    if (_isOverlayOpen) return; // Prevent multiple overlays
-    _isOverlayOpen = true; // Set flag to indicate overlay is open
-    _audioPlayer.pause(); // Pause audio when the overlay opens
+  void renderCheckpoint(int index) {
+    final subsectionId = transformedSubsections[index - 1]['id'];
+    final hasExistingAnswers = userAnswers.containsKey(subsectionId) &&
+        userAnswers[subsectionId]!.any((answer) => answer != null);
+
+    // Calculate scores
+    int correctAnswers = 0;
+    int attemptedQuestions = 0;
+
+    if (hasExistingAnswers) {
+      final mcqs = transformedSubsections[index - 1]['mcqs'];
+      for (int i = 0; i < mcqs.length; i++) {
+        if (userAnswers[subsectionId]![i] != null) {
+          attemptedQuestions++;
+          if (userAnswers[subsectionId]![i] == mcqs[i]['correctAnswer']) {
+            correctAnswers++;
+          }
+        }
+      }
+    }
+
+    print("index: $index");
+    _showKeyPointsOverlay(
+      hasExistingAnswers,
+      index: index - 1,
+      initialCorrectAnswers: correctAnswers,
+      initialAttemptedQuestions: attemptedQuestions,
+    );
+  }
+
+  void _showKeyPointsOverlay(
+    bool reviewMode, {
+    int index = 0,
+    int initialCorrectAnswers = 0,
+    int initialAttemptedQuestions = 0,
+  }) {
+    if (_isOverlayOpen) return;
+    _isOverlayOpen = true;
+    _audioPlayer.pause();
 
     int currentQuestionIndex = 0;
     bool showQuestions = false;
     bool showResult = false;
-    int correctAnswers = 0;
-    int attemptedQuestions = 0;
+    bool inReviewMode = reviewMode;
+    int correctAnswers = initialCorrectAnswers;
+    int attemptedQuestions = initialAttemptedQuestions;
     String? selectedOption;
+
+    if (index > 0) {
+      currentSubsectionIndex = index;
+    }
+    final subsection = transformedSubsections[currentSubsectionIndex];
+    final subsectionId = subsection['id'];
+    userAnswers[subsectionId] ??= List.filled(
+      subsection['mcqs'].length,
+      null,
+    );
+
+    currentKeyPoints = subsection['keypoints'];
 
     showModalBottomSheet(
       context: context,
@@ -221,7 +290,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                     ],
                   ),
                   SizedBox(height: 10),
-                  if (!showQuestions && !showResult) ...[
+                  if (!showQuestions && !showResult && !inReviewMode) ...[
                     // Display Key Points
                     Container(
                       height: MediaQuery.of(context).size.height * 0.8,
@@ -283,9 +352,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       modalSetState,
                       currentQuestionIndex,
                       selectedOption,
+                      currentSubsectionIndex,
                       (value) {
                         modalSetState(() {
                           selectedOption = value;
+                          userAnswers[subsectionId]![currentQuestionIndex] =
+                              value;
                         });
                       },
                     ),
@@ -299,22 +371,159 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
-                        child: Text(
-                          'You answered $correctAnswers out of $attemptedQuestions questions correctly!',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 150,
+                                  height: 150,
+                                  child: CircularProgressIndicator(
+                                    value: correctAnswers / attemptedQuestions,
+                                    strokeWidth: 8.0,
+                                    backgroundColor: Colors.grey,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Color.fromRGBO(255, 217, 0, 1),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${((correctAnswers / attemptedQuestions) * 100).toInt()}%',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 40),
+                            Text(
+                              'You have done $correctAnswers out of $attemptedQuestions correct',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            SizedBox(height: 80),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: double
+                                      .infinity, // Set width to fill the container
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5.0),
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Color.fromRGBO(255, 217, 0, 1),
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      icon: Icon(
+                                        Icons.play_circle_fill,
+                                        color: Colors.black,
+                                      ),
+                                      label: Text(
+                                        'Continue Lesson',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        if (index > 0) {
+                                          _seekToTime(
+                                              transformedSubsections[index + 3]
+                                                  ['startTime']);
+                                        } else {
+                                          _seekToTime(transformedSubsections[
+                                                  currentSubsectionIndex + 3]
+                                              ['startTime']);
+                                        }
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: double
+                                      .infinity, // Set width to fill the container
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5.0, vertical: 10.0),
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.grey[850],
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          side: BorderSide(
+                                            color: Color.fromRGBO(
+                                                255, 217, 0, 1), // Border color
+                                            width: 2, // Border width
+                                          ),
+                                        ),
+                                      ),
+                                      icon: Icon(
+                                        Icons.play_circle_fill,
+                                        color: Color.fromRGBO(255, 217, 0, 1),
+                                      ),
+                                      label: Text(
+                                        'Curious QnAs',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        if (index > 0) {
+                                          _seekToTime(
+                                              transformedSubsections[index + 2]
+                                                  ['startTime']);
+                                        } else {
+                                          _seekToTime(transformedSubsections[
+                                                  currentSubsectionIndex + 2]
+                                              ['startTime']);
+                                        }
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
+                    )
+                  ] else if (inReviewMode) ...[
+                    renderMCQContentinReviewMode(
+                      modalSetState,
+                      currentQuestionIndex,
+                      subsectionId,
+                      index > 0 ? index : currentSubsectionIndex,
                     ),
                   ],
                   SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      if (!showQuestions && !showResult)
+                      if (!showQuestions && !showResult && !inReviewMode)
                         Expanded(
                           child: Padding(
                             padding:
@@ -329,13 +538,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               ),
                               onPressed: () {
                                 modalSetState(() {
-                                  showQuestions = widget.subsections![
-                                              currentSubsectionIndex]['mcqs'] !=
-                                          null &&
-                                      widget
-                                          .subsections![currentSubsectionIndex]
-                                              ['mcqs']
-                                          .isNotEmpty;
+                                  showQuestions = subsection['mcqs'] != null &&
+                                      subsection['mcqs'].isNotEmpty;
                                 });
                               },
                               child: Text(
@@ -366,19 +570,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                 if (selectedOption != null) {
                                   attemptedQuestions++;
                                   if (selectedOption ==
-                                      widget.subsections![
-                                                  currentSubsectionIndex]
-                                              ['mcqs'][currentQuestionIndex]
+                                      subsection['mcqs'][currentQuestionIndex]
                                           ['correctAnswer']) {
                                     correctAnswers++;
                                   }
                                 }
                                 if (currentQuestionIndex <
-                                    widget
-                                            .subsections![
-                                                currentSubsectionIndex]['mcqs']
-                                            .length -
-                                        1) {
+                                    subsection['mcqs'].length - 1) {
                                   modalSetState(() {
                                     currentQuestionIndex++;
                                     selectedOption = null;
@@ -392,12 +590,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               },
                               child: Text(
                                   currentQuestionIndex <
-                                          widget
-                                                  .subsections![
-                                                      currentSubsectionIndex]
-                                                      ['mcqs']
-                                                  .length -
-                                              1
+                                          subsection['mcqs'].length - 1
                                       ? "Next"
                                       : "Show Results",
                                   style: TextStyle(
@@ -433,11 +626,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                       ),
                                     ),
                                     icon: Icon(
-                                      Icons.mic,
+                                      Icons.rate_review_outlined,
                                       color: Color.fromRGBO(255, 217, 0, 1),
                                     ),
                                     label: Text(
-                                      'Continue Lesson',
+                                      'Review Questions',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 14,
@@ -445,52 +638,58 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                       ),
                                     ),
                                     onPressed: () {
-                                      _seekToTime((transformedSubsections[
-                                                  currentSubsectionIndex +
-                                                      2]['startTime'] /
-                                              1000)
-                                          .toInt());
-                                      Navigator.pop(context);
+                                      modalSetState(() {
+                                        showResult = false;
+                                        inReviewMode = true;
+                                        currentQuestionIndex = 0;
+                                      });
                                       // Add functionality for the microphone button here
                                     },
                                   ),
                                 ),
                               ),
                               // Curious QnAs Button
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 5.0),
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.grey[850],
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 12,
-                                        horizontal: 12,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    icon: Icon(
-                                      Icons.menu_book,
-                                      color: Color.fromRGBO(255, 217, 0, 1),
-                                    ),
-                                    label: Text(
-                                      'Curious QnAs',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                  ),
+                            ],
+                          ),
+                        ),
+                      if (inReviewMode && !showResult)
+                        Expanded(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 5.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                            ],
+                              onPressed: () {
+                                if (currentQuestionIndex <
+                                    subsection['mcqs'].length - 1) {
+                                  modalSetState(() {
+                                    currentQuestionIndex++;
+                                    // selectedOption = null;
+                                  });
+                                } else {
+                                  modalSetState(() {
+                                    showResult = true;
+                                    showQuestions = false;
+                                  });
+                                }
+                              },
+                              child: Text(
+                                  currentQuestionIndex <
+                                          subsection['mcqs'].length - 1
+                                      ? "Next"
+                                      : "Show Results",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  )),
+                            ),
                           ),
                         ),
                     ],
@@ -514,10 +713,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
     StateSetter modalSetState,
     int currentQuestionIndex,
     String? selectedOption,
+    int subsectionIndex,
     ValueChanged<String?> onOptionSelected,
   ) {
     // Define gradient colors for each option
-
+    currentSubsectionIndex = subsectionIndex;
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       padding: EdgeInsets.all(12),
@@ -570,9 +770,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: gradient,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+                          // gradient: gradient,
+                          borderRadius: BorderRadius.circular(4),
+                          color:
+                              isSelected ? Colors.blue[800] : Colors.grey[850]),
                       child: Stack(
                         children: [
                           Padding(
@@ -586,28 +787,131 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               ),
                             ),
                           ),
-                          if (isSelected)
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                  ),
-                                  child: Icon(
-                                    Icons.check,
-                                    color: Colors.green,
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
+                          // if (isSelected)
+                          //   Align(
+                          //     alignment: Alignment.topRight,
+                          //     child: Padding(
+                          //       padding: const EdgeInsets.all(8.0),
+                          //       child: Container(
+                          //         width: 20,
+                          //         height: 20,
+                          //         decoration: BoxDecoration(
+                          //           shape: BoxShape.circle,
+                          //           color: Colors.white,
+                          //         ),
+                          //         child: Icon(
+                          //           Icons.check,
+                          //           color: Colors.green,
+                          //           size: 16,
+                          //         ),
+                          //       ),
+                          //     ),
+                          //   ),
                         ],
                       ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget renderMCQContentinReviewMode(
+    StateSetter modalSetState,
+    int currentQuestionIndex,
+    String subSectionId,
+    int subsectionIndex,
+  ) {
+    // Access the user's selected answer and the correct answer for this question
+    final question =
+        transformedSubsections[subsectionIndex]['mcqs'][currentQuestionIndex];
+    final correctAnswer = question['correctAnswer'];
+    final userAnswer = userAnswers[subSectionId]
+        ?[currentQuestionIndex]; // Retrieve user's answer from the map
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            "Question ${question['order']}",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color.fromRGBO(255, 217, 0, 1),
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 40),
+          Text(
+            question['question'],
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 20),
+          Expanded(
+            child: ListView.builder(
+              itemCount: question['options'].length,
+              itemBuilder: (context, index) {
+                final option = question['options'][index];
+                // final gradient =
+                //     optionGradients[index % optionGradients.length];
+                final bool isCorrectOption = option['id'] == correctAnswer;
+                final bool isUserSelected = option['id'] == userAnswer;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      // gradient: gradient,
+                      borderRadius: BorderRadius.circular(4),
+                      color: isUserSelected
+                          ? (isCorrectOption
+                              ? Colors.green.withOpacity(0.7)
+                              : Colors.red.withOpacity(0.7))
+                          : (isCorrectOption
+                              ? Colors.green.withOpacity(0.7)
+                              : Colors.grey[850]),
+                    ),
+                    child: Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            option['content'],
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        // if (isUserSelected || isCorrectOption)
+                        //   Align(
+                        //     alignment: Alignment.topRight,
+                        //     child: Padding(
+                        //       padding: const EdgeInsets.all(8.0),
+                        //       child: Icon(
+                        //         isCorrectOption ? Icons.check : Icons.close,
+                        //         color: Colors.white,
+                        //         size: 20,
+                        //       ),
+                        //     ),
+                        //   ),
+                      ],
                     ),
                   ),
                 );
@@ -624,17 +928,15 @@ class _PodcastScreenState extends State<PodcastScreen> {
         DateTime.now().difference(_lastOverlayTime!) < Duration(seconds: 2)) {
       return;
     }
-    for (var subsection in transformedSubsections) {
-      final endTime = Duration(seconds: (subsection['endTime'] / 1000).toInt());
 
-      if (currentPosition >= endTime - Duration(seconds: 1) &&
-          currentPosition < endTime) {
-        // Set the key points for the current subsection
+    for (var subsection in transformedSubsections) {
+      if (currentPosition.inMilliseconds >= subsection['endTime'] - 10 &&
+          currentPosition.inMilliseconds < subsection['endTime']) {
         setState(() {
           currentKeyPoints = subsection['keypoints'];
           isPlaying = false;
         });
-        _showKeyPointsOverlay();
+        _showKeyPointsOverlay(false);
         break;
       }
     }
@@ -1134,10 +1436,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       itemBuilder: (context, index) {
                         final subsection = transformedSubsections[index];
                         final conceptName = subsection['name'];
-                        final startTime = Duration(
-                            seconds: (subsection['startTime'] / 1000).toInt());
-                        final endTime = Duration(
-                            seconds: (subsection['endTime'] / 1000).toInt());
+                        final startTime =
+                            Duration(milliseconds: subsection['startTime']);
+                        final endTime =
+                            Duration(milliseconds: subsection['endTime']);
 
                         final isActive = currentPosition >= startTime &&
                             currentPosition < endTime;
@@ -1153,14 +1455,17 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               fontSize: 16,
                             ),
                           ),
-                          trailing: Text(
-                            _formatDuration(startTime),
-                            style: TextStyle(color: Colors.grey, fontSize: 14),
-                          ),
+                          // trailing: Text(
+                          //   _formatDuration(startTime),
+                          //   style: TextStyle(color: Colors.grey, fontSize: 14),
+                          // ),
                           onTap: () {
                             Navigator.pop(context);
-                            _seekToTime(
-                                (subsection['startTime'] / 1000).toInt());
+                            if (subsection['type'] == 'checkpoint') {
+                              renderCheckpoint(index);
+                            } else {
+                              _seekToTime(subsection['startTime']);
+                            }
                           },
                         );
                       },
@@ -1175,8 +1480,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
     );
   }
 
-  void _seekToTime(int seconds) {
-    final position = Duration(seconds: seconds);
+  void _seekToTime(int milliseconds) {
+    milliseconds = milliseconds + 1000;
+    final position = Duration(milliseconds: milliseconds);
     _audioPlayer.seek(position);
     setState(() {
       isPlaying = true;
@@ -1185,6 +1491,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
   String _formatDuration(Duration duration) {
     return "${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}";
+  }
+
+  String _formatEndTimeDuration(int duration) {
+    final endDuration = Duration(seconds: (duration ~/ 1000).toInt());
+    return "${endDuration.inMinutes}:${(endDuration.inSeconds % 60).toString().padLeft(2, '0')}";
   }
 
   void jumpForward() {
@@ -1203,6 +1514,18 @@ class _PodcastScreenState extends State<PodcastScreen> {
       _audioPlayer.seek(newPosition);
     } else {
       _audioPlayer.seek(Duration.zero);
+    }
+  }
+
+  void skipContent() async {
+    int counterToAdd = 1;
+    final nextSubsection = transformedSubsections[currentSubsectionIndex + 1];
+    if (nextSubsection['type'] == 'checkpoint') {
+      // counterToAdd = 2;
+      renderCheckpoint(currentSubsectionIndex + 1);
+    } else {
+      _seekToTime(transformedSubsections[currentSubsectionIndex + counterToAdd]
+          ['startTime']);
     }
   }
 
@@ -1267,20 +1590,23 @@ class _PodcastScreenState extends State<PodcastScreen> {
                             ),
                             SizedBox(width: 4),
                             Expanded(
-                              child: Text(
-                                activeSubsectionName.isNotEmpty
-                                    ? activeSubsectionName
-                                    : '',
-                                style: TextStyle(
-                                  color: Color.fromRGBO(255, 217, 0, 1),
-                                  fontSize: 16,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Color.fromRGBO(
-                                      255, 217, 0, 1), // Set underline color
+                              child: GestureDetector(
+                                onTap: () => _showSubsectionList(context),
+                                child: Text(
+                                  activeSubsectionName.isNotEmpty
+                                      ? activeSubsectionName
+                                      : '',
+                                  style: TextStyle(
+                                    color: Color.fromRGBO(255, 217, 0, 1),
+                                    fontSize: 16,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Color.fromRGBO(
+                                        255, 217, 0, 1), // Set underline color
+                                  ),
+                                  maxLines: 1,
+                                  overflow:
+                                      TextOverflow.ellipsis, // Prevent overflow
                                 ),
-                                maxLines: 1,
-                                overflow:
-                                    TextOverflow.ellipsis, // Prevent overflow
                               ),
                             ),
                             Align(
@@ -1299,12 +1625,17 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  onPressed: playPauseAudio,
+                                  onPressed: skipContent,
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        'Skip QnA',
+                                        transformedSubsections[
+                                                        currentSubsectionIndex]
+                                                    ['type'] ==
+                                                'qna'
+                                            ? 'Skip QnA'
+                                            : 'Skip Concept',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 10,
@@ -1336,13 +1667,14 @@ class _PodcastScreenState extends State<PodcastScreen> {
               child: Column(
                 children: [
                   Container(
-                    height: 20, // Set a specific height
+                    height: 20,
                     child: Slider(
-                      value: currentPosition.inSeconds.toDouble(),
+                      value: currentPosition.inMilliseconds.toDouble(),
                       min: 0,
-                      max: totalDuration.inSeconds.toDouble(),
+                      max: totalDuration.inMilliseconds.toDouble(),
                       onChanged: (value) {
-                        _audioPlayer.seek(Duration(seconds: value.toInt()));
+                        _audioPlayer
+                            .seek(Duration(milliseconds: value.toInt()));
                       },
                       activeColor: Color.fromRGBO(255, 217, 0, 1),
                       inactiveColor: Colors.grey[700],
@@ -1359,7 +1691,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                           style: TextStyle(color: Colors.white),
                         ),
                         Text(
-                          "${totalDuration.inMinutes}:${(totalDuration.inSeconds % 60).toString().padLeft(2, '0')}",
+                          _formatEndTimeDuration(widget.duration),
                           style: TextStyle(color: Colors.white),
                         ),
                       ],
@@ -1541,6 +1873,5 @@ class _PodcastScreenState extends State<PodcastScreen> {
             )),
       ],
     );
-    ;
   }
 }
