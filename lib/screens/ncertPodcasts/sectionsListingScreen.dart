@@ -22,13 +22,14 @@ class Sectionscreen extends StatefulWidget {
 }
 
 class _SectionscreenState extends State<Sectionscreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   final String screenName = "SectionListingScreen";
 
   String chapterName = '';
   String chapterImage = '';
   String pdfUrl = '';
+  String bookName = '';
 
   int chapterNo = 0;
   String subject = '';
@@ -36,6 +37,7 @@ class _SectionscreenState extends State<Sectionscreen>
   List<dynamic> sections = [];
   late List<Map<String, dynamic>> simulationList = [];
   late List<Map<String, dynamic>> interestLedLessons = [];
+  bool showSimulationsTab = false;
 
   bool isLoading = true;
   bool hasError = false;
@@ -71,10 +73,14 @@ class _SectionscreenState extends State<Sectionscreen>
           chapterImage = data['image'];
           chapterNo = data['chapterNo'] ?? 0;
           subject = data['subject'] ?? 'Unknown Subject';
+          bookName = data['bookName'] ?? 'Unknown Book Name';
           sections = data['sections'] ?? [];
           standard = data['standard'] ?? 0;
           pdfUrl = data['pdfUrl'] ?? '';
           isLoading = false;
+
+          showSimulationsTab = data['subject'].toLowerCase() == 'science';
+          _setupTabController();
         });
       } else {
         setState(() {
@@ -90,6 +96,14 @@ class _SectionscreenState extends State<Sectionscreen>
         hasError = true;
       });
     }
+  }
+
+  void _setupTabController() {
+    // Set tab controller length based on whether the Simulations tab should be shown
+    _tabController = TabController(
+      length: showSimulationsTab ? 2 : 1,
+      vsync: this,
+    );
   }
 
   Future<void> fetchInterestLedDetails() async {
@@ -185,7 +199,7 @@ class _SectionscreenState extends State<Sectionscreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _setupTabController();
     logPageOpenEvent(
       screenName: screenName,
       eventDetails: {
@@ -193,7 +207,7 @@ class _SectionscreenState extends State<Sectionscreen>
         "chapterId": widget.chapterId
       },
     );
-    fetchInterestLedDetails();
+    // fetchInterestLedDetails();
 
     fetchChapterDetails().then((_) => fetchSimulations());
     Future<void> _setCurrentScreen() async {
@@ -302,7 +316,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            "Chapter ${chapterNo} • ${subject}",
+                                            "Chapter ${chapterNo} • ${bookName}",
                                             style: TextStyle(
                                               color: Colors.grey,
                                               fontSize: 14,
@@ -361,13 +375,17 @@ class _SectionscreenState extends State<Sectionscreen>
                                       onPressed:
                                           shareChapter, // Call share function
                                     ),
+                                    // SizedBox(
+                                    //   width: 20,
+                                    // ),
                                     Spacer(),
                                     Padding(
                                         padding:
                                             const EdgeInsets.only(right: 10),
                                         child: ElevatedButton.icon(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.grey[850],
+                                            backgroundColor:
+                                                Color.fromRGBO(255, 217, 0, 1),
                                             padding: EdgeInsets.symmetric(
                                               vertical: 8,
                                               horizontal: 10,
@@ -379,13 +397,12 @@ class _SectionscreenState extends State<Sectionscreen>
                                           ),
                                           icon: Icon(
                                             Icons.question_answer_outlined,
-                                            color:
-                                                Color.fromRGBO(255, 217, 0, 1),
+                                            color: Colors.black,
                                           ),
                                           label: Text(
                                             'Go To Book Q&A',
                                             style: TextStyle(
-                                              color: Colors.white,
+                                              color: Colors.black,
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
                                             ),
@@ -410,27 +427,48 @@ class _SectionscreenState extends State<Sectionscreen>
                             )),
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: TabBar(
-                            controller: _tabController,
-                            indicatorColor: Color.fromRGBO(255, 217, 0, 1),
-                            indicatorWeight: 2.0,
-                            // isScrollable:
-                            //     true,
-                            labelColor:
-                                Colors.white, // Text color for selected tabs.
-                            unselectedLabelColor:
-                                Colors.grey, // Text color for unselected tabs.
-                            labelStyle: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                            unselectedLabelStyle: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.normal),
-                            tabs: const [
-                              Tab(text: 'Episodes'),
-                              Tab(text: 'Interest-Led'),
-                              Tab(text: 'Simulations'),
-                            ],
-                            dividerColor: Colors.transparent,
-                          ),
+                          child: showSimulationsTab
+                              ? TabBar(
+                                  controller: _tabController,
+                                  indicatorColor:
+                                      Color.fromRGBO(255, 217, 0, 1),
+                                  indicatorWeight: 2.0,
+                                  labelColor: Colors
+                                      .white, // Text color for selected tabs
+                                  unselectedLabelColor: Colors
+                                      .grey, // Text color for unselected tabs
+                                  labelStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                  unselectedLabelStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.normal),
+                                  tabs: const [
+                                    Tab(text: 'Episodes'),
+                                    Tab(text: 'Simulations'),
+                                  ],
+                                  dividerColor: Colors.transparent,
+                                )
+                              : TabBar(
+                                  controller: _tabController,
+                                  indicatorColor:
+                                      Color.fromRGBO(255, 217, 0, 1),
+                                  indicatorWeight: 2.0,
+                                  labelColor: Colors
+                                      .white, // Text color for selected tabs
+                                  unselectedLabelColor: Colors
+                                      .grey, // Text color for unselected tabs
+                                  labelStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                  unselectedLabelStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.normal),
+                                  tabs: const [
+                                    Tab(text: 'Episodes'),
+                                  ],
+                                  dividerColor: Colors.transparent,
+                                ),
                         ),
                         SizedBox(height: 20),
                         Expanded(
@@ -451,6 +489,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) => PodcastScreen(
+                                                sectionId: sections[index]
+                                                    ['id'],
                                                 title: sections[index]['name'],
                                                 description: sections[index]
                                                         ['description'] ??
@@ -466,8 +506,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                 chapterName: chapterName,
                                                 chapterNo: chapterNo,
                                                 cerData: sections[index]['cerList'] != null &&
-                                                        sections[index]
-                                                                ['cerList']
+                                                        sections[index]['cerList']
                                                             .isNotEmpty
                                                     ? sections[index]['cerList']
                                                         [0]
@@ -476,7 +515,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                 pdfUrl: pdfUrl,
                                                 sectionNumber: index,
                                                 subsections: sections[index]
-                                                    ['subSections']),
+                                                    ['subSections'],
+                                                sectionEndQuestions: sections[index]['sectionEndQuestions'] ?? []),
                                           ),
                                         );
                                       },
@@ -709,6 +749,11 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                 builder:
                                                                     (context) =>
                                                                         PodcastScreen(
+                                                                  sectionId:
+                                                                      sections[
+                                                                              index]
+                                                                          [
+                                                                          'id'],
                                                                   title: sections[
                                                                           index]
                                                                       ['name'],
@@ -755,340 +800,11 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                           index]
                                                                       [
                                                                       'subSections'],
-                                                                ),
-                                                              ),
-                                                            );
-                                                          },
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          if (index < sections.length - 1)
-                                            const Divider(
-                                              color: Colors.grey,
-                                              thickness: 0.5,
-                                              indent: 16,
-                                              endIndent: 16,
-                                            ),
-                                        ],
-                                      ));
-                                },
-                              ),
-                              // Interest-Led Tab
-                              ListView.builder(
-                                itemCount: interestLedLessons.length,
-                                itemBuilder: (context, index) {
-                                  String interestLedId =
-                                      interestLedLessons[index]['id'];
-
-                                  return GestureDetector(
-                                      // Wrap the whole card in GestureDetector
-                                      onTap: () {
-                                        // Navigate to PodcastScreen on card tap
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => PodcastScreen(
-                                              title: interestLedLessons[index]
-                                                  ['name'],
-                                              description: sections[index]
-                                                      ['description'] ??
-                                                  "No description available",
-                                              imageUrl:
-                                                  interestLedLessons[index]
-                                                      ['image'],
-                                              audioUrl:
-                                                  interestLedLessons[index]
-                                                          ['audioUrl'] ??
-                                                      "",
-                                              duration:
-                                                  interestLedLessons[index]
-                                                          ['timeToComplete'] ??
-                                                      "Unknown",
-                                              chapterName: chapterName,
-                                              chapterNo: chapterNo,
-                                              cerData: interestLedLessons[index]
-                                                          ['cer'] !=
-                                                      null
-                                                  ? interestLedLessons[index]
-                                                      ['cer']
-                                                  : <String, dynamic>{},
-                                              chapterId: widget.chapterId,
-                                              pdfUrl: pdfUrl,
-                                              sectionNumber: index,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Column(
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 0,
-                                            ),
-                                            child: Card(
-                                              color: Colors.transparent,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            8.0),
-                                                    child: Row(
-                                                      children: [
-                                                        ClipRRect(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(8),
-                                                          child: Image.network(
-                                                            interestLedLessons[
-                                                                index]['image'],
-                                                            width: 60,
-                                                            height: 60,
-                                                            fit: BoxFit.cover,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                            width: 16),
-                                                        Expanded(
-                                                          child: Text(
-                                                            interestLedLessons[
-                                                                index]['name'],
-                                                            style:
-                                                                const TextStyle(
-                                                              fontSize: 16,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                            maxLines: 2,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8.0),
-                                                    child: Text(
-                                                      interestLedLessons[index]
-                                                              ['description'] ??
-                                                          "No description available",
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        color: Colors.grey,
-                                                      ),
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 10),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                      horizontal: 8.0,
-                                                    ),
-                                                    child: Text(
-                                                      "${interestLedLessons[index]['interest']} • ${interestLedLessons[index]['timeToComplete']} mins",
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        color: Colors.grey,
-                                                      ),
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      children: [
-                                                        IconButton(
-                                                          icon: Icon(
-                                                            bookmarkedInterestLedLesson
-                                                                    .contains(
-                                                                        interestLedId)
-                                                                ? Icons.bookmark
-                                                                : Icons
-                                                                    .bookmark_border,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          onPressed: () {
-                                                            setState(() {
-                                                              // Toggle the bookmark state.
-                                                              if (bookmarkedInterestLedLesson
-                                                                  .contains(
-                                                                      interestLedId)) {
-                                                                bookmarkedInterestLedLesson
-                                                                    .remove(
-                                                                        interestLedId);
-                                                              } else {
-                                                                bookmarkedInterestLedLesson
-                                                                    .add(
-                                                                        interestLedId);
-                                                              }
-                                                            });
-                                                          },
-                                                        ),
-                                                        // IconButton(
-                                                        //   icon: const Icon(
-                                                        //     Icons.download_rounded,
-                                                        //     color: Colors.grey,
-                                                        //   ),
-                                                        //   onPressed: () {
-                                                        //     // Handle download action
-                                                        //   },
-                                                        // ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .share_outlined,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          onPressed: () {
-                                                            shareChapter();
-                                                            // Handle share action
-                                                          },
-                                                        ),
-                                                        const Spacer(),
-                                                        if (interestLedLessons[
-                                                                index]['cer'] !=
-                                                            null)
-                                                          TextButton(
-                                                            style: TextButton
-                                                                .styleFrom(
-                                                              backgroundColor:
-                                                                  Color
-                                                                      .fromRGBO(
-                                                                          255,
-                                                                          217,
-                                                                          0,
-                                                                          1),
-                                                              padding: const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal:
-                                                                      16,
-                                                                  vertical:
-                                                                      8), // Reduced padding
-                                                              minimumSize: Size(
-                                                                  20,
-                                                                  20), // Minimum size for a smaller button
-                                                              shape:
-                                                                  RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            4),
-                                                              ),
-                                                            ),
-                                                            onPressed: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                  builder:
-                                                                      (context) =>
-                                                                          CERPage(
-                                                                    data: interestLedLessons[
-                                                                            index]
-                                                                        ['cer'],
-                                                                    chapterId:
-                                                                        widget
-                                                                            .chapterId,
-                                                                  ),
-                                                                ),
-                                                              );
-                                                            },
-                                                            child: const Text(
-                                                              'Go to Case',
-                                                              style: TextStyle(
-                                                                color: Colors
-                                                                    .black,
-                                                                fontSize: 12,
-                                                                // decoration: TextDecoration.underline,
-                                                                // decorationColor: Colors.white,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .play_circle_fill,
-                                                            color:
-                                                                Color.fromRGBO(
-                                                                    255,
-                                                                    217,
-                                                                    0,
-                                                                    1),
-                                                            size: 40,
-                                                          ),
-                                                          onPressed: () {
-                                                            Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder:
-                                                                    (context) =>
-                                                                        PodcastScreen(
-                                                                  title: interestLedLessons[
-                                                                          index]
-                                                                      ['name'],
-                                                                  description: interestLedLessons[
-                                                                              index]
-                                                                          [
-                                                                          'description'] ??
-                                                                      "No description available",
-                                                                  imageUrl: interestLedLessons[
-                                                                          index]
-                                                                      [
-                                                                      'imageUrl'],
-                                                                  audioUrl:
-                                                                      interestLedLessons[index]
+                                                                  sectionEndQuestions:
+                                                                      sections[index]
                                                                               [
-                                                                              'audioUrl'] ??
-                                                                          "",
-                                                                  duration: interestLedLessons[
-                                                                              index]
-                                                                          [
-                                                                          'timeToComplete'] ??
-                                                                      "Unknown",
-                                                                  chapterName:
-                                                                      chapterName,
-                                                                  chapterNo:
-                                                                      chapterNo,
-                                                                  cerData: interestLedLessons[index]
-                                                                              [
-                                                                              'cer'] !=
-                                                                          null
-                                                                      ? interestLedLessons[
-                                                                              index]
-                                                                          [
-                                                                          'cer']
-                                                                      : <String,
-                                                                          dynamic>{},
-                                                                  chapterId: widget
-                                                                      .chapterId,
-                                                                  sectionNumber:
-                                                                      index,
+                                                                              'sectionEndQuestions'] ??
+                                                                          [],
                                                                 ),
                                                               ),
                                                             );
@@ -1113,214 +829,224 @@ class _SectionscreenState extends State<Sectionscreen>
                                 },
                               ),
                               // Simulations Tab
-                              ListView.builder(
-                                itemCount: simulationList.length,
-                                itemBuilder: (context, index) {
-                                  String simulationId =
-                                      simulationList[index]['id'];
+                              if (showSimulationsTab)
+                                ListView.builder(
+                                  itemCount: simulationList.length,
+                                  itemBuilder: (context, index) {
+                                    String simulationId =
+                                        simulationList[index]['id'];
 
-                                  return GestureDetector(
-                                      // Wrap the whole card in GestureDetector
-                                      onTap: () {
-                                        // Navigate to PodcastScreen on card tap
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => SimulationScreen(
-                                                simulationUrl:
-                                                    "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
-                                          ),
-                                        );
-                                      },
-                                      child: Column(
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 0,
+                                    return GestureDetector(
+                                        // Wrap the whole card in GestureDetector
+                                        onTap: () {
+                                          // Navigate to PodcastScreen on card tap
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  SimulationScreen(
+                                                      simulationUrl:
+                                                          "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
                                             ),
-                                            child: Card(
-                                              color: Colors.transparent,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
+                                          );
+                                        },
+                                        child: Column(
+                                          children: [
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 0,
                                               ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            8.0),
-                                                    child: Row(
-                                                      children: [
-                                                        ClipRRect(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(8),
-                                                          child: Image.network(
-                                                            simulationList[
-                                                                    index][
-                                                                'simulationImageUrl'],
-                                                            width: 60,
-                                                            height: 60,
-                                                            fit: BoxFit.cover,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                            width: 16),
-                                                        Expanded(
-                                                          child: Text(
-                                                            simulationList[
-                                                                index]['name'],
-                                                            style:
-                                                                const TextStyle(
-                                                              fontSize: 16,
-                                                              color:
-                                                                  Colors.white,
+                                              child: Card(
+                                                color: Colors.transparent,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: Row(
+                                                        children: [
+                                                          ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8),
+                                                            child:
+                                                                Image.network(
+                                                              simulationList[
+                                                                      index][
+                                                                  'simulationImageUrl'],
+                                                              width: 60,
+                                                              height: 60,
+                                                              fit: BoxFit.cover,
                                                             ),
-                                                            maxLines: 2,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8.0),
-                                                    child: Text(
-                                                      simulationList[index]
-                                                              ['description'] ??
-                                                          "No description available",
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        color: Colors.grey,
-                                                      ),
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 10),
-                                                  // Padding(
-                                                  //   padding: const EdgeInsets.symmetric(
-                                                  //     horizontal: 8.0,
-                                                  //   ),
-                                                  //   child: Text(
-                                                  //     "20 mins",
-                                                  //     style: const TextStyle(
-                                                  //       fontSize: 14,
-                                                  //       color: Colors.grey,
-                                                  //     ),
-                                                  //     maxLines: 2,
-                                                  //     overflow: TextOverflow.ellipsis,
-                                                  //   ),
-                                                  // ),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      children: [
-                                                        IconButton(
-                                                          icon: Icon(
-                                                            bookmarkedSimulations
-                                                                    .contains(
-                                                                        simulationId)
-                                                                ? Icons.bookmark
-                                                                : Icons
-                                                                    .bookmark_border,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          onPressed: () {
-                                                            setState(() {
-                                                              // Toggle the bookmark state.
-                                                              if (bookmarkedSimulations
-                                                                  .contains(
-                                                                      simulationId)) {
-                                                                bookmarkedSimulations
-                                                                    .remove(
-                                                                        simulationId);
-                                                              } else {
-                                                                bookmarkedSimulations
-                                                                    .add(
-                                                                        simulationId);
-                                                              }
-                                                            });
-                                                          },
-                                                        ),
-                                                        // IconButton(
-                                                        //   icon: const Icon(
-                                                        //     Icons.download_rounded,
-                                                        //     color: Colors.grey,
-                                                        //   ),
-                                                        //   onPressed: () {
-                                                        //     // Handle download action
-                                                        //   },
-                                                        // ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .share_outlined,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          onPressed: () {
-                                                            shareSimulation(
-                                                                simulationId);
-                                                          },
-                                                        ),
-                                                        const Spacer(),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .play_circle_fill,
-                                                            color:
-                                                                Color.fromRGBO(
-                                                                    255,
-                                                                    217,
-                                                                    0,
-                                                                    1),
-                                                            size: 40,
-                                                          ),
-                                                          onPressed: () {
-                                                            Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder: (context) =>
-                                                                    SimulationScreen(
-                                                                        simulationUrl:
-                                                                            "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
+                                                          const SizedBox(
+                                                              width: 16),
+                                                          Expanded(
+                                                            child: Text(
+                                                              simulationList[
+                                                                      index]
+                                                                  ['name'],
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontSize: 16,
+                                                                color: Colors
+                                                                    .white,
                                                               ),
-                                                            );
-                                                          },
-                                                        ),
-                                                      ],
+                                                              maxLines: 2,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
-                                                  ),
-                                                ],
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8.0),
+                                                      child: Text(
+                                                        simulationList[index][
+                                                                'description'] ??
+                                                            "No description available",
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.grey,
+                                                        ),
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 10),
+                                                    // Padding(
+                                                    //   padding: const EdgeInsets.symmetric(
+                                                    //     horizontal: 8.0,
+                                                    //   ),
+                                                    //   child: Text(
+                                                    //     "20 mins",
+                                                    //     style: const TextStyle(
+                                                    //       fontSize: 14,
+                                                    //       color: Colors.grey,
+                                                    //     ),
+                                                    //     maxLines: 2,
+                                                    //     overflow: TextOverflow.ellipsis,
+                                                    //   ),
+                                                    // ),
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 4),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              bookmarkedSimulations
+                                                                      .contains(
+                                                                          simulationId)
+                                                                  ? Icons
+                                                                      .bookmark
+                                                                  : Icons
+                                                                      .bookmark_border,
+                                                              color:
+                                                                  Colors.grey,
+                                                            ),
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                // Toggle the bookmark state.
+                                                                if (bookmarkedSimulations
+                                                                    .contains(
+                                                                        simulationId)) {
+                                                                  bookmarkedSimulations
+                                                                      .remove(
+                                                                          simulationId);
+                                                                } else {
+                                                                  bookmarkedSimulations
+                                                                      .add(
+                                                                          simulationId);
+                                                                }
+                                                              });
+                                                            },
+                                                          ),
+                                                          // IconButton(
+                                                          //   icon: const Icon(
+                                                          //     Icons.download_rounded,
+                                                          //     color: Colors.grey,
+                                                          //   ),
+                                                          //   onPressed: () {
+                                                          //     // Handle download action
+                                                          //   },
+                                                          // ),
+                                                          IconButton(
+                                                            icon: const Icon(
+                                                              Icons
+                                                                  .share_outlined,
+                                                              color:
+                                                                  Colors.grey,
+                                                            ),
+                                                            onPressed: () {
+                                                              shareSimulation(
+                                                                  simulationId);
+                                                            },
+                                                          ),
+                                                          const Spacer(),
+                                                          IconButton(
+                                                            icon: const Icon(
+                                                              Icons
+                                                                  .play_circle_fill,
+                                                              color: Color
+                                                                  .fromRGBO(
+                                                                      255,
+                                                                      217,
+                                                                      0,
+                                                                      1),
+                                                              size: 40,
+                                                            ),
+                                                            onPressed: () {
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder: (context) =>
+                                                                      SimulationScreen(
+                                                                          simulationUrl:
+                                                                              "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
+                                                                ),
+                                                              );
+                                                            },
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          if (index < simulationList.length - 1)
-                                            const Divider(
-                                              color: Colors.grey,
-                                              thickness: 0.5,
-                                              indent: 16,
-                                              endIndent: 16,
-                                            ),
-                                        ],
-                                      ));
-                                },
-                              ),
+                                            if (index <
+                                                simulationList.length - 1)
+                                              const Divider(
+                                                color: Colors.grey,
+                                                thickness: 0.5,
+                                                indent: 16,
+                                                endIndent: 16,
+                                              ),
+                                          ],
+                                        ));
+                                  },
+                                ),
                             ],
                           ),
                         ),

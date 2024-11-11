@@ -13,8 +13,10 @@ import 'package:http_parser/http_parser.dart';
 
 class EndQuestionScreen extends StatefulWidget {
   final String chapterId;
+  final List<dynamic>? sectionEndQuestions;
 
-  const EndQuestionScreen({Key? key, required this.chapterId})
+  const EndQuestionScreen(
+      {Key? key, required this.chapterId, this.sectionEndQuestions})
       : super(key: key);
 
   @override
@@ -107,18 +109,23 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
   }
 
   Future<void> _loadChapterQuestions() async {
-    // int standard = 8;
-    // int chapterNo = 1;
-    // String subject = 'Science';
-
-    final data = await fetchChapterQuestions(chapterId: widget.chapterId);
-
-    if (data != null) {
+    if (widget.sectionEndQuestions != null &&
+        widget.sectionEndQuestions!.isNotEmpty) {
       setState(() {
-        chapterQuestions = data;
+        chapterQuestions = {
+          'questions': widget.sectionEndQuestions,
+        };
       });
     } else {
-      print('Failed to load chapter questions.');
+      // Fallback to fetch from API if `sectionEndQuestions` is not provided
+      final data = await fetchChapterQuestions(chapterId: widget.chapterId);
+      if (data != null) {
+        setState(() {
+          chapterQuestions = data;
+        });
+      } else {
+        print('Failed to load chapter questions.');
+      }
     }
   }
 
@@ -338,7 +345,6 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
 
     setState(() {
       _showFeedback = false; // Reset feedback state for the previous question
-      _chooseNewGradient();
     });
 
     if (chapterQuestions != null && chapterQuestions!['questions'] != null) {
@@ -353,11 +359,14 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
             // Go to the previous subQuestion
             setState(() {
               currentSubQuestionIndex--;
+              _chooseNewGradient();
             });
           } else if (currentQuestionIndex > 0) {
             // Go to the last subQuestion of the previous question if it exists
             setState(() {
               currentQuestionIndex--;
+              _chooseNewGradient();
+
               currentSubQuestionIndex =
                   questions[currentQuestionIndex]['subQuestions']?.length ?? 0;
               if (currentSubQuestionIndex > 0) {

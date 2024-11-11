@@ -1,6 +1,8 @@
 import 'package:eureka_app/screens/communityScreen.dart';
 import 'package:eureka_app/screens/landingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
+import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/screens/signupScreen.dart';
 import 'package:eureka_app/services/notificationService.dart';

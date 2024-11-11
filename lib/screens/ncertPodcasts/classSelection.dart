@@ -1,7 +1,6 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:flutter/material.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -105,8 +104,8 @@ class _ClassSelection extends State<ClassSelectionPage> {
           alignment: WrapAlignment.center,
           spacing: 20,
           runSpacing: 20,
-          children: List.generate(6, (index) {
-            int classNumber = index + 5;
+          children: List.generate(5, (index) {
+            int classNumber = index + 6;
             bool isSelected = selectedClass == classNumber;
             return GestureDetector(
               onTap: () async {

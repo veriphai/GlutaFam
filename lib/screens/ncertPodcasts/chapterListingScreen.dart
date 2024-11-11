@@ -26,10 +26,15 @@ class _ChapterscreenState extends State<Chapterscreen> {
   int standard = 8; // Default standard
   List<dynamic> carouselData = [];
   final String screenName = "HomePage-ChapterListingScreen";
+  final int cacheExpiryDurationInHours = 24;
+
+  String getChaptersCacheKey() => 'cached_chapters_standard_$standard';
+  String getCacheTimestampKey() =>
+      'cached_chapters_timestamp_standard_$standard';
 
   Map<String, List<Map<String, dynamic>>> subjectChapters = {
     'Science': [],
-    'English - It So Happened': []
+    'English-2': []
   };
 
   List<dynamic> podcasts = [];
@@ -69,35 +74,57 @@ class _ChapterscreenState extends State<Chapterscreen> {
       print(standard);
     });
     // Now that the standard is loaded, fetch the chapters
-    fetchRecommendedPodcasts();
     fetchAllChapters();
     fetchCarouselData();
+    fetchRecommendedPodcasts();
   }
 
   Future<void> fetchAllChapters() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Check if cached data is available and not expired
+    String? cachedChapters = prefs.getString(getChaptersCacheKey());
+    int? cachedTimestamp = prefs.getInt(getCacheTimestampKey());
+    int currentTime = DateTime.now().millisecondsSinceEpoch;
+
+    if (cachedChapters != null &&
+        cachedTimestamp != null &&
+        currentTime - cachedTimestamp < cacheExpiryDurationInHours * 3600000) {
+      // Use cached data if within expiry
+      setState(() {
+        final data = json.decode(cachedChapters);
+        subjectChapters['Science'] =
+            List<Map<String, dynamic>>.from(data['Science']);
+        subjectChapters['English-2'] =
+            List<Map<String, dynamic>>.from(data['English-2']);
+        isLoading = false;
+      });
+    } else {
+      // Fetch and cache new data if no valid cache is found
+      await _fetchAndCacheChapters();
+    }
+  }
+
+  Future<void> _fetchAndCacheChapters() async {
     try {
       // Fetch chapters for each subject
-      await Future.wait([
-        fetchChapterList('Science'),
-        fetchChapterList('English - It So Happened')
-      ]);
-      // await fetchChapterList('Science');
-      // await fetchChapterList('English - It So Happened');
+      await Future.wait(
+          [fetchChapterList('Science'), fetchChapterList('English-2')]);
 
-      int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      Map<String, dynamic> eventDetails = {
-        "selectedClass": standard,
-        "description": "Class Selection Button clicked"
+      // Cache the data along with the current timestamp if successful
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      Map<String, dynamic> cacheData = {
+        'Science': subjectChapters['Science'],
+        'English-2': subjectChapters['English-2'],
       };
+      int currentTimestamp = DateTime.now().millisecondsSinceEpoch;
 
-      await logEvent(
-        eventType: "buttonClick",
-        screenName: screenName,
-        eventDetails: eventDetails,
-        eventTime: currentTimestamp,
-      );
+      await prefs.setString(getChaptersCacheKey(), json.encode(cacheData));
+      await prefs.setInt(getCacheTimestampKey(), currentTimestamp);
+
       setState(() {
         isLoading = false;
+        hasError = false;
       });
     } catch (e) {
       setState(() {
@@ -107,9 +134,42 @@ class _ChapterscreenState extends State<Chapterscreen> {
     }
   }
 
-  Future<void> fetchRecommendedPodcasts() async {
+  // Update fetchChapterList to avoid setting state if called during caching
+  Future<void> fetchChapterList(String subject) async {
     final String url =
-        'https://glutaclass.com:8080/gluta/fam/recommended-podcasts?standard=${widget.standard}';
+        'https://glutaclass.com:8080/gluta/fam/chapters?subject=$subject&standard=$standard';
+
+    try {
+      final response = await client.get(
+        Uri.parse(url),
+        headers: {
+          'Accept-Encoding': 'gzip', // Enable gzip compression
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        List<Map<String, dynamic>> sortedChapters = data
+            .map((e) => e as Map<String, dynamic>)
+            .toList()
+          ..sort((a, b) => a['chapterNo'].compareTo(b['chapterNo']));
+
+        setState(() {
+          subjectChapters[subject] = sortedChapters;
+        });
+      } else {
+        hasError = true;
+      }
+    } catch (e) {
+      hasError = true;
+    }
+  }
+
+  Future<void> fetchRecommendedPodcasts() async {
+    print("***********************************************");
+    print(standard);
+    final String url =
+        'https://glutaclass.com:8080/gluta/fam/recommended-podcasts?standard=$standard';
 
     try {
       print("Fetching recommended-podcasts details from API: $url");
@@ -147,42 +207,42 @@ class _ChapterscreenState extends State<Chapterscreen> {
     }
   }
 
-  Future<void> fetchChapterList(String subject) async {
-    final String url =
-        'https://glutaclass.com:8080/gluta/fam/chapters?subject=$subject&standard=$standard';
+  // Future<void> fetchChapterList(String subject) async {
+  //   final String url =
+  //       'https://glutaclass.com:8080/gluta/fam/chapters?subject=$subject&standard=$standard';
 
-    try {
-      print("Fetching data for $subject from API: $url");
+  //   try {
+  //     print("Fetching data for $subject from API: $url");
 
-      final response = await client.get(
-        Uri.parse(url),
-        headers: {
-          'Accept-Encoding': 'gzip', // Enable gzip compression
-        },
-      );
-      print("response for $subject: $response");
+  //     final response = await client.get(
+  //       Uri.parse(url),
+  //       headers: {
+  //         'Accept-Encoding': 'gzip', // Enable gzip compression
+  //       },
+  //     );
+  //     print("response for $subject: $response");
 
-      if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-        List<Map<String, dynamic>> sortedChapters = data
-            .map((e) => e as Map<String, dynamic>)
-            .toList()
-          ..sort((a, b) => a['chapterNo'].compareTo(b['chapterNo']));
+  //     if (response.statusCode == 200) {
+  //       List<dynamic> data = json.decode(response.body);
+  //       List<Map<String, dynamic>> sortedChapters = data
+  //           .map((e) => e as Map<String, dynamic>)
+  //           .toList()
+  //         ..sort((a, b) => a['chapterNo'].compareTo(b['chapterNo']));
 
-        setState(() {
-          subjectChapters[subject] = sortedChapters;
-        });
-      } else {
-        setState(() {
-          hasError = true;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        hasError = true;
-      });
-    }
-  }
+  //       setState(() {
+  //         subjectChapters[subject] = sortedChapters;
+  //       });
+  //     } else {
+  //       setState(() {
+  //         hasError = true;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     setState(() {
+  //       hasError = true;
+  //     });
+  //   }
+  // }
 
   // Function to open the bottom sheet for class selection
   void _showClassSelectionBottomSheet() {
@@ -197,8 +257,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: List.generate(6, (index) {
-              int classNumber = index + 5;
+            children: List.generate(5, (index) {
+              int classNumber = index + 6;
 
               return Column(
                 children: [
@@ -226,13 +286,14 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
                       // Fetch updated chapters for the new class
                       fetchAllChapters();
+                      fetchRecommendedPodcasts();
                       fetchCarouselData();
 
                       // Close the bottom sheet
                       Navigator.pop(context);
                     },
                   ),
-                  if (index < 5)
+                  if (index < 4)
                     Divider(
                         color: Colors.grey[800]), // Divider between ListTiles
                 ],
@@ -247,7 +308,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
   // Fetch carousel data from API
   Future<void> fetchCarouselData() async {
     final String url =
-        'https://glutaclass.com:8080/gluta/fam/carousal-data?standard=$standard'; // Replace with your actual API URL
+        'https://glutaclass.com:8080/gluta/fam/carousal-data?standard=$standard';
     try {
       final response = await client.get(
         Uri.parse(url),
@@ -372,6 +433,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
   }
 
   Widget buildEpisodeCarousel(List<dynamic> episodes, String title) {
+    print(episodes);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -465,6 +527,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
               cerData: episode['cer'] ?? <String, dynamic>{},
               chapterId: episode['chapterId'],
               sectionNumber: episode['order'] - 1,
+              subsections: episode['subSections'],
+              sectionId: episode['id'],
+              sectionEndQuestions: episode['sectionEndQuestions'],
             ),
           ),
         );
@@ -642,6 +707,10 @@ class _ChapterscreenState extends State<Chapterscreen> {
                                       episode['cer'] ?? <String, dynamic>{},
                                   chapterId: episode['chapterId'],
                                   sectionNumber: episode['order'] - 1,
+                                  subsections: episode['subSections'],
+                                  sectionId: episode['id'],
+                                  sectionEndQuestions:
+                                      episode['sectionEndQuestions'],
                                 ),
                               ),
                             );
@@ -670,55 +739,82 @@ class _ChapterscreenState extends State<Chapterscreen> {
             ? Center(child: CircularProgressIndicator())
             : hasError
                 ? Center(
-                    child: Text(
-                      'Failed to load chapters',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  )
-                : SingleChildScrollView(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (podcasts.isNotEmpty)
-                          buildEpisodeCarousel(podcasts, "Just For You"),
-                        // Chapter List rendering
-                        const SizedBox(height: 20),
-
-                        _buildChapterContent(),
-                        const SizedBox(height: 10),
-
-                        // Spacing between chapter list and carousels
-                        // const SizedBox(height: 20),
-
-                        // Render carousels dynamically from carouselData
-                        ...carouselData.map((carousel) {
-                          return Column(
-                            children: [
-                              if ((carousel['type'] == 'interest_led' ||
-                                      carousel['type'] ==
-                                          'famous_personality') &&
-                                  carousel['items'] != null &&
-                                  carousel['items'].isNotEmpty)
-                                buildCarousel(carousel['title'],
-                                    carousel['items'], carousel['type']),
-
-                              if (carousel['type'] == 'episode' &&
-                                  carousel['episodes'] != null &&
-                                  carousel['episodes'].isNotEmpty)
-                                buildEpisodeCarousel(
-                                    carousel['episodes'], carousel['title']),
-
-                              // Add spacing between carousels
-                              const SizedBox(height: 20),
-                            ],
-                          );
-                        }).toList(),
-
-                        // Spacing below the last carousel
-                        const SizedBox(height: 20),
+                        Text(
+                          'Failed to load chapters',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              isLoading = true;
+                              hasError = false;
+                            });
+                            fetchAllChapters();
+                            fetchRecommendedPodcasts();
+                            fetchCarouselData();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                          ),
+                          child: Text(
+                            'Reload',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
+                  )
+                : (subjectChapters.values.every((chapters) => chapters.isEmpty)
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            'We are working on the data for this class.\nYou may check other classes.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (podcasts.isNotEmpty)
+                              buildEpisodeCarousel(podcasts, "Just For You"),
+                            const SizedBox(height: 20),
+                            _buildChapterContent(),
+                            const SizedBox(height: 10),
+                            ...carouselData.map((carousel) {
+                              return Column(
+                                children: [
+                                  if ((carousel['type'] == 'interest_led' ||
+                                          carousel['type'] ==
+                                              'famous_personality') &&
+                                      carousel['items'] != null &&
+                                      carousel['items'].isNotEmpty)
+                                    buildCarousel(carousel['title'],
+                                        carousel['items'], carousel['type']),
+                                  if (carousel['type'] == 'episode' &&
+                                      carousel['episodes'] != null &&
+                                      carousel['episodes'].isNotEmpty)
+                                    buildEpisodeCarousel(carousel['episodes'],
+                                        carousel['title']),
+                                  const SizedBox(height: 20),
+                                ],
+                              );
+                            }).toList(),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      )),
       ),
     );
   }
@@ -737,7 +833,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                subject == 'English-1' ? 'English Read Along' : subject,
+                subject,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,

@@ -1,6 +1,7 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:pdfx/pdfx.dart'; // Import pdfx package
@@ -17,6 +18,8 @@ import 'dart:io';
 import 'dart:convert';
 
 class PodcastScreen extends StatefulWidget {
+  final String? sectionId;
+
   final String title;
   final String description;
   final String imageUrl;
@@ -29,22 +32,25 @@ class PodcastScreen extends StatefulWidget {
   final String? pdfUrl;
   final int sectionNumber;
   final List<dynamic>? subsections;
+  final List<dynamic>? sectionEndQuestions;
 
-  const PodcastScreen({
-    Key? key,
-    required this.title,
-    required this.description,
-    required this.imageUrl,
-    required this.audioUrl,
-    required this.duration,
-    required this.chapterName,
-    required this.chapterNo,
-    required this.cerData,
-    required this.chapterId,
-    required this.sectionNumber,
-    this.pdfUrl,
-    this.subsections,
-  }) : super(key: key);
+  const PodcastScreen(
+      {Key? key,
+      this.sectionId,
+      required this.title,
+      required this.description,
+      required this.imageUrl,
+      required this.audioUrl,
+      required this.duration,
+      required this.chapterName,
+      required this.chapterNo,
+      required this.cerData,
+      required this.chapterId,
+      required this.sectionNumber,
+      this.pdfUrl,
+      this.subsections,
+      this.sectionEndQuestions})
+      : super(key: key);
 
   @override
   _PodcastScreenState createState() => _PodcastScreenState();
@@ -90,7 +96,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
           'name': subsection['name'],
           'startTime': subsection['startTime'],
           'endTime': subsection['endTime'],
-          'order': currentOrder
+          'order': currentOrder,
+          'type': 'intro'
         });
         isFirstSubsection = false;
         currentOrder++;
@@ -134,9 +141,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
   void _updateActiveSubsectionName() {
     for (var subsection in transformedSubsections) {
-      final startTime =
-          Duration(seconds: (subsection['startTime'] / 1000).toInt());
-      final endTime = Duration(seconds: (subsection['endTime'] / 1000).toInt());
+      final startTime = Duration(milliseconds: subsection['startTime']);
+      final endTime = Duration(milliseconds: subsection['endTime']);
 
       if (currentPosition >= startTime && currentPosition < endTime) {
         setState(() {
@@ -190,6 +196,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
   ];
 
   void renderCheckpoint(int index) {
+    if (index == 0) {
+      index++;
+    }
     final subsectionId = transformedSubsections[index - 1]['id'];
     final hasExistingAnswers = userAnswers.containsKey(subsectionId) &&
         userAnswers[subsectionId]!.any((answer) => answer != null);
@@ -234,13 +243,14 @@ class _PodcastScreenState extends State<PodcastScreen> {
     bool showResult = false;
     bool inReviewMode = reviewMode;
     int correctAnswers = initialCorrectAnswers;
-    int attemptedQuestions = initialAttemptedQuestions;
     String? selectedOption;
 
     if (index > 0) {
       currentSubsectionIndex = index;
     }
     final subsection = transformedSubsections[currentSubsectionIndex];
+    int attemptedQuestions = subsection['mcqs'].length;
+
     final subsectionId = subsection['id'];
     userAnswers[subsectionId] ??= List.filled(
       subsection['mcqs'].length,
@@ -266,7 +276,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 40),
+                  SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -281,12 +291,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      // IconButton(
-                      //   icon: Icon(Icons.close, color: Colors.white),
-                      //   onPressed: () {
-                      //     Navigator.pop(context);
-                      //   },
-                      // ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Colors.white),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                      ),
                     ],
                   ),
                   SizedBox(height: 10),
@@ -352,7 +362,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       modalSetState,
                       currentQuestionIndex,
                       selectedOption,
-                      currentSubsectionIndex,
+                      index > 0 ? index : currentSubsectionIndex,
                       (value) {
                         modalSetState(() {
                           selectedOption = value;
@@ -568,7 +578,6 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               ),
                               onPressed: () {
                                 if (selectedOption != null) {
-                                  attemptedQuestions++;
                                   if (selectedOption ==
                                       subsection['mcqs'][currentQuestionIndex]
                                           ['correctAnswer']) {
@@ -1151,6 +1160,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
       ));
       request.fields['chapterId'] = widget.chapterId;
       request.fields['sectionNumber'] = widget.sectionNumber.toString();
+      request.fields['subsectionId'] =
+          transformedSubsections[currentSubsectionIndex]['id'];
 
       final response = await request.send();
       print("response : ${response}");
@@ -1212,58 +1223,89 @@ class _PodcastScreenState extends State<PodcastScreen> {
   }
 
   void _openPdfInModal(BuildContext context) {
-    if (widget.pdfUrl != null && widget.pdfUrl!.isNotEmpty && isPdfLoaded) {
-      Map<String, dynamic> eventDetails = {
-        "chapterId": widget.chapterId,
-        "section": widget.title,
-        "description": "NCERT Book Opened"
-      };
-      logEvents(eventDetails, "buttonClick");
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true, // Allows the modal to be more than 50%
-        backgroundColor: Colors.black, // Adjust the background color
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (BuildContext context) {
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.8, // 80% of height
-            child: Column(
-              children: [
-                // Close button at the top
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 10.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'View Book',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: Colors.white),
-                        onPressed: () {
-                          Navigator.pop(context); // Close the modal
-                        },
-                      ),
-                    ],
+    // Open the modal immediately
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.8, // 80% of height
+          child: Column(
+            children: [
+              // Close button at the top
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 10.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'View Book',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(context); // Close the modal
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              // PDF Viewer or Loader
+              Expanded(
+                child: Container(
+                  color: Colors.black,
+                  child: FutureBuilder(
+                    future:
+                        _loadPdf(), // This would be the async function to load the PDF
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        // Show loader while waiting for PDF to load
+                        return Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Color.fromRGBO(255, 217, 0, 1)),
+                          ),
+                        );
+                      } else if (snapshot.hasError) {
+                        // Handle any loading errors
+                        return Center(
+                          child: Text(
+                            'Failed to load PDF',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        );
+                      } else {
+                        // Display PDF when loaded
+                        return PdfView(
+                          controller: _pdfController!,
+                          scrollDirection: Axis.vertical,
+                        );
+                      }
+                    },
                   ),
                 ),
-                Expanded(
-                    child: Container(
-                  color: Colors.black,
-                  child: PdfView(
-                    controller: _pdfController!,
-                    scrollDirection: Axis.vertical, // Enable vertical scrolling
-                  ),
-                ))
-              ],
-            ),
-          );
-        },
-      );
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+// Mock _loadPdf method to simulate loading delay
+  Future<void> _loadPdf() async {
+    if (!isPdfLoaded) {
+      // Simulate loading time
+      await Future.delayed(Duration(seconds: 2));
+      setState(() {
+        isPdfLoaded = true;
+      });
     }
   }
 
@@ -1481,7 +1523,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
   }
 
   void _seekToTime(int milliseconds) {
-    milliseconds = milliseconds + 1000;
+    // milliseconds = milliseconds + 1000;
     final position = Duration(milliseconds: milliseconds);
     _audioPlayer.seek(position);
     setState(() {
@@ -1519,13 +1561,33 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
   void skipContent() async {
     int counterToAdd = 1;
-    final nextSubsection = transformedSubsections[currentSubsectionIndex + 1];
-    if (nextSubsection['type'] == 'checkpoint') {
-      // counterToAdd = 2;
-      renderCheckpoint(currentSubsectionIndex + 1);
+
+    if (currentSubsectionIndex == transformedSubsections.length - 1) {
+      await _audioPlayer.pause();
+      setState(() {
+        isPlaying = false;
+      });
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FeedbackScreen(
+            chapterId: widget.chapterId,
+            sectionEndQuestions: widget.sectionEndQuestions,
+            sectionId: widget.sectionId,
+          ),
+        ),
+      );
     } else {
-      _seekToTime(transformedSubsections[currentSubsectionIndex + counterToAdd]
-          ['startTime']);
+      final nextSubsection = transformedSubsections[currentSubsectionIndex + 1];
+
+      if (nextSubsection['type'] == 'checkpoint') {
+        // counterToAdd = 2;
+        renderCheckpoint(currentSubsectionIndex + 1);
+      } else {
+        _seekToTime(
+            transformedSubsections[currentSubsectionIndex + counterToAdd]
+                ['startTime']);
+      }
     }
   }
 
@@ -1630,12 +1692,21 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        transformedSubsections[
-                                                        currentSubsectionIndex]
-                                                    ['type'] ==
-                                                'qna'
-                                            ? 'Skip QnA'
-                                            : 'Skip Concept',
+                                        currentSubsectionIndex ==
+                                                transformedSubsections.length -
+                                                    1
+                                            ? 'End Lesson'
+                                            : transformedSubsections[
+                                                            currentSubsectionIndex]
+                                                        ['type'] ==
+                                                    'qna'
+                                                ? 'Skip QnA'
+                                                : transformedSubsections[
+                                                                currentSubsectionIndex]
+                                                            ['type'] ==
+                                                        'intro'
+                                                    ? 'Skip Intro'
+                                                    : 'Skip Concept',
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 10,
@@ -1863,8 +1934,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        EndQuestionScreen(chapterId: widget.chapterId),
+                    builder: (context) => EndQuestionScreen(
+                      chapterId: widget.chapterId,
+                      sectionEndQuestions: widget.sectionEndQuestions,
+                    ),
                   ),
                 );
 
