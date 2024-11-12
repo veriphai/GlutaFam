@@ -71,7 +71,8 @@ class _SectionscreenState extends State<Sectionscreen>
       String chapterName,
       int duration,
       Duration totalDuration,
-      AudioPlayer _audioPlayer) {
+      AudioPlayer _audioPlayer,
+      bool isPlaying) {
     setState(() {
       showMiniPlayer = true;
       miniPlayerAudioUrl = audioUrl;
@@ -81,6 +82,7 @@ class _SectionscreenState extends State<Sectionscreen>
       miniPlayerDuration = duration;
       miniAudioPlayer = _audioPlayer;
       totalDuration = totalDuration;
+      isPlaying = isPlaying;
     });
   }
 
@@ -574,7 +576,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                     result['chapterName'],
                                                     result['duration'],
                                                     result['totalDuration'],
-                                                    result['audioPlayer']);
+                                                    result['audioPlayer'],
+                                                    result['isPlaying']);
                                               }
                                             });
                                           },
@@ -1158,6 +1161,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                         pdfUrl: pdfUrl,
                                         currentPosition: currentPosition,
                                         totalDuration: totalDuration,
+                                        isPlaying: isPlaying,
                                       ),
                                     )
                                   : SizedBox.shrink();

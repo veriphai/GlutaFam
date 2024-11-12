@@ -17,22 +17,23 @@ class MiniPlayer extends StatefulWidget {
   final String? pdfUrl;
   final Duration currentPosition;
   final Duration totalDuration;
+  final bool isPlaying;
 
-  MiniPlayer({
-    required this.episodeImageUrl,
-    required this.chapterName,
-    required this.episodeName,
-    required this.duration,
-    required this.audioUrl,
-    required this.audioPlayer,
-    required this.description,
-    required this.chapterId,
-    required this.chapterNo,
-    required this.cerData,
-    required this.pdfUrl,
-    required this.currentPosition,
-    required this.totalDuration,
-  });
+  MiniPlayer(
+      {required this.episodeImageUrl,
+      required this.chapterName,
+      required this.episodeName,
+      required this.duration,
+      required this.audioUrl,
+      required this.audioPlayer,
+      required this.description,
+      required this.chapterId,
+      required this.chapterNo,
+      required this.cerData,
+      required this.pdfUrl,
+      required this.currentPosition,
+      required this.totalDuration,
+      required this.isPlaying});
 
   @override
   State<MiniPlayer> createState() => _MiniPlayerState();
@@ -65,7 +66,19 @@ class _MiniPlayerState extends State<MiniPlayer> {
       }
     });
 
-    playPauseAudio();
+    widget.audioPlayer.playerStateStream.listen((playerState) {
+      if (mounted) {
+        setState(() {
+          isPlaying = playerState
+              .playing; // Update isPlaying based on actual playback state
+        });
+      }
+    });
+
+    // Set initial play/pause icon state based on audio player
+    isPlaying = widget.audioPlayer.playing;
+
+    // playPauseAudio();
   }
 
   @override
@@ -90,13 +103,18 @@ class _MiniPlayerState extends State<MiniPlayer> {
     }
   }
 
+  String _formatEndTimeDuration(int duration) {
+    final endDuration = Duration(seconds: (duration ~/ 1000).toInt());
+    return "${endDuration.inMinutes} mins ${(endDuration.inSeconds % 60).toString()} seconds";
+  }
+
   @override
   Widget build(BuildContext context) {
     // print("Miniplayer current position: ${widget.currentPosition}");
     // print("Miniplayer total duration: ${widget.totalDuration}");
     return GestureDetector(
       onTap: () {
-        widget.audioPlayer.pause();
+        // widget.audioPlayer.pause();
         print("total duration ********************: ${totalDuration}");
         Navigator.push(
           context,
@@ -131,11 +149,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
             // ),
             Row(
               children: [
-                Image.network(
-                  widget.episodeImageUrl,
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    widget.episodeImageUrl,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -143,19 +164,19 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.chapterName,
+                      widget.episodeName,
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      widget.episodeName,
+                      widget.chapterName,
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      '${widget.duration ~/ 60} min ${widget.duration % 60} sec',
+                      _formatEndTimeDuration(widget.duration),
                       style: const TextStyle(color: Colors.grey, fontSize: 10),
                     )
                   ],
@@ -165,8 +186,8 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     isPlaying
                         ? Icons.pause_circle_filled
                         : Icons.play_circle_fill,
-                    color: Colors.yellowAccent,
-                    size: 36,
+                    color: Color.fromRGBO(255, 217, 0, 1),
+                    size: 40,
                   ),
                   onPressed: playPauseAudio,
                 )

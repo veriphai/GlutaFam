@@ -977,9 +977,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
     _audioPlayer = widget.audioPlayer ?? AudioPlayer();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context
-          .read<AudioProvider>()
-          .setAudioPlayer(_audioPlayer, widget.audioUrl);
+      context.read<AudioProvider>().setAudioPlayer(
+          _audioPlayer, widget.audioUrl,
+          title: widget.title,
+          album: widget.chapterName,
+          artUri: widget.imageUrl,
+          artist: widget.chapterName);
     });
     // Set audio player listeners
     // totalDuration = widget.totalDurationFromMiniplayer ?? Duration.zero;
@@ -1043,9 +1046,18 @@ class _PodcastScreenState extends State<PodcastScreen> {
     //     _audioPlayer.play();
     //   });
     // }
-    if (!_audioPlayer.playing) {
-      _audioPlayer.play();
-    }
+
+    // if (!_audioPlayer.playing) {
+    //   _audioPlayer.play();
+    // }
+    _audioPlayer.playerStateStream.listen((playerState) {
+      if (mounted) {
+        setState(() {
+          isPlaying = playerState
+              .playing; // Update isPlaying based on actual playback state
+        });
+      }
+    });
     _initializeRecorder();
     _initializeAudioSession();
 
@@ -1255,7 +1267,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
         isPlaying = false;
       });
     } else {
-      await _audioPlayer.setUrl(widget.audioUrl); // Set the audio source URL
+      // await _audioPlayer.setUrl(widget.audioUrl); // Set the audio source URL
       await _audioPlayer.play(); // Start playback
       setState(() {
         isPlaying = true;
@@ -1642,6 +1654,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
       'audioPlayer': _audioPlayer,
       'currentPosition': currentPosition,
       'totalDuration': totalDuration,
+      'isPlaying': isPlaying
     });
   }
 
@@ -1792,34 +1805,20 @@ class _PodcastScreenState extends State<PodcastScreen> {
               child: Column(
                 children: [
                   Container(
-                    height: 20,
-                    child: totalDuration.inMilliseconds > 0
-                        ? Slider(
-                            value: currentPosition.inMilliseconds
-                                .toDouble()
-                                .clamp(0.0,
-                                    totalDuration.inMilliseconds.toDouble()),
-                            min: 0,
-                            max: totalDuration.inMilliseconds.toDouble(),
-                            onChanged: (value) {
-                              _audioPlayer
-                                  .seek(Duration(milliseconds: value.toInt()));
-                            },
-                            activeColor: Color.fromRGBO(255, 217, 0, 1),
-                            inactiveColor: Colors.grey[700],
-                            thumbColor: Color.fromRGBO(255, 217, 0, 1),
-                          )
-                        : Slider(
-                            value: 0,
-                            min: 0,
-                            max:
-                                1, // Disabled slider, effectively non-interactive
-                            onChanged: null, // No interaction allowed
-                            activeColor: Colors.grey,
-                            inactiveColor: Colors.grey[700],
-                            thumbColor: Colors.grey,
-                          ),
-                  ),
+                      height: 20,
+                      child: Slider(
+                        value: currentPosition.inMilliseconds.toDouble().clamp(
+                            0.0, totalDuration.inMilliseconds.toDouble()),
+                        min: 0,
+                        max: totalDuration.inMilliseconds.toDouble(),
+                        onChanged: (value) {
+                          _audioPlayer
+                              .seek(Duration(milliseconds: value.toInt()));
+                        },
+                        activeColor: Color.fromRGBO(255, 217, 0, 1),
+                        inactiveColor: Colors.grey[700],
+                        thumbColor: Color.fromRGBO(255, 217, 0, 1),
+                      )),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Row(

@@ -11,6 +11,7 @@ import 'package:eureka_app/services/notificationService.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -21,14 +22,11 @@ import 'package:audio_service/audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await AudioService.init(
-  //   builder: () => MyAudioHandler(),
-  //   config: AudioServiceConfig(
-  //     androidNotificationChannelId: 'com.gluta.glutafam.audio',
-  //     androidNotificationChannelName: 'Audio Playback',
-  //     androidNotificationOngoing: true,
-  //   ),
-  // );
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.gluta.glutafam.audio',
+    androidNotificationChannelName: 'Audio Playback',
+    androidNotificationOngoing: true, // Keeps the notification active
+  );
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
