@@ -11,8 +11,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:audioplayers/audioplayers.dart';
+// import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
+import 'package:just_audio/just_audio.dart';
 
 class Sectionscreen extends StatefulWidget {
   final String chapterId;

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:audioplayers/audioplayers.dart';
+// import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 
 class AudioProvider extends ChangeNotifier {
   AudioPlayer? audioPlayer;
@@ -8,6 +9,11 @@ class AudioProvider extends ChangeNotifier {
 
   /// Sets the audio player for a new audio and stops any currently playing audio.
   Future<void> setAudioPlayer(AudioPlayer player, String audioUrl) async {
+    // If the audio URL is already set and playing, return early
+    if (audioPlayer == player && currentAudioUrl == audioUrl && isPlaying) {
+      return; // Avoid resetting the URL and position
+    }
+
     // If a player exists and is playing, stop it
     if (audioPlayer != null && isPlaying) {
       await audioPlayer!.stop();
@@ -18,8 +24,9 @@ class AudioProvider extends ChangeNotifier {
     audioPlayer = player;
     currentAudioUrl = audioUrl;
 
-    // Start playing the new audio
-    await audioPlayer!.play(UrlSource(audioUrl));
+    // Only set the URL if not already set
+    await audioPlayer!.setUrl(audioUrl);
+    await audioPlayer!.play();
     isPlaying = true;
     notifyListeners();
   }
@@ -30,7 +37,7 @@ class AudioProvider extends ChangeNotifier {
       if (isPlaying) {
         await audioPlayer!.pause();
       } else {
-        await audioPlayer!.resume();
+        await audioPlayer!.play();
       }
       isPlaying = !isPlaying;
       notifyListeners();

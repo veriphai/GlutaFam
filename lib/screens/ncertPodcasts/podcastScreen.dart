@@ -4,7 +4,7 @@ import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+// import 'package:audioplayers/audioplayers.dart';
 import 'package:pdfx/pdfx.dart'; // Import pdfx package
 import 'package:http/http.dart' as http;
 import 'package:flutter_sound/flutter_sound.dart' as flutter_sound;
@@ -15,6 +15,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:audio_session/audio_session.dart' as audioSession;
 import 'dart:async'; // Import for Timer
 import 'package:provider/provider.dart';
+import 'package:just_audio/just_audio.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -719,7 +720,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
       _isOverlayOpen = false;
       _lastOverlayTime = DateTime.now();
       isPlaying = true;
-      _audioPlayer.resume();
+      _audioPlayer.play();
     });
   }
 
@@ -982,16 +983,16 @@ class _PodcastScreenState extends State<PodcastScreen> {
     });
     // Set audio player listeners
     // totalDuration = widget.totalDurationFromMiniplayer ?? Duration.zero;
-    _audioPlayer.onDurationChanged.listen((Duration duration) {
-      if (mounted) {
+    _audioPlayer.durationStream.listen((Duration? duration) {
+      if (mounted && duration != null) {
         setState(() {
           totalDuration = duration;
-          print("total duration: ${totalDuration}");
+          print("Total duration: $totalDuration");
         });
       }
     });
 
-    _audioPlayer.onPositionChanged.listen((Duration position) {
+    _audioPlayer.positionStream.listen((Duration position) {
       if (mounted) {
         setState(() {
           currentPosition = position;
@@ -1001,11 +1002,15 @@ class _PodcastScreenState extends State<PodcastScreen> {
       }
     });
 
-    _audioPlayer.onPlayerComplete.listen((event) {
+    _audioPlayer.playerStateStream.listen((playerState) {
       if (mounted) {
+        final isComplete =
+            playerState.processingState == ProcessingState.completed;
         setState(() {
-          isPlaying = false;
-          currentPosition = Duration.zero;
+          isPlaying = !isComplete;
+          if (isComplete) {
+            currentPosition = Duration.zero;
+          }
         });
       }
       if (widget.cerData.isNotEmpty) {
@@ -1026,14 +1031,20 @@ class _PodcastScreenState extends State<PodcastScreen> {
     });
 
     // playPauseAudio();
-    if (_audioPlayer.state == PlayerState.playing) {
-      _audioPlayer.seek(widget.totalDurationFromMiniplayer ?? Duration.zero);
-    } else if (_audioPlayer.state == PlayerState.stopped ||
-        _audioPlayer.state == PlayerState.paused) {
-      _audioPlayer.play(
-        UrlSource(widget.audioUrl),
-        position: widget.totalDurationFromMiniplayer ?? Duration.zero,
-      );
+    // if (_audioPlayer.playing) {
+    //   // Player is currently playing, so we can seek to a position
+    //   _audioPlayer.seek(widget.totalDurationFromMiniplayer ?? Duration.zero);
+    // } else if (_audioPlayer.playerState.processingState ==
+    //         ProcessingState.idle ||
+    //     _audioPlayer.playerState.processingState == ProcessingState.ready) {
+    //   // Player is stopped or paused, so we start playback from the specified position
+    //   _audioPlayer.setUrl(widget.audioUrl).then((_) {
+    //     _audioPlayer.seek(widget.totalDurationFromMiniplayer ?? Duration.zero);
+    //     _audioPlayer.play();
+    //   });
+    // }
+    if (!_audioPlayer.playing) {
+      _audioPlayer.play();
     }
     _initializeRecorder();
     _initializeAudioSession();
@@ -1244,7 +1255,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
         isPlaying = false;
       });
     } else {
-      await _audioPlayer.play(UrlSource(widget.audioUrl));
+      await _audioPlayer.setUrl(widget.audioUrl); // Set the audio source URL
+      await _audioPlayer.play(); // Start playback
       setState(() {
         isPlaying = true;
       });
@@ -1496,7 +1508,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
               ),
               Expanded(
                 child: StreamBuilder<Duration>(
-                  stream: _audioPlayer.onPositionChanged,
+                  stream: _audioPlayer.positionStream,
                   builder: (context, snapshot) {
                     final currentPosition = snapshot.data ?? Duration.zero;
 

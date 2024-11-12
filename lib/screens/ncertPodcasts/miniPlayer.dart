@@ -1,6 +1,7 @@
-import 'package:audioplayers/audioplayers.dart';
+// import 'package:audioplayers/audioplayers.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 
 class MiniPlayer extends StatefulWidget {
   final String episodeImageUrl;
@@ -48,15 +49,15 @@ class _MiniPlayerState extends State<MiniPlayer> {
     // widget.audioPlayer = AudioPlayer();
     super.initState();
 
-    widget.audioPlayer.onDurationChanged.listen((Duration duration) {
-      if (mounted) {
+    widget.audioPlayer.durationStream.listen((Duration? duration) {
+      if (mounted && duration != null) {
         setState(() {
           totalDuration = duration;
         });
       }
     });
 
-    widget.audioPlayer.onPositionChanged.listen((Duration position) {
+    widget.audioPlayer.positionStream.listen((Duration position) {
       if (mounted) {
         setState(() {
           currentPosition = position;
@@ -74,13 +75,15 @@ class _MiniPlayerState extends State<MiniPlayer> {
 
   void playPauseAudio() async {
     print("Audio playing from miniplayer.");
+
     if (isPlaying) {
       await widget.audioPlayer.pause();
       setState(() {
         isPlaying = false;
       });
     } else {
-      await widget.audioPlayer.play(UrlSource(widget.audioUrl));
+      // Remove the setUrl() call to avoid resetting the playback position
+      await widget.audioPlayer.play();
       setState(() {
         isPlaying = true;
       });
