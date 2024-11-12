@@ -5,6 +5,8 @@ import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
 import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/screens/signupScreen.dart';
+import 'package:eureka_app/services/audioProvider.dart';
+import 'package:eureka_app/services/myAudioHandler.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
@@ -13,12 +15,20 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+// import 'package:miniplayer/miniplayer.dart'; // Add miniplayer import
 import 'dart:io' show Platform;
-
-// Ensure this path matches your file structure
+import 'package:audio_service/audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // await AudioService.init(
+  //   builder: () => MyAudioHandler(),
+  //   config: AudioServiceConfig(
+  //     androidNotificationChannelId: 'com.gluta.glutafam.audio',
+  //     androidNotificationChannelName: 'Audio Playback',
+  //     androidNotificationOngoing: true,
+  //   ),
+  // );
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -32,15 +42,11 @@ void main() async {
 
   bool isRealDevice = await checkIfRealDevice();
   if (isRealDevice) {
-    // For targeted notifications, retrieve and print device token
     String? token = await notificationService.getDeviceToken();
     print("FCM Device Token: $token");
-
-    // Subscribe to a topic for broadcast notifications
     await notificationService.subscribeToTopic("all_users");
   }
-  print(
-      "First Launch: $firstLaunch"); // This should print true or false, not null
+  print("First Launch: $firstLaunch");
 
   runApp(MyApp(
     firstLaunch: firstLaunch,
@@ -63,41 +69,34 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<MyAppState>(
-      create: (context) => MyAppState(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => MyAppState()),
+        ChangeNotifierProvider(
+            create: (_) => AudioProvider()), // Add AudioProvider
+      ],
       child: Builder(
         builder: (context) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              boldText: false,
-              textScaler: MediaQuery.of(context)
-                  .textScaler
-                  .clamp(minScaleFactor: 0.95, maxScaleFactor: 0.95),
+          return MaterialApp(
+            title: 'GlutaClass',
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+              textTheme: Theme.of(context).textTheme.apply(
+                    fontSizeFactor: 1.0,
+                  ),
             ),
-            child: MaterialApp(
-              title: 'GlutaClass',
-              theme: ThemeData(
-                useMaterial3: true,
-                colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-                textTheme: Theme.of(context).textTheme.apply(
-                      fontSizeFactor: 1.0,
-                    ),
-              ),
-
-              navigatorObservers: [
-                observer,
-              ],
-              debugShowCheckedModeBanner: false,
-              home: firstLaunch ? LandingScreen() : Chapterscreen(),
-              // home: firstLaunch ? LandingScreen() : Chapterscreen(),
-
-              routes: {
-                '/home': (context) => Chapterscreen(),
-                '/explore': (context) => CommunityPage(),
-                '/community': (context) => Signupscreen(),
-                '/profile': (context) => ProfileScreen(),
-              },
-            ),
+            navigatorObservers: [
+              observer,
+            ],
+            debugShowCheckedModeBanner: false,
+            home: firstLaunch ? LandingScreen() : Chapterscreen(),
+            routes: {
+              '/home': (context) => Chapterscreen(),
+              '/explore': (context) => CommunityPage(),
+              '/community': (context) => Signupscreen(),
+              '/profile': (context) => ProfileScreen(),
+            },
           );
         },
       ),
@@ -112,14 +111,14 @@ class MyAppState extends ChangeNotifier {
 
   void setIndex(int index) {
     _currentIndex = index;
-    notifyListeners(); // This will trigger the widgets that depend on this state to rebuild
+    notifyListeners();
   }
 }
 
 Future<bool> checkIfRealDevice() async {
   if (Platform.isIOS) {
     final iosDeviceInfo = await DeviceInfoPlugin().iosInfo;
-    return iosDeviceInfo.isPhysicalDevice; // Returns true for real devices
+    return iosDeviceInfo.isPhysicalDevice;
   }
-  return true; // Non-iOS platforms are considered real devices
+  return true;
 }

@@ -2,13 +2,17 @@ import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/miniPlayer.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/simulationScreen.dart';
+import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:provider/provider.dart';
 
 class Sectionscreen extends StatefulWidget {
   final String chapterId;
@@ -47,6 +51,37 @@ class _SectionscreenState extends State<Sectionscreen>
   final http.Client client = http.Client();
 
   bool isBookmarked = false;
+
+  bool showMiniPlayer = false;
+  String miniPlayerAudioUrl = '';
+  String miniPlayerEpisodeName = '';
+  String miniPlayerEpisodeImageUrl = '';
+  String miniPlayerChapterName = '';
+  int miniPlayerDuration = 0;
+  bool isPlaying = false;
+  late AudioPlayer miniAudioPlayer;
+  Duration currentPosition = Duration.zero;
+  Duration totalDuration = Duration.zero;
+
+  void startMiniPlayer(
+      String audioUrl,
+      String episodeName,
+      String imageUrl,
+      String chapterName,
+      int duration,
+      Duration totalDuration,
+      AudioPlayer _audioPlayer) {
+    setState(() {
+      showMiniPlayer = true;
+      miniPlayerAudioUrl = audioUrl;
+      miniPlayerEpisodeName = episodeName;
+      miniPlayerEpisodeImageUrl = imageUrl;
+      miniPlayerChapterName = chapterName;
+      miniPlayerDuration = duration;
+      miniAudioPlayer = _audioPlayer;
+      totalDuration = totalDuration;
+    });
+  }
 
   Future<void> fetchChapterDetails() async {
     final String url =
@@ -260,312 +295,708 @@ class _SectionscreenState extends State<Sectionscreen>
           return false; // Prevent the default back button behavior
         },
         child: Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            // title: Text(
-            //   widget.chapterName,
-            //   style: const TextStyle(
-            //     fontSize: 24,
-            //     color: Colors.white,
-            //     fontWeight: FontWeight.bold,
-            //   ),
-            // ),
-            iconTheme: const IconThemeData(
-              color: Colors.white,
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              // title: Text(
+              //   widget.chapterName,
+              //   style: const TextStyle(
+              //     fontSize: 24,
+              //     color: Colors.white,
+              //     fontWeight: FontWeight.bold,
+              //   ),
+              // ),
+              iconTheme: const IconThemeData(
+                color: Colors.white,
+              ),
             ),
-          ),
-          body: isLoading
-              ? Center(child: CircularProgressIndicator())
-              : hasError
-                  ? Center(child: Text('Error fetching data'))
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              children: [
-                                Row(
+            body: isLoading
+                ? Center(child: CircularProgressIndicator())
+                : hasError
+                    ? Center(child: Text('Error fetching data'))
+                    : Stack(children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
                                   children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        chapterImage,
-                                        height: 100,
-                                        width: 100,
-                                        fit: BoxFit.cover,
-                                      ),
+                                    Row(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: Image.network(
+                                            chapterImage,
+                                            height: 100,
+                                            width: 100,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                chapterName,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                "Chapter ${chapterNo} • ${bookName}",
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              // const SizedBox(height: 8),
+                                              // ElevatedButton(
+                                              //   onPressed: () {
+                                              //     // Handle follow or action
+                                              //   },
+                                              //   style: ElevatedButton.styleFrom(
+                                              //     backgroundColor: Colors.green,
+                                              //     shape: RoundedRectangleBorder(
+                                              //       borderRadius: BorderRadius.circular(20),
+                                              //     ),
+                                              //   ),
+                                              //   child: const Text(
+                                              //     'Follow',
+                                              //     style: TextStyle(color: Colors.white),
+                                              //   ),
+                                              // ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            chapterName,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
+                                    SizedBox(height: 10),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(
+                                            isBookmarked
+                                                ? Icons.bookmark
+                                                : Icons
+                                                    .bookmark_border, // Toggle between filled and outline
+                                            color: Colors.grey,
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            "Chapter ${chapterNo} • ${bookName}",
-                                            style: TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 14,
-                                            ),
+                                          onPressed:
+                                              toggleBookmark, // Call bookmark toggle function
+                                        ),
+                                        // IconButton(
+                                        //   icon: const Icon(
+                                        //     Icons.download_rounded,
+                                        //     color: Colors.grey,
+                                        //   ),
+                                        //   onPressed: () {
+                                        //     // Handle download action
+                                        //   },
+                                        // ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.share_outlined,
+                                            color: Colors.grey,
                                           ),
-                                          // const SizedBox(height: 8),
-                                          // ElevatedButton(
-                                          //   onPressed: () {
-                                          //     // Handle follow or action
-                                          //   },
-                                          //   style: ElevatedButton.styleFrom(
-                                          //     backgroundColor: Colors.green,
-                                          //     shape: RoundedRectangleBorder(
-                                          //       borderRadius: BorderRadius.circular(20),
-                                          //     ),
-                                          //   ),
-                                          //   child: const Text(
-                                          //     'Follow',
-                                          //     style: TextStyle(color: Colors.white),
-                                          //   ),
-                                          // ),
-                                        ],
-                                      ),
+                                          onPressed:
+                                              shareChapter, // Call share function
+                                        ),
+                                        // SizedBox(
+                                        //   width: 20,
+                                        // ),
+                                        Spacer(),
+                                        Padding(
+                                            padding: const EdgeInsets.only(
+                                                right: 10),
+                                            child: ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Color.fromRGBO(
+                                                    255, 217, 0, 1),
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 8,
+                                                  horizontal: 10,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                              icon: Icon(
+                                                Icons.question_answer_outlined,
+                                                color: Colors.black,
+                                              ),
+                                              label: Text(
+                                                'Go To Book Q&A',
+                                                style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              onPressed: () async {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        EndQuestionScreen(
+                                                            chapterId: widget
+                                                                .chapterId),
+                                                  ),
+                                                );
+
+                                                // Add functionality for the microphone button here
+                                              },
+                                            ))
+                                      ],
                                     ),
                                   ],
-                                ),
-                                SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        isBookmarked
-                                            ? Icons.bookmark
-                                            : Icons
-                                                .bookmark_border, // Toggle between filled and outline
-                                        color: Colors.grey,
-                                      ),
-                                      onPressed:
-                                          toggleBookmark, // Call bookmark toggle function
+                                )),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: showSimulationsTab
+                                  ? TabBar(
+                                      controller: _tabController,
+                                      indicatorColor:
+                                          Color.fromRGBO(255, 217, 0, 1),
+                                      indicatorWeight: 2.0,
+                                      labelColor: Colors
+                                          .white, // Text color for selected tabs
+                                      unselectedLabelColor: Colors
+                                          .grey, // Text color for unselected tabs
+                                      labelStyle: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                      unselectedLabelStyle: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.normal),
+                                      tabs: const [
+                                        Tab(text: 'Episodes'),
+                                        Tab(text: 'Simulations'),
+                                      ],
+                                      dividerColor: Colors.transparent,
+                                    )
+                                  : TabBar(
+                                      controller: _tabController,
+                                      indicatorColor:
+                                          Color.fromRGBO(255, 217, 0, 1),
+                                      indicatorWeight: 2.0,
+                                      labelColor: Colors
+                                          .white, // Text color for selected tabs
+                                      unselectedLabelColor: Colors
+                                          .grey, // Text color for unselected tabs
+                                      labelStyle: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                      unselectedLabelStyle: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.normal),
+                                      tabs: const [
+                                        Tab(text: 'Episodes'),
+                                      ],
+                                      dividerColor: Colors.transparent,
                                     ),
-                                    // IconButton(
-                                    //   icon: const Icon(
-                                    //     Icons.download_rounded,
-                                    //     color: Colors.grey,
-                                    //   ),
-                                    //   onPressed: () {
-                                    //     // Handle download action
-                                    //   },
-                                    // ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.share_outlined,
-                                        color: Colors.grey,
-                                      ),
-                                      onPressed:
-                                          shareChapter, // Call share function
-                                    ),
-                                    // SizedBox(
-                                    //   width: 20,
-                                    // ),
-                                    Spacer(),
-                                    Padding(
-                                        padding:
-                                            const EdgeInsets.only(right: 10),
-                                        child: ElevatedButton.icon(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                Color.fromRGBO(255, 217, 0, 1),
-                                            padding: EdgeInsets.symmetric(
-                                              vertical: 8,
-                                              horizontal: 10,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                          ),
-                                          icon: Icon(
-                                            Icons.question_answer_outlined,
-                                            color: Colors.black,
-                                          ),
-                                          label: Text(
-                                            'Go To Book Q&A',
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          onPressed: () async {
+                            ),
+                            SizedBox(height: 20),
+                            Expanded(
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: [
+                                  // Episodes Tab
+                                  ListView.builder(
+                                    itemCount: sections.length,
+                                    itemBuilder: (context, index) {
+                                      String section = sections[index]['name'];
+
+                                      return GestureDetector(
+                                          // Wrap the whole card in GestureDetector
+                                          onTap: () {
+                                            // Navigate to PodcastScreen on card tap
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) =>
-                                                    EndQuestionScreen(
-                                                        chapterId:
-                                                            widget.chapterId),
+                                                builder: (context) => PodcastScreen(
+                                                    sectionId: sections[index]
+                                                        ['id'],
+                                                    title: sections[index]
+                                                        ['name'],
+                                                    description: sections[index]
+                                                            ['description'] ??
+                                                        "No description available",
+                                                    imageUrl: sections[index]
+                                                        ['imageUrl'],
+                                                    audioUrl: sections[index]
+                                                            ['audioUrl'] ??
+                                                        "",
+                                                    duration:
+                                                        sections[index]['timeToCompleteV2'] ??
+                                                            "Unknown",
+                                                    chapterName: chapterName,
+                                                    chapterNo: chapterNo,
+                                                    cerData: sections[index]['cerList'] != null && sections[index]['cerList'].isNotEmpty
+                                                        ? sections[index]
+                                                            ['cerList'][0]
+                                                        : <String, dynamic>{},
+                                                    chapterId: widget.chapterId,
+                                                    pdfUrl: pdfUrl,
+                                                    sectionNumber: index,
+                                                    subsections: sections[index]
+                                                        ['subSections'],
+                                                    sectionEndQuestions:
+                                                        sections[index]['sectionEndQuestions'] ?? []),
                                               ),
-                                            );
-
-                                            // Add functionality for the microphone button here
+                                            ).then((result) {
+                                              if (result != null) {
+                                                // print("PRINTINNG RESULT 8888************");
+                                                // print("result:"+result);
+                                                // print('audio'+(result['audioUrl']?? "101") +
+                                                //     'episodeName'+(result['episodeName']?? "102")+
+                                                //     'imageUrl'+(result['imageUrl']?? "103") +
+                                                //     'chapterName'+(result['chapterName']?? "104")
+                                                //     // 'duration'+(result['duration']?? "105")
+                                                //     );
+                                                startMiniPlayer(
+                                                    result['audioUrl'],
+                                                    result['episodeName'],
+                                                    result['imageUrl'],
+                                                    result['chapterName'],
+                                                    result['duration'],
+                                                    result['totalDuration'],
+                                                    result['audioPlayer']);
+                                              }
+                                            });
                                           },
-                                        ))
-                                  ],
-                                ),
-                              ],
-                            )),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: showSimulationsTab
-                              ? TabBar(
-                                  controller: _tabController,
-                                  indicatorColor:
-                                      Color.fromRGBO(255, 217, 0, 1),
-                                  indicatorWeight: 2.0,
-                                  labelColor: Colors
-                                      .white, // Text color for selected tabs
-                                  unselectedLabelColor: Colors
-                                      .grey, // Text color for unselected tabs
-                                  labelStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                  unselectedLabelStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.normal),
-                                  tabs: const [
-                                    Tab(text: 'Episodes'),
-                                    Tab(text: 'Simulations'),
-                                  ],
-                                  dividerColor: Colors.transparent,
-                                )
-                              : TabBar(
-                                  controller: _tabController,
-                                  indicatorColor:
-                                      Color.fromRGBO(255, 217, 0, 1),
-                                  indicatorWeight: 2.0,
-                                  labelColor: Colors
-                                      .white, // Text color for selected tabs
-                                  unselectedLabelColor: Colors
-                                      .grey, // Text color for unselected tabs
-                                  labelStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                  unselectedLabelStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.normal),
-                                  tabs: const [
-                                    Tab(text: 'Episodes'),
-                                  ],
-                                  dividerColor: Colors.transparent,
-                                ),
-                        ),
-                        SizedBox(height: 20),
-                        Expanded(
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              // Episodes Tab
-                              ListView.builder(
-                                itemCount: sections.length,
-                                itemBuilder: (context, index) {
-                                  String section = sections[index]['name'];
-
-                                  return GestureDetector(
-                                      // Wrap the whole card in GestureDetector
-                                      onTap: () {
-                                        // Navigate to PodcastScreen on card tap
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => PodcastScreen(
-                                                sectionId: sections[index]
-                                                    ['id'],
-                                                title: sections[index]['name'],
-                                                description: sections[index]
-                                                        ['description'] ??
-                                                    "No description available",
-                                                imageUrl: sections[index]
-                                                    ['imageUrl'],
-                                                audioUrl: sections[index]
-                                                        ['audioUrl'] ??
-                                                    "",
-                                                duration: sections[index]
-                                                        ['timeToCompleteV2'] ??
-                                                    "Unknown",
-                                                chapterName: chapterName,
-                                                chapterNo: chapterNo,
-                                                cerData: sections[index]['cerList'] != null &&
-                                                        sections[index]['cerList']
-                                                            .isNotEmpty
-                                                    ? sections[index]['cerList']
-                                                        [0]
-                                                    : <String, dynamic>{},
-                                                chapterId: widget.chapterId,
-                                                pdfUrl: pdfUrl,
-                                                sectionNumber: index,
-                                                subsections: sections[index]
-                                                    ['subSections'],
-                                                sectionEndQuestions: sections[index]['sectionEndQuestions'] ?? []),
-                                          ),
-                                        );
-                                      },
-                                      child: Column(
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 0,
-                                            ),
-                                            child: Card(
-                                              color: Colors.transparent,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
+                                          child: Column(
+                                            children: [
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 16,
+                                                  vertical: 0,
+                                                ),
+                                                child: Card(
+                                                  color: Colors.transparent,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
+                                                        child: Row(
+                                                          children: [
+                                                            ClipRRect(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              child:
+                                                                  Image.network(
+                                                                sections[index][
+                                                                    'imageUrl'],
+                                                                width: 60,
+                                                                height: 60,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                width: 16),
+                                                            Expanded(
+                                                              child: Text(
+                                                                sections[index]
+                                                                    ['name'],
+                                                                style:
+                                                                    const TextStyle(
+                                                                  fontSize: 16,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                                maxLines: 2,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal:
+                                                                    8.0),
+                                                        child: Text(
+                                                          sections[index][
+                                                                  'description'] ??
+                                                              "No description available",
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 14,
+                                                            color: Colors.grey,
+                                                          ),
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 10),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 8.0,
+                                                        ),
+                                                        child: Text(
+                                                          "${(sections[index]['timeToCompleteV2'] / 60000).floor()} mins",
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 14,
+                                                            color: Colors.grey,
+                                                          ),
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceBetween,
+                                                          children: [
+                                                            IconButton(
+                                                              icon: Icon(
+                                                                bookmarkedSections
+                                                                        .contains(
+                                                                            section)
+                                                                    ? Icons
+                                                                        .bookmark
+                                                                    : Icons
+                                                                        .bookmark_border,
+                                                                color:
+                                                                    Colors.grey,
+                                                              ),
+                                                              onPressed: () {
+                                                                setState(() {
+                                                                  // Toggle the bookmark state.
+                                                                  if (bookmarkedSections
+                                                                      .contains(
+                                                                          section)) {
+                                                                    bookmarkedSections
+                                                                        .remove(
+                                                                            section);
+                                                                  } else {
+                                                                    bookmarkedSections
+                                                                        .add(
+                                                                            section);
+                                                                  }
+                                                                });
+                                                              },
+                                                            ),
+                                                            // IconButton(
+                                                            //   icon: const Icon(
+                                                            //     Icons.download_rounded,
+                                                            //     color: Colors.grey,
+                                                            //   ),
+                                                            //   onPressed: () {
+                                                            //     // Handle download action
+                                                            //   },
+                                                            // ),
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                Icons
+                                                                    .share_outlined,
+                                                                color:
+                                                                    Colors.grey,
+                                                              ),
+                                                              onPressed: () {
+                                                                shareChapter();
+                                                                // Handle share action
+                                                              },
+                                                            ),
+                                                            const Spacer(),
+                                                            if (sections[index][
+                                                                        'cerList'] !=
+                                                                    null &&
+                                                                sections[index][
+                                                                        'cerList']
+                                                                    .isNotEmpty)
+                                                              TextButton(
+                                                                style: TextButton
+                                                                    .styleFrom(
+                                                                  backgroundColor:
+                                                                      Color.fromRGBO(
+                                                                          255,
+                                                                          217,
+                                                                          0,
+                                                                          1),
+                                                                  padding: const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          16,
+                                                                      vertical:
+                                                                          8), // Reduced padding
+                                                                  minimumSize: Size(
+                                                                      20,
+                                                                      20), // Minimum size for a smaller button
+                                                                  shape:
+                                                                      RoundedRectangleBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(4),
+                                                                  ),
+                                                                ),
+                                                                onPressed: () {
+                                                                  Navigator
+                                                                      .push(
+                                                                    context,
+                                                                    MaterialPageRoute(
+                                                                      builder:
+                                                                          (context) =>
+                                                                              CERPage(
+                                                                        data: sections[index]
+                                                                            [
+                                                                            'cerList'][0],
+                                                                        chapterId:
+                                                                            widget.chapterId,
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                },
+                                                                child:
+                                                                    const Text(
+                                                                  'Go to Case',
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color: Colors
+                                                                        .black,
+                                                                    fontSize:
+                                                                        12,
+                                                                    // decoration: TextDecoration.underline,
+                                                                    // decorationColor: Colors.white,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                Icons
+                                                                    .play_circle_fill,
+                                                                color: Color
+                                                                    .fromRGBO(
+                                                                        255,
+                                                                        217,
+                                                                        0,
+                                                                        1),
+                                                                size: 40,
+                                                              ),
+                                                              onPressed: () {
+                                                                Navigator.push(
+                                                                  context,
+                                                                  MaterialPageRoute(
+                                                                    builder:
+                                                                        (context) =>
+                                                                            PodcastScreen(
+                                                                      sectionId:
+                                                                          sections[index]
+                                                                              [
+                                                                              'id'],
+                                                                      title: sections[
+                                                                              index]
+                                                                          [
+                                                                          'name'],
+                                                                      description:
+                                                                          sections[index]['description'] ??
+                                                                              "No description available",
+                                                                      imageUrl:
+                                                                          sections[index]
+                                                                              [
+                                                                              'imageUrl'],
+                                                                      audioUrl:
+                                                                          sections[index]['audioUrl'] ??
+                                                                              "",
+                                                                      duration: sections[index]
+                                                                              [
+                                                                              'timeToCompleteV2'] ??
+                                                                          "Unknown",
+                                                                      chapterName:
+                                                                          chapterName,
+                                                                      chapterNo:
+                                                                          chapterNo,
+                                                                      cerData: sections[index]['cerList'] != null &&
+                                                                              sections[index]['cerList']
+                                                                                  .isNotEmpty
+                                                                          ? sections[index]['cerList']
+                                                                              [
+                                                                              0]
+                                                                          : <String,
+                                                                              dynamic>{},
+                                                                      chapterId:
+                                                                          widget
+                                                                              .chapterId,
+                                                                      pdfUrl:
+                                                                          pdfUrl,
+                                                                      sectionNumber:
+                                                                          index,
+                                                                      subsections:
+                                                                          sections[index]
+                                                                              [
+                                                                              'subSections'],
+                                                                      sectionEndQuestions:
+                                                                          sections[index]['sectionEndQuestions'] ??
+                                                                              [],
+                                                                    ),
+                                                                  ),
+                                                                );
+                                                              },
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                               ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            8.0),
-                                                    child: Row(
+                                              if (index < sections.length - 1)
+                                                const Divider(
+                                                  color: Colors.grey,
+                                                  thickness: 0.5,
+                                                  indent: 16,
+                                                  endIndent: 16,
+                                                ),
+                                            ],
+                                          ));
+                                    },
+                                  ),
+                                  // Simulations Tab
+                                  if (showSimulationsTab)
+                                    ListView.builder(
+                                      itemCount: simulationList.length,
+                                      itemBuilder: (context, index) {
+                                        String simulationId =
+                                            simulationList[index]['id'];
+
+                                        return GestureDetector(
+                                            // Wrap the whole card in GestureDetector
+                                            onTap: () {
+                                              // Navigate to PodcastScreen on card tap
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      SimulationScreen(
+                                                          simulationUrl:
+                                                              "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
+                                                ),
+                                              );
+                                            },
+                                            child: Column(
+                                              children: [
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 0,
+                                                  ),
+                                                  child: Card(
+                                                    color: Colors.transparent,
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
-                                                        ClipRRect(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(8),
-                                                          child: Image.network(
-                                                            sections[index]
-                                                                ['imageUrl'],
-                                                            width: 60,
-                                                            height: 60,
-                                                            fit: BoxFit.cover,
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(8.0),
+                                                          child: Row(
+                                                            children: [
+                                                              ClipRRect(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8),
+                                                                child: Image
+                                                                    .network(
+                                                                  simulationList[
+                                                                          index]
+                                                                      [
+                                                                      'simulationImageUrl'],
+                                                                  width: 60,
+                                                                  height: 60,
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  width: 16),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  simulationList[
+                                                                          index]
+                                                                      ['name'],
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontSize:
+                                                                        16,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                                  maxLines: 2,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ),
                                                         ),
-                                                        const SizedBox(
-                                                            width: 16),
-                                                        Expanded(
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal:
+                                                                      8.0),
                                                           child: Text(
-                                                            sections[index]
-                                                                ['name'],
+                                                            simulationList[
+                                                                        index][
+                                                                    'description'] ??
+                                                                "No description available",
                                                             style:
                                                                 const TextStyle(
-                                                              fontSize: 16,
+                                                              fontSize: 14,
                                                               color:
-                                                                  Colors.white,
+                                                                  Colors.grey,
                                                             ),
                                                             maxLines: 2,
                                                             overflow:
@@ -573,485 +1004,164 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                     .ellipsis,
                                                           ),
                                                         ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8.0),
-                                                    child: Text(
-                                                      sections[index]
-                                                              ['description'] ??
-                                                          "No description available",
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        color: Colors.grey,
-                                                      ),
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 10),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                      horizontal: 8.0,
-                                                    ),
-                                                    child: Text(
-                                                      "${(sections[index]['timeToCompleteV2'] / 60000).floor()} mins",
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        color: Colors.grey,
-                                                      ),
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      children: [
-                                                        IconButton(
-                                                          icon: Icon(
-                                                            bookmarkedSections
-                                                                    .contains(
-                                                                        section)
-                                                                ? Icons.bookmark
-                                                                : Icons
-                                                                    .bookmark_border,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          onPressed: () {
-                                                            setState(() {
-                                                              // Toggle the bookmark state.
-                                                              if (bookmarkedSections
-                                                                  .contains(
-                                                                      section)) {
-                                                                bookmarkedSections
-                                                                    .remove(
-                                                                        section);
-                                                              } else {
-                                                                bookmarkedSections
-                                                                    .add(
-                                                                        section);
-                                                              }
-                                                            });
-                                                          },
-                                                        ),
-                                                        // IconButton(
-                                                        //   icon: const Icon(
-                                                        //     Icons.download_rounded,
-                                                        //     color: Colors.grey,
+                                                        SizedBox(height: 10),
+                                                        // Padding(
+                                                        //   padding: const EdgeInsets.symmetric(
+                                                        //     horizontal: 8.0,
                                                         //   ),
-                                                        //   onPressed: () {
-                                                        //     // Handle download action
-                                                        //   },
+                                                        //   child: Text(
+                                                        //     "20 mins",
+                                                        //     style: const TextStyle(
+                                                        //       fontSize: 14,
+                                                        //       color: Colors.grey,
+                                                        //     ),
+                                                        //     maxLines: 2,
+                                                        //     overflow: TextOverflow.ellipsis,
+                                                        //   ),
                                                         // ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .share_outlined,
-                                                            color: Colors.grey,
-                                                          ),
-                                                          onPressed: () {
-                                                            shareChapter();
-                                                            // Handle share action
-                                                          },
-                                                        ),
-                                                        const Spacer(),
-                                                        if (sections[index][
-                                                                    'cerList'] !=
-                                                                null &&
-                                                            sections[index]
-                                                                    ['cerList']
-                                                                .isNotEmpty)
-                                                          TextButton(
-                                                            style: TextButton
-                                                                .styleFrom(
-                                                              backgroundColor:
-                                                                  Color
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 8,
+                                                                  vertical: 4),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+                                                            children: [
+                                                              IconButton(
+                                                                icon: Icon(
+                                                                  bookmarkedSimulations
+                                                                          .contains(
+                                                                              simulationId)
+                                                                      ? Icons
+                                                                          .bookmark
+                                                                      : Icons
+                                                                          .bookmark_border,
+                                                                  color: Colors
+                                                                      .grey,
+                                                                ),
+                                                                onPressed: () {
+                                                                  setState(() {
+                                                                    // Toggle the bookmark state.
+                                                                    if (bookmarkedSimulations
+                                                                        .contains(
+                                                                            simulationId)) {
+                                                                      bookmarkedSimulations
+                                                                          .remove(
+                                                                              simulationId);
+                                                                    } else {
+                                                                      bookmarkedSimulations
+                                                                          .add(
+                                                                              simulationId);
+                                                                    }
+                                                                  });
+                                                                },
+                                                              ),
+                                                              // IconButton(
+                                                              //   icon: const Icon(
+                                                              //     Icons.download_rounded,
+                                                              //     color: Colors.grey,
+                                                              //   ),
+                                                              //   onPressed: () {
+                                                              //     // Handle download action
+                                                              //   },
+                                                              // ),
+                                                              IconButton(
+                                                                icon:
+                                                                    const Icon(
+                                                                  Icons
+                                                                      .share_outlined,
+                                                                  color: Colors
+                                                                      .grey,
+                                                                ),
+                                                                onPressed: () {
+                                                                  shareSimulation(
+                                                                      simulationId);
+                                                                },
+                                                              ),
+                                                              const Spacer(),
+                                                              IconButton(
+                                                                icon:
+                                                                    const Icon(
+                                                                  Icons
+                                                                      .play_circle_fill,
+                                                                  color: Color
                                                                       .fromRGBO(
                                                                           255,
                                                                           217,
                                                                           0,
                                                                           1),
-                                                              padding: const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal:
-                                                                      16,
-                                                                  vertical:
-                                                                      8), // Reduced padding
-                                                              minimumSize: Size(
-                                                                  20,
-                                                                  20), // Minimum size for a smaller button
-                                                              shape:
-                                                                  RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            4),
-                                                              ),
-                                                            ),
-                                                            onPressed: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                  builder:
-                                                                      (context) =>
-                                                                          CERPage(
-                                                                    data: sections[
-                                                                            index]
-                                                                        [
-                                                                        'cerList'][0],
-                                                                    chapterId:
-                                                                        widget
-                                                                            .chapterId,
-                                                                  ),
+                                                                  size: 40,
                                                                 ),
-                                                              );
-                                                            },
-                                                            child: const Text(
-                                                              'Go to Case',
-                                                              style: TextStyle(
-                                                                color: Colors
-                                                                    .black,
-                                                                fontSize: 12,
-                                                                // decoration: TextDecoration.underline,
-                                                                // decorationColor: Colors.white,
+                                                                onPressed: () {
+                                                                  Navigator
+                                                                      .push(
+                                                                    context,
+                                                                    MaterialPageRoute(
+                                                                      builder: (context) =>
+                                                                          SimulationScreen(
+                                                                              simulationUrl: "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
+                                                                    ),
+                                                                  );
+                                                                },
                                                               ),
-                                                            ),
+                                                            ],
                                                           ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .play_circle_fill,
-                                                            color:
-                                                                Color.fromRGBO(
-                                                                    255,
-                                                                    217,
-                                                                    0,
-                                                                    1),
-                                                            size: 40,
-                                                          ),
-                                                          onPressed: () {
-                                                            Navigator.push(
-                                                              context,
-                                                              MaterialPageRoute(
-                                                                builder:
-                                                                    (context) =>
-                                                                        PodcastScreen(
-                                                                  sectionId:
-                                                                      sections[
-                                                                              index]
-                                                                          [
-                                                                          'id'],
-                                                                  title: sections[
-                                                                          index]
-                                                                      ['name'],
-                                                                  description: sections[
-                                                                              index]
-                                                                          [
-                                                                          'description'] ??
-                                                                      "No description available",
-                                                                  imageUrl: sections[
-                                                                          index]
-                                                                      [
-                                                                      'imageUrl'],
-                                                                  audioUrl:
-                                                                      sections[index]
-                                                                              [
-                                                                              'audioUrl'] ??
-                                                                          "",
-                                                                  duration: sections[
-                                                                              index]
-                                                                          [
-                                                                          'timeToCompleteV2'] ??
-                                                                      "Unknown",
-                                                                  chapterName:
-                                                                      chapterName,
-                                                                  chapterNo:
-                                                                      chapterNo,
-                                                                  cerData: sections[index]['cerList'] !=
-                                                                              null &&
-                                                                          sections[index]['cerList']
-                                                                              .isNotEmpty
-                                                                      ? sections[index]
-                                                                              [
-                                                                              'cerList']
-                                                                          [0]
-                                                                      : <String,
-                                                                          dynamic>{},
-                                                                  chapterId: widget
-                                                                      .chapterId,
-                                                                  pdfUrl:
-                                                                      pdfUrl,
-                                                                  sectionNumber:
-                                                                      index,
-                                                                  subsections: sections[
-                                                                          index]
-                                                                      [
-                                                                      'subSections'],
-                                                                  sectionEndQuestions:
-                                                                      sections[index]
-                                                                              [
-                                                                              'sectionEndQuestions'] ??
-                                                                          [],
-                                                                ),
-                                                              ),
-                                                            );
-                                                          },
                                                         ),
                                                       ],
                                                     ),
                                                   ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          if (index < sections.length - 1)
-                                            const Divider(
-                                              color: Colors.grey,
-                                              thickness: 0.5,
-                                              indent: 16,
-                                              endIndent: 16,
-                                            ),
-                                        ],
-                                      ));
-                                },
+                                                ),
+                                                if (index <
+                                                    simulationList.length - 1)
+                                                  const Divider(
+                                                    color: Colors.grey,
+                                                    thickness: 0.5,
+                                                    indent: 16,
+                                                    endIndent: 16,
+                                                  ),
+                                              ],
+                                            ));
+                                      },
+                                    ),
+                                ],
                               ),
-                              // Simulations Tab
-                              if (showSimulationsTab)
-                                ListView.builder(
-                                  itemCount: simulationList.length,
-                                  itemBuilder: (context, index) {
-                                    String simulationId =
-                                        simulationList[index]['id'];
-
-                                    return GestureDetector(
-                                        // Wrap the whole card in GestureDetector
-                                        onTap: () {
-                                          // Navigate to PodcastScreen on card tap
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  SimulationScreen(
-                                                      simulationUrl:
-                                                          "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
-                                            ),
-                                          );
-                                        },
-                                        child: Column(
-                                          children: [
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical: 0,
-                                              ),
-                                              child: Card(
-                                                color: Colors.transparent,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              8.0),
-                                                      child: Row(
-                                                        children: [
-                                                          ClipRRect(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        8),
-                                                            child:
-                                                                Image.network(
-                                                              simulationList[
-                                                                      index][
-                                                                  'simulationImageUrl'],
-                                                              width: 60,
-                                                              height: 60,
-                                                              fit: BoxFit.cover,
-                                                            ),
-                                                          ),
-                                                          const SizedBox(
-                                                              width: 16),
-                                                          Expanded(
-                                                            child: Text(
-                                                              simulationList[
-                                                                      index]
-                                                                  ['name'],
-                                                              style:
-                                                                  const TextStyle(
-                                                                fontSize: 16,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                              maxLines: 2,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Padding(
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 8.0),
-                                                      child: Text(
-                                                        simulationList[index][
-                                                                'description'] ??
-                                                            "No description available",
-                                                        style: const TextStyle(
-                                                          fontSize: 14,
-                                                          color: Colors.grey,
-                                                        ),
-                                                        maxLines: 2,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 10),
-                                                    // Padding(
-                                                    //   padding: const EdgeInsets.symmetric(
-                                                    //     horizontal: 8.0,
-                                                    //   ),
-                                                    //   child: Text(
-                                                    //     "20 mins",
-                                                    //     style: const TextStyle(
-                                                    //       fontSize: 14,
-                                                    //       color: Colors.grey,
-                                                    //     ),
-                                                    //     maxLines: 2,
-                                                    //     overflow: TextOverflow.ellipsis,
-                                                    //   ),
-                                                    // ),
-                                                    Padding(
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 8,
-                                                          vertical: 4),
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          IconButton(
-                                                            icon: Icon(
-                                                              bookmarkedSimulations
-                                                                      .contains(
-                                                                          simulationId)
-                                                                  ? Icons
-                                                                      .bookmark
-                                                                  : Icons
-                                                                      .bookmark_border,
-                                                              color:
-                                                                  Colors.grey,
-                                                            ),
-                                                            onPressed: () {
-                                                              setState(() {
-                                                                // Toggle the bookmark state.
-                                                                if (bookmarkedSimulations
-                                                                    .contains(
-                                                                        simulationId)) {
-                                                                  bookmarkedSimulations
-                                                                      .remove(
-                                                                          simulationId);
-                                                                } else {
-                                                                  bookmarkedSimulations
-                                                                      .add(
-                                                                          simulationId);
-                                                                }
-                                                              });
-                                                            },
-                                                          ),
-                                                          // IconButton(
-                                                          //   icon: const Icon(
-                                                          //     Icons.download_rounded,
-                                                          //     color: Colors.grey,
-                                                          //   ),
-                                                          //   onPressed: () {
-                                                          //     // Handle download action
-                                                          //   },
-                                                          // ),
-                                                          IconButton(
-                                                            icon: const Icon(
-                                                              Icons
-                                                                  .share_outlined,
-                                                              color:
-                                                                  Colors.grey,
-                                                            ),
-                                                            onPressed: () {
-                                                              shareSimulation(
-                                                                  simulationId);
-                                                            },
-                                                          ),
-                                                          const Spacer(),
-                                                          IconButton(
-                                                            icon: const Icon(
-                                                              Icons
-                                                                  .play_circle_fill,
-                                                              color: Color
-                                                                  .fromRGBO(
-                                                                      255,
-                                                                      217,
-                                                                      0,
-                                                                      1),
-                                                              size: 40,
-                                                            ),
-                                                            onPressed: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                  builder: (context) =>
-                                                                      SimulationScreen(
-                                                                          simulationUrl:
-                                                                              "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
-                                                                ),
-                                                              );
-                                                            },
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                            if (index <
-                                                simulationList.length - 1)
-                                              const Divider(
-                                                color: Colors.grey,
-                                                thickness: 0.5,
-                                                indent: 16,
-                                                endIndent: 16,
-                                              ),
-                                          ],
-                                        ));
-                                  },
-                                ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-        ));
+                        if (showMiniPlayer)
+                          Consumer<AudioProvider>(
+                            builder: (context, audioProvider, _) {
+                              return audioProvider.audioPlayer != null
+                                  ? Positioned(
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      child: MiniPlayer(
+                                        audioUrl: miniPlayerAudioUrl,
+                                        episodeName: miniPlayerEpisodeName,
+                                        episodeImageUrl:
+                                            miniPlayerEpisodeImageUrl,
+                                        chapterName: miniPlayerChapterName,
+                                        duration: miniPlayerDuration,
+                                        audioPlayer:
+                                            audioProvider.audioPlayer ??
+                                                AudioPlayer(),
+                                        description:
+                                            "No description available.",
+                                        chapterId: widget.chapterId,
+                                        chapterNo: chapterNo,
+                                        cerData: {},
+                                        pdfUrl: pdfUrl,
+                                        currentPosition: currentPosition,
+                                        totalDuration: totalDuration,
+                                      ),
+                                    )
+                                  : SizedBox.shrink();
+                            },
+                          ),
+                      ])));
   }
 }

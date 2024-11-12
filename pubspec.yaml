@@ -50,6 +50,9 @@ dependencies:
   path_provider: ^2.1.4
   http_parser: ^4.0.2
   audio_session: ^0.1.21
+  # miniplayer: ^1.0.1
+  just_audio: ^0.9.20
+  audio_service: ^0.18.1
 
 dev_dependencies:
   flutter_test:

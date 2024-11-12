@@ -2,17 +2,19 @@ import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
+import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:pdfx/pdfx.dart'; // Import pdfx package
 import 'package:http/http.dart' as http;
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:flutter_sound/flutter_sound.dart' as flutter_sound;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:audio_session/audio_session.dart' as audioSession;
 import 'dart:async'; // Import for Timer
+import 'package:provider/provider.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -33,6 +35,8 @@ class PodcastScreen extends StatefulWidget {
   final int sectionNumber;
   final List<dynamic>? subsections;
   final List<dynamic>? sectionEndQuestions;
+  final AudioPlayer? audioPlayer;
+  final Duration? totalDurationFromMiniplayer;
 
   const PodcastScreen(
       {Key? key,
@@ -49,7 +53,9 @@ class PodcastScreen extends StatefulWidget {
       required this.sectionNumber,
       this.pdfUrl,
       this.subsections,
-      this.sectionEndQuestions})
+      this.sectionEndQuestions,
+      this.audioPlayer,
+      this.totalDurationFromMiniplayer})
       : super(key: key);
 
   @override
@@ -65,8 +71,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
   PdfController? _pdfController;
   bool isPdfLoaded = false;
 
-  FlutterSoundRecorder? _audioRecorder;
-  FlutterSoundPlayer? _audioPlayerV2;
+  flutter_sound.FlutterSoundRecorder? _audioRecorder;
+  flutter_sound.FlutterSoundPlayer? _audioPlayerV2;
   bool _isRecording = false;
   String? _audioPath;
   bool _isLoading = false;
@@ -954,8 +960,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
   @override
   void initState() {
     super.initState();
-    _audioRecorder = FlutterSoundRecorder();
-    _audioPlayerV2 = FlutterSoundPlayer();
+    _audioRecorder = flutter_sound.FlutterSoundRecorder();
+    _audioPlayerV2 = flutter_sound.FlutterSoundPlayer();
 
     logPageOpenEvent(
       screenName: screenName,
@@ -967,28 +973,41 @@ class _PodcastScreenState extends State<PodcastScreen> {
     );
 
     _prepareSubsections();
-    _audioPlayer = AudioPlayer();
+    _audioPlayer = widget.audioPlayer ?? AudioPlayer();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context
+          .read<AudioProvider>()
+          .setAudioPlayer(_audioPlayer, widget.audioUrl);
+    });
     // Set audio player listeners
+    // totalDuration = widget.totalDurationFromMiniplayer ?? Duration.zero;
     _audioPlayer.onDurationChanged.listen((Duration duration) {
-      setState(() {
-        totalDuration = duration;
-      });
+      if (mounted) {
+        setState(() {
+          totalDuration = duration;
+          print("total duration: ${totalDuration}");
+        });
+      }
     });
 
     _audioPlayer.onPositionChanged.listen((Duration position) {
-      setState(() {
-        currentPosition = position;
-        _updateActiveSubsectionName();
-        _checkEndOfSubsection();
-      });
+      if (mounted) {
+        setState(() {
+          currentPosition = position;
+          _updateActiveSubsectionName();
+          _checkEndOfSubsection();
+        });
+      }
     });
 
     _audioPlayer.onPlayerComplete.listen((event) {
-      setState(() {
-        isPlaying = false;
-        currentPosition = Duration.zero;
-      });
+      if (mounted) {
+        setState(() {
+          isPlaying = false;
+          currentPosition = Duration.zero;
+        });
+      }
       if (widget.cerData.isNotEmpty) {
         Map<String, dynamic> eventDetails = {
           "chapterId": widget.chapterId,
@@ -1006,7 +1025,16 @@ class _PodcastScreenState extends State<PodcastScreen> {
       }
     });
 
-    playPauseAudio();
+    // playPauseAudio();
+    if (_audioPlayer.state == PlayerState.playing) {
+      _audioPlayer.seek(widget.totalDurationFromMiniplayer ?? Duration.zero);
+    } else if (_audioPlayer.state == PlayerState.stopped ||
+        _audioPlayer.state == PlayerState.paused) {
+      _audioPlayer.play(
+        UrlSource(widget.audioUrl),
+        position: widget.totalDurationFromMiniplayer ?? Duration.zero,
+      );
+    }
     _initializeRecorder();
     _initializeAudioSession();
 
@@ -1091,7 +1119,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
+    // _audioPlayer.dispose();
+    // _audioPlayer.pause();
     _audioRecorder!.closeRecorder();
 
     super.dispose();
@@ -1136,7 +1165,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
       await _audioRecorder!.startRecorder(
         toFile: _audioPath,
-        codec: Codec.pcm16WAV,
+        codec: flutter_sound.Codec.pcm16WAV,
         bitRate: 16000,
         sampleRate: 44100,
       );
@@ -1298,7 +1327,6 @@ class _PodcastScreenState extends State<PodcastScreen> {
     );
   }
 
-// Mock _loadPdf method to simulate loading delay
   Future<void> _loadPdf() async {
     if (!isPdfLoaded) {
       // Simulate loading time
@@ -1591,6 +1619,20 @@ class _PodcastScreenState extends State<PodcastScreen> {
     }
   }
 
+  void _exitAndShowMiniPlayer() {
+    // Navigator.pop(context);
+    Navigator.pop(context, {
+      'audioUrl': widget.audioUrl,
+      'episodeName': widget.title,
+      'imageUrl': widget.imageUrl,
+      'chapterName': widget.chapterName,
+      "duration": widget.duration,
+      'audioPlayer': _audioPlayer,
+      'currentPosition': currentPosition,
+      'totalDuration': totalDuration,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1739,18 +1781,32 @@ class _PodcastScreenState extends State<PodcastScreen> {
                 children: [
                   Container(
                     height: 20,
-                    child: Slider(
-                      value: currentPosition.inMilliseconds.toDouble(),
-                      min: 0,
-                      max: totalDuration.inMilliseconds.toDouble(),
-                      onChanged: (value) {
-                        _audioPlayer
-                            .seek(Duration(milliseconds: value.toInt()));
-                      },
-                      activeColor: Color.fromRGBO(255, 217, 0, 1),
-                      inactiveColor: Colors.grey[700],
-                      thumbColor: Color.fromRGBO(255, 217, 0, 1),
-                    ),
+                    child: totalDuration.inMilliseconds > 0
+                        ? Slider(
+                            value: currentPosition.inMilliseconds
+                                .toDouble()
+                                .clamp(0.0,
+                                    totalDuration.inMilliseconds.toDouble()),
+                            min: 0,
+                            max: totalDuration.inMilliseconds.toDouble(),
+                            onChanged: (value) {
+                              _audioPlayer
+                                  .seek(Duration(milliseconds: value.toInt()));
+                            },
+                            activeColor: Color.fromRGBO(255, 217, 0, 1),
+                            inactiveColor: Colors.grey[700],
+                            thumbColor: Color.fromRGBO(255, 217, 0, 1),
+                          )
+                        : Slider(
+                            value: 0,
+                            min: 0,
+                            max:
+                                1, // Disabled slider, effectively non-interactive
+                            onChanged: null, // No interaction allowed
+                            activeColor: Colors.grey,
+                            inactiveColor: Colors.grey[700],
+                            thumbColor: Colors.grey,
+                          ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -1897,6 +1953,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
       elevation: 0,
       iconTheme: const IconThemeData(
         color: Colors.white, // Set the back button color to white
+      ),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back),
+        onPressed: _exitAndShowMiniPlayer,
       ),
       actions: [
         Padding(
