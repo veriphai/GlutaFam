@@ -53,39 +53,6 @@ class _SectionscreenState extends State<Sectionscreen>
 
   bool isBookmarked = false;
 
-  bool showMiniPlayer = false;
-  String miniPlayerAudioUrl = '';
-  String miniPlayerEpisodeName = '';
-  String miniPlayerEpisodeImageUrl = '';
-  String miniPlayerChapterName = '';
-  int miniPlayerDuration = 0;
-  bool isPlaying = false;
-  late AudioPlayer miniAudioPlayer;
-  Duration currentPosition = Duration.zero;
-  Duration totalDuration = Duration.zero;
-
-  void startMiniPlayer(
-      String audioUrl,
-      String episodeName,
-      String imageUrl,
-      String chapterName,
-      int duration,
-      Duration totalDuration,
-      AudioPlayer _audioPlayer,
-      bool isPlaying) {
-    setState(() {
-      showMiniPlayer = true;
-      miniPlayerAudioUrl = audioUrl;
-      miniPlayerEpisodeName = episodeName;
-      miniPlayerEpisodeImageUrl = imageUrl;
-      miniPlayerChapterName = chapterName;
-      miniPlayerDuration = duration;
-      miniAudioPlayer = _audioPlayer;
-      totalDuration = totalDuration;
-      isPlaying = isPlaying;
-    });
-  }
-
   Future<void> fetchChapterDetails() async {
     final String url =
         'https://glutaclass.com:8080/gluta/fam/chapter?chapterId=${widget.chapterId}';
@@ -313,6 +280,11 @@ class _SectionscreenState extends State<Sectionscreen>
               iconTheme: const IconThemeData(
                 color: Colors.white,
               ),
+              // automaticallyImplyLeading: true,
+              // leading: IconButton(
+              //   icon: Icon(Icons.arrow_back),
+              //   onPressed: _exitAndShowMiniPlayer,
+              // ),
             ),
             body: isLoading
                 ? Center(child: CircularProgressIndicator())
@@ -560,25 +532,9 @@ class _SectionscreenState extends State<Sectionscreen>
                                                         sections[index]['sectionEndQuestions'] ?? []),
                                               ),
                                             ).then((result) {
-                                              if (result != null) {
-                                                // print("PRINTINNG RESULT 8888************");
-                                                // print("result:"+result);
-                                                // print('audio'+(result['audioUrl']?? "101") +
-                                                //     'episodeName'+(result['episodeName']?? "102")+
-                                                //     'imageUrl'+(result['imageUrl']?? "103") +
-                                                //     'chapterName'+(result['chapterName']?? "104")
-                                                //     // 'duration'+(result['duration']?? "105")
-                                                //     );
-                                                startMiniPlayer(
-                                                    result['audioUrl'],
-                                                    result['episodeName'],
-                                                    result['imageUrl'],
-                                                    result['chapterName'],
-                                                    result['duration'],
-                                                    result['totalDuration'],
-                                                    result['audioPlayer'],
-                                                    result['isPlaying']);
-                                              }
+                                              context
+                                                  .read<AudioProvider>()
+                                                  .setShowMiniPlayer(true);
                                             });
                                           },
                                           child: Column(
@@ -875,7 +831,14 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                               [],
                                                                     ),
                                                                   ),
-                                                                );
+                                                                ).then(
+                                                                    (result) {
+                                                                  context
+                                                                      .read<
+                                                                          AudioProvider>()
+                                                                      .setShowMiniPlayer(
+                                                                          true);
+                                                                });
                                                               },
                                                             ),
                                                           ],
@@ -1135,38 +1098,18 @@ class _SectionscreenState extends State<Sectionscreen>
                             ),
                           ],
                         ),
-                        if (showMiniPlayer)
-                          Consumer<AudioProvider>(
-                            builder: (context, audioProvider, _) {
-                              return audioProvider.audioPlayer != null
-                                  ? Positioned(
-                                      bottom: 0,
-                                      left: 0,
-                                      right: 0,
-                                      child: MiniPlayer(
-                                        audioUrl: miniPlayerAudioUrl,
-                                        episodeName: miniPlayerEpisodeName,
-                                        episodeImageUrl:
-                                            miniPlayerEpisodeImageUrl,
-                                        chapterName: miniPlayerChapterName,
-                                        duration: miniPlayerDuration,
-                                        audioPlayer:
-                                            audioProvider.audioPlayer ??
-                                                AudioPlayer(),
-                                        description:
-                                            "No description available.",
-                                        chapterId: widget.chapterId,
-                                        chapterNo: chapterNo,
-                                        cerData: {},
-                                        pdfUrl: pdfUrl,
-                                        currentPosition: currentPosition,
-                                        totalDuration: totalDuration,
-                                        isPlaying: isPlaying,
-                                      ),
-                                    )
-                                  : SizedBox.shrink();
-                            },
-                          ),
+                        Consumer<AudioProvider>(
+                          builder: (context, audioProvider, child) {
+                            return Visibility(
+                                visible: audioProvider.showMiniPlayer,
+                                child: Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: MiniPlayer(),
+                                ));
+                          },
+                        ),
                       ])));
   }
 }

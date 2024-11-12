@@ -974,7 +974,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
     );
 
     _prepareSubsections();
-    _audioPlayer = widget.audioPlayer ?? AudioPlayer();
+    _audioPlayer = context.read<AudioProvider>().audioPlayer ?? AudioPlayer();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AudioProvider>().setAudioPlayer(
@@ -982,7 +982,18 @@ class _PodcastScreenState extends State<PodcastScreen> {
           title: widget.title,
           album: widget.chapterName,
           artUri: widget.imageUrl,
-          artist: widget.chapterName);
+          artist: widget.chapterName,
+          episodeName: widget.title,
+          chapterName: widget.chapterName,
+          duration: widget.duration,
+          currentPosition: currentPosition,
+          totalDuration: totalDuration,
+          chapterNo: widget.chapterNo,
+          chapterId: widget.chapterId,
+          pdfUrl: widget.pdfUrl,
+          sectionNumber: widget.sectionNumber,
+          subsections: widget.subsections,
+          sectionEndQuestions: widget.sectionEndQuestions);
     });
     // Set audio player listeners
     // totalDuration = widget.totalDurationFromMiniplayer ?? Duration.zero;

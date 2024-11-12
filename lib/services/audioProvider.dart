@@ -7,6 +7,26 @@ class AudioProvider extends ChangeNotifier {
   AudioPlayer? audioPlayer;
   bool isPlaying = false;
   String? currentAudioUrl;
+  bool showMiniPlayer = false; // Control MiniPlayer visibility
+
+  // MiniPlayer state variables
+  String album = 'Podcast Album';
+  String title = 'Episode Title';
+  String artist = 'Podcast Artist';
+  String? artUri;
+  String episodeName = '';
+  String chapterName = '';
+  int duration = 0;
+  String description = '';
+  String chapterId = '';
+  int chapterNo = 0;
+  Map<String, dynamic> cerData = {};
+  String? pdfUrl;
+  Duration currentPosition = Duration.zero;
+  Duration totalDuration = Duration.zero;
+  int sectionNumber = 0;
+  List<dynamic>? subsections;
+  List<dynamic>? sectionEndQuestions;
 
   /// Sets the audio player for a new audio and stops any currently playing audio.
   Future<void> setAudioPlayer(
@@ -16,9 +36,22 @@ class AudioProvider extends ChangeNotifier {
     String title = 'Episode Title',
     String artist = 'Podcast Artist',
     String? artUri,
+    String episodeName = '',
+    String chapterName = '',
+    int duration = 0,
+    String description = '',
+    String chapterId = '',
+    int chapterNo = 0,
+    Map<String, dynamic> cerData = const {},
+    String? pdfUrl,
+    Duration currentPosition = Duration.zero,
+    Duration totalDuration = Duration.zero,
+    int sectionNumber = 0,
+    List<dynamic>? subsections,
+    List<dynamic>? sectionEndQuestions,
   }) async {
     // If the audio URL is already set and playing, return early
-    if (audioPlayer == player && currentAudioUrl == audioUrl && isPlaying) {
+    if (currentAudioUrl == audioUrl && isPlaying) {
       return; // Avoid resetting the URL and position
     }
 
@@ -32,14 +65,32 @@ class AudioProvider extends ChangeNotifier {
     audioPlayer = player;
     currentAudioUrl = audioUrl;
 
+    // Update MiniPlayer state variables
+    this.album = album;
+    this.title = title;
+    this.artist = artist;
+    this.artUri = artUri;
+    this.episodeName = episodeName;
+    this.chapterName = chapterName;
+    this.duration = duration;
+    this.description = description;
+    this.chapterId = chapterId;
+    this.chapterNo = chapterNo;
+    this.cerData = cerData;
+    this.pdfUrl = pdfUrl;
+    this.currentPosition = currentPosition;
+    this.totalDuration = totalDuration;
+    this.sectionNumber = sectionNumber;
+    this.subsections = subsections;
+    this.sectionEndQuestions = sectionEndQuestions;
+
     // Define media item with metadata for lock screen and notifications
     final mediaItem = MediaItem(
       id: audioUrl,
       album: album,
       title: title,
       artist: artist,
-      artUri:
-          artUri != null ? Uri.parse(artUri) : null, // Set artUri if provided
+      artUri: artUri != null ? Uri.parse(artUri) : null,
     );
 
     // Set audio source with metadata for background playback
@@ -80,5 +131,10 @@ class AudioProvider extends ChangeNotifier {
   void disposeAudioPlayer() {
     audioPlayer?.dispose();
     audioPlayer = null;
+  }
+
+  void setShowMiniPlayer(bool value) {
+    showMiniPlayer = value;
+    notifyListeners();
   }
 }

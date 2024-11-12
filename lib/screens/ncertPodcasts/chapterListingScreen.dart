@@ -1,7 +1,9 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/miniPlayer.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
+import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -11,6 +13,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
+import 'package:just_audio/just_audio.dart';
 
 class Chapterscreen extends StatefulWidget {
   final int standard = 8;
@@ -532,7 +536,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
               sectionEndQuestions: episode['sectionEndQuestions'],
             ),
           ),
-        );
+        ).then((result) {
+          context.read<AudioProvider>().setShowMiniPlayer(true);
+        });
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
@@ -713,7 +719,11 @@ class _ChapterscreenState extends State<Chapterscreen> {
                                       episode['sectionEndQuestions'],
                                 ),
                               ),
-                            );
+                            ).then((result) {
+                              context
+                                  .read<AudioProvider>()
+                                  .setShowMiniPlayer(true);
+                            });
                           },
                         ),
                       ],
@@ -768,53 +778,72 @@ class _ChapterscreenState extends State<Chapterscreen> {
                       ],
                     ),
                   )
-                : (subjectChapters.values.every((chapters) => chapters.isEmpty)
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            'We are working on the data for this class.\nYou may check other classes.',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+                : Stack(children: [
+                    (subjectChapters.values
+                            .every((chapters) => chapters.isEmpty)
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                'We are working on the data for this class.\nYou may check other classes.',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (podcasts.isNotEmpty)
-                              buildEpisodeCarousel(podcasts, "Just For You"),
-                            const SizedBox(height: 20),
-                            _buildChapterContent(),
-                            const SizedBox(height: 10),
-                            ...carouselData.map((carousel) {
-                              return Column(
-                                children: [
-                                  if ((carousel['type'] == 'interest_led' ||
-                                          carousel['type'] ==
-                                              'famous_personality') &&
-                                      carousel['items'] != null &&
-                                      carousel['items'].isNotEmpty)
-                                    buildCarousel(carousel['title'],
-                                        carousel['items'], carousel['type']),
-                                  if (carousel['type'] == 'episode' &&
-                                      carousel['episodes'] != null &&
-                                      carousel['episodes'].isNotEmpty)
-                                    buildEpisodeCarousel(carousel['episodes'],
-                                        carousel['title']),
-                                  const SizedBox(height: 20),
-                                ],
-                              );
-                            }).toList(),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
-                      )),
+                          )
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (podcasts.isNotEmpty)
+                                  buildEpisodeCarousel(
+                                      podcasts, "Just For You"),
+                                const SizedBox(height: 20),
+                                _buildChapterContent(),
+                                const SizedBox(height: 10),
+                                ...carouselData.map((carousel) {
+                                  return Column(
+                                    children: [
+                                      if ((carousel['type'] == 'interest_led' ||
+                                              carousel['type'] ==
+                                                  'famous_personality') &&
+                                          carousel['items'] != null &&
+                                          carousel['items'].isNotEmpty)
+                                        buildCarousel(
+                                            carousel['title'],
+                                            carousel['items'],
+                                            carousel['type']),
+                                      if (carousel['type'] == 'episode' &&
+                                          carousel['episodes'] != null &&
+                                          carousel['episodes'].isNotEmpty)
+                                        buildEpisodeCarousel(
+                                            carousel['episodes'],
+                                            carousel['title']),
+                                      const SizedBox(height: 20),
+                                    ],
+                                  );
+                                }).toList(),
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+                          )),
+                    Consumer<AudioProvider>(
+                      builder: (context, audioProvider, child) {
+                        return Visibility(
+                            visible: audioProvider.showMiniPlayer,
+                            child: Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: MiniPlayer(),
+                            ));
+                      },
+                    )
+                  ]),
       ),
     );
   }
@@ -869,7 +898,11 @@ class _ChapterscreenState extends State<Chapterscreen> {
                                     chapterId: chapter['id'],
                                   ),
                                 ),
-                              );
+                              ).then((result) {
+                                context
+                                    .read<AudioProvider>()
+                                    .setShowMiniPlayer(true);
+                              });
                             } else {
                               Navigator.push(
                                 context,
@@ -878,7 +911,11 @@ class _ChapterscreenState extends State<Chapterscreen> {
                                     chapterId: chapter['id'],
                                   ),
                                 ),
-                              );
+                              ).then((result) {
+                                context
+                                    .read<AudioProvider>()
+                                    .setShowMiniPlayer(true);
+                              });
                             }
                           },
                           child: _buildChapterItem(chapter),
