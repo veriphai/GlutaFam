@@ -7,6 +7,7 @@ import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/simulationScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:share_plus/share_plus.dart';
@@ -271,7 +272,7 @@ class _SectionscreenState extends State<Sectionscreen>
               elevation: 0,
               // title: Text(
               //   widget.chapterName,
-              //   style: const TextStyle(
+              //   style: const GoogleFonts.raleway(
               //     fontSize: 24,
               //     color: Colors.white,
               //     fontWeight: FontWeight.bold,
@@ -287,7 +288,9 @@ class _SectionscreenState extends State<Sectionscreen>
               // ),
             ),
             body: isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: CircularProgressIndicator(
+                        color: Color.fromRGBO(255, 217, 0, 1)))
                 : hasError
                     ? Center(child: Text('Error fetching data'))
                     : Stack(children: [
@@ -318,7 +321,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                             children: [
                                               Text(
                                                 chapterName,
-                                                style: const TextStyle(
+                                                style: GoogleFonts.raleway(
                                                   color: Colors.white,
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
@@ -329,7 +332,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                               const SizedBox(height: 8),
                                               Text(
                                                 "Chapter ${chapterNo} • ${bookName}",
-                                                style: TextStyle(
+                                                style: GoogleFonts.arOneSans(
                                                   color: Colors.grey,
                                                   fontSize: 14,
                                                 ),
@@ -347,7 +350,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                               //   ),
                                               //   child: const Text(
                                               //     'Follow',
-                                              //     style: TextStyle(color: Colors.white),
+                                              //     style: GoogleFonts.raleway(color: Colors.white),
                                               //   ),
                                               // ),
                                             ],
@@ -414,10 +417,10 @@ class _SectionscreenState extends State<Sectionscreen>
                                               ),
                                               label: Text(
                                                 'Go To Book Q&A',
-                                                style: TextStyle(
+                                                style: GoogleFonts.raleway(
                                                   color: Colors.black,
                                                   fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
+                                                  fontWeight: FontWeight.w700,
                                                 ),
                                               ),
                                               onPressed: () async {
@@ -450,14 +453,14 @@ class _SectionscreenState extends State<Sectionscreen>
                                           .white, // Text color for selected tabs
                                       unselectedLabelColor: Colors
                                           .grey, // Text color for unselected tabs
-                                      labelStyle: const TextStyle(
+                                      labelStyle: GoogleFonts.raleway(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold),
-                                      unselectedLabelStyle: const TextStyle(
+                                      unselectedLabelStyle: GoogleFonts.raleway(
                                           fontSize: 16,
                                           fontWeight: FontWeight.normal),
                                       tabs: const [
-                                        Tab(text: 'Episodes'),
+                                        Tab(text: 'Topics'),
                                         Tab(text: 'Simulations'),
                                       ],
                                       dividerColor: Colors.transparent,
@@ -471,14 +474,14 @@ class _SectionscreenState extends State<Sectionscreen>
                                           .white, // Text color for selected tabs
                                       unselectedLabelColor: Colors
                                           .grey, // Text color for unselected tabs
-                                      labelStyle: const TextStyle(
+                                      labelStyle: GoogleFonts.raleway(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold),
-                                      unselectedLabelStyle: const TextStyle(
+                                      unselectedLabelStyle: GoogleFonts.raleway(
                                           fontSize: 16,
                                           fontWeight: FontWeight.normal),
                                       tabs: const [
-                                        Tab(text: 'Episodes'),
+                                        Tab(text: 'Topics'),
                                       ],
                                       dividerColor: Colors.transparent,
                                     ),
@@ -585,7 +588,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                 sections[index]
                                                                     ['name'],
                                                                 style:
-                                                                    const TextStyle(
+                                                                    GoogleFonts
+                                                                        .raleway(
                                                                   fontSize: 16,
                                                                   color: Colors
                                                                       .white,
@@ -609,8 +613,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                           sections[index][
                                                                   'description'] ??
                                                               "No description available",
-                                                          style:
-                                                              const TextStyle(
+                                                          style: GoogleFonts
+                                                              .raleway(
                                                             fontSize: 14,
                                                             color: Colors.grey,
                                                           ),
@@ -628,8 +632,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                         ),
                                                         child: Text(
                                                           "${(sections[index]['timeToCompleteV2'] / 60000).floor()} mins",
-                                                          style:
-                                                              const TextStyle(
+                                                          style: GoogleFonts
+                                                              .arOneSans(
                                                             fontSize: 14,
                                                             color: Colors.grey,
                                                           ),
@@ -748,11 +752,10 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                     ),
                                                                   );
                                                                 },
-                                                                child:
-                                                                    const Text(
+                                                                child: Text(
                                                                   'Go to Case',
-                                                                  style:
-                                                                      TextStyle(
+                                                                  style: GoogleFonts
+                                                                      .raleway(
                                                                     color: Colors
                                                                         .black,
                                                                     fontSize:
@@ -932,8 +935,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                   simulationList[
                                                                           index]
                                                                       ['name'],
-                                                                  style:
-                                                                      const TextStyle(
+                                                                  style: GoogleFonts
+                                                                      .raleway(
                                                                     fontSize:
                                                                         16,
                                                                     color: Colors
@@ -959,8 +962,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                         index][
                                                                     'description'] ??
                                                                 "No description available",
-                                                            style:
-                                                                const TextStyle(
+                                                            style: GoogleFonts
+                                                                .raleway(
                                                               fontSize: 14,
                                                               color:
                                                                   Colors.grey,
@@ -978,7 +981,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                         //   ),
                                                         //   child: Text(
                                                         //     "20 mins",
-                                                        //     style: const TextStyle(
+                                                        //     style: const GoogleFonts.raleway(
                                                         //       fontSize: 14,
                                                         //       color: Colors.grey,
                                                         //     ),

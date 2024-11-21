@@ -1,6 +1,7 @@
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -108,8 +109,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         backgroundColor: Colors.transparent,
         title: Text(
           'Feedback',
-          style: TextStyle(
-              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          style: GoogleFonts.raleway(
+              color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700),
         ),
         iconTheme: IconThemeData(color: Colors.white),
       ),
@@ -120,10 +121,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             Spacer(),
             Text(
               'How do you like our lesson?',
-              style: TextStyle(
+              style: GoogleFonts.raleway(
                   color: Colors.white,
                   fontSize: 22,
-                  fontWeight: FontWeight.bold),
+                  fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 24),
@@ -158,10 +159,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     : selectedRating == 3
                         ? 'What could be better?'
                         : 'What did you like?',
-                style: TextStyle(
+                style: GoogleFonts.raleway(
                     color: Colors.white,
                     fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                    fontWeight: FontWeight.w700),
               ),
               SizedBox(height: 16),
               ...feedbackOptions.map((option) {
@@ -169,7 +170,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   activeColor: Color.fromRGBO(255, 217, 0, 1),
                   checkColor: Colors.black,
                   value: selectedFeedbackOptions.contains(option),
-                  title: Text(option, style: TextStyle(color: Colors.white)),
+                  title: Text(option,
+                      style: GoogleFonts.raleway(color: Colors.white)),
                   onChanged: (selected) {
                     toggleFeedbackOption(option);
                   },
@@ -206,7 +208,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     },
                     child: Text(
                       'Continue with Q&A',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: GoogleFonts.raleway(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                   SizedBox(height: 10),
@@ -231,7 +236,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     },
                     child: Text(
                       'End Lesson',
-                      style: TextStyle(color: Colors.black, fontSize: 16),
+                      style: GoogleFonts.raleway(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],

@@ -1,9 +1,11 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
+import 'package:eureka_app/screens/ncertPodcasts/bestPracticesModal.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'package:pdfx/pdfx.dart'; // Import pdfx package
 import 'package:http/http.dart' as http;
@@ -88,6 +90,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
   int currentSubsectionIndex = 0;
 
   Map<String, List<String?>> userAnswers = {};
+  Set<String> visitedCheckpoints = {};
+  bool _showBestPractices = true;
 
   void _prepareSubsections() {
     transformedSubsections = [];
@@ -152,6 +156,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
       final endTime = Duration(milliseconds: subsection['endTime']);
 
       if (currentPosition >= startTime && currentPosition < endTime) {
+        // if (subsection['type'] == 'qna') {
+        //   _showKeyPointsOverlay(false);
+        // }
         setState(() {
           activeSubsectionName = subsection['name'];
           currentSubsectionIndex =
@@ -159,6 +166,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   ? subsection['order'] - 1
                   : 0;
           print("current subsection: ${currentSubsectionIndex}");
+          checkThatCheckpointShown();
         });
         return;
       }
@@ -259,6 +267,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
     int attemptedQuestions = subsection['mcqs'].length;
 
     final subsectionId = subsection['id'];
+    visitedCheckpoints.add(subsectionId);
+
     userAnswers[subsectionId] ??= List.filled(
       subsection['mcqs'].length,
       null,
@@ -292,10 +302,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         // showQuestions
                         //     ? (showResult ? 'Result' : 'Question')
                         //     : 'Checkpoint',
-                        style: TextStyle(
+                        style: GoogleFonts.raleway(
                           color: Colors.white,
                           fontSize: 18,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       IconButton(
@@ -322,10 +332,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                           // Add Key Points heading at the top
                           Text(
                             'Key Points',
-                            style: TextStyle(
+                            style: GoogleFonts.raleway(
                               color: Color.fromRGBO(255, 217, 0, 1),
                               fontSize: 20,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
 
@@ -341,17 +351,18 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                   children: [
                                     Text(
                                       keyPoint['title'],
-                                      style: TextStyle(
+                                      style: GoogleFonts.raleway(
                                         color: Color.fromRGBO(255, 217, 0,
                                             1), // Set to white to show gradient properly
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w700,
                                         fontSize: 16,
                                       ),
                                     ),
                                     SizedBox(height: 5),
                                     Text(
                                       keyPoint['content'],
-                                      style: TextStyle(color: Colors.white),
+                                      style: GoogleFonts.raleway(
+                                          color: Colors.white),
                                     ),
                                     if (index < currentKeyPoints.length - 1)
                                       Divider(
@@ -409,10 +420,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                 ),
                                 Text(
                                   '${((correctAnswers / attemptedQuestions) * 100).toInt()}%',
-                                  style: TextStyle(
+                                  style: GoogleFonts.raleway(
                                     color: Colors.white,
                                     fontSize: 30,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ],
@@ -420,7 +431,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                             SizedBox(height: 40),
                             Text(
                               'You have done $correctAnswers out of $attemptedQuestions correct',
-                              style: TextStyle(
+                              style: GoogleFonts.raleway(
                                 color: Colors.white,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w400,
@@ -453,10 +464,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                       ),
                                       label: Text(
                                         'Continue Lesson',
-                                        style: TextStyle(
+                                        style: GoogleFonts.raleway(
                                           color: Colors.black,
                                           fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                       onPressed: () {
@@ -501,10 +512,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                       ),
                                       label: Text(
                                         'Curious QnAs',
-                                        style: TextStyle(
+                                        style: GoogleFonts.raleway(
                                           color: Colors.white,
                                           fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                       onPressed: () {
@@ -561,10 +572,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               },
                               child: Text(
                                 "Continue",
-                                style: TextStyle(
+                                style: GoogleFonts.raleway(
                                   color: Colors.black,
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
@@ -609,10 +620,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                           subsection['mcqs'].length - 1
                                       ? "Next"
                                       : "Show Results",
-                                  style: TextStyle(
+                                  style: GoogleFonts.raleway(
                                     color: Colors.black,
                                     fontSize: 16,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w700,
                                   )),
                             ),
                           ),
@@ -647,10 +658,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                     ),
                                     label: Text(
                                       'Review Questions',
-                                      style: TextStyle(
+                                      style: GoogleFonts.raleway(
                                         color: Colors.white,
                                         fontSize: 14,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                     onPressed: () {
@@ -700,10 +711,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                           subsection['mcqs'].length - 1
                                       ? "Next"
                                       : "Show Results",
-                                  style: TextStyle(
+                                  style: GoogleFonts.raleway(
                                     color: Colors.black,
                                     fontSize: 16,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w700,
                                   )),
                             ),
                           ),
@@ -746,10 +757,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
           Text(
             "Question ${transformedSubsections[currentSubsectionIndex]['mcqs'][currentQuestionIndex]['order']}",
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.raleway(
               color: Color.fromRGBO(255, 217, 0, 1),
               fontSize: 20,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
             ),
           ),
           SizedBox(height: 40),
@@ -757,10 +768,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
             transformedSubsections[currentSubsectionIndex]['mcqs']
                 [currentQuestionIndex]['question'],
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.raleway(
               color: Colors.white,
               fontSize: 20,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
             ),
           ),
           SizedBox(height: 20),
@@ -796,7 +807,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                             padding: const EdgeInsets.all(16),
                             child: Text(
                               option['content'],
-                              style: TextStyle(
+                              style: GoogleFonts.raleway(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -861,20 +872,20 @@ class _PodcastScreenState extends State<PodcastScreen> {
           Text(
             "Question ${question['order']}",
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.raleway(
               color: Color.fromRGBO(255, 217, 0, 1),
               fontSize: 20,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
             ),
           ),
           SizedBox(height: 40),
           Text(
             question['question'],
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.raleway(
               color: Colors.white,
               fontSize: 20,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
             ),
           ),
           SizedBox(height: 20),
@@ -908,7 +919,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                           padding: const EdgeInsets.all(16),
                           child: Text(
                             option['content'],
-                            style: TextStyle(
+                            style: GoogleFonts.raleway(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -941,13 +952,14 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
   void _checkEndOfSubsection() {
     if (_lastOverlayTime != null &&
-        DateTime.now().difference(_lastOverlayTime!) < Duration(seconds: 2)) {
+        DateTime.now().difference(_lastOverlayTime!) <
+            Duration(milliseconds: 1000)) {
       return;
     }
 
     for (var subsection in transformedSubsections) {
-      if (currentPosition.inMilliseconds >= subsection['endTime'] - 10 &&
-          currentPosition.inMilliseconds < subsection['endTime']) {
+      if (currentPosition.inMilliseconds >= subsection['endTime'] - 300 &&
+          currentPosition.inMilliseconds < subsection['endTime'] + 500) {
         setState(() {
           currentKeyPoints = subsection['keypoints'];
           isPlaying = false;
@@ -975,6 +987,16 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
     _prepareSubsections();
     _audioPlayer = context.read<AudioProvider>().audioPlayer ?? AudioPlayer();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Show the modal after the screen builds
+      if (_showBestPractices) {
+        if (widget.audioUrl !=
+            context.read<AudioProvider>().getCurrentAudioUrl()) {
+          _showBestPracticesModal();
+        }
+      }
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AudioProvider>().setAudioPlayer(
@@ -1075,6 +1097,31 @@ class _PodcastScreenState extends State<PodcastScreen> {
     if (widget.pdfUrl != null && widget.pdfUrl!.isNotEmpty) {
       _loadPdfFromNetwork(widget.pdfUrl!);
     }
+  }
+
+  void _showBestPracticesModal() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissal by tapping outside
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor:
+              Colors.transparent, // Makes the dialog background transparent
+          elevation: 0, // Removes shadow
+          insetPadding:
+              EdgeInsets.all(0), // Optional: To remove default padding
+          child: BestPracticesModal(
+            onDismiss: () {
+              setState(() {
+                _showBestPractices = false;
+                _audioPlayer.play();
+              });
+              Navigator.pop(context);
+            },
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _initializeRecorder() async {
@@ -1223,8 +1270,15 @@ class _PodcastScreenState extends State<PodcastScreen> {
       ));
       request.fields['chapterId'] = widget.chapterId;
       request.fields['sectionNumber'] = widget.sectionNumber.toString();
-      request.fields['subsectionId'] =
-          transformedSubsections[currentSubsectionIndex]['id'];
+      if (transformedSubsections.isNotEmpty &&
+          currentSubsectionIndex < transformedSubsections.length) {
+        request.fields['subsectionId'] =
+            transformedSubsections[currentSubsectionIndex]['id'];
+      } else {
+        // Handle the null or empty case appropriately
+        request.fields['subsectionId'] =
+            ''; // Or set a default value if required
+      }
 
       final response = await request.send();
       print("response : ${response}");
@@ -1309,7 +1363,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   children: [
                     Text(
                       'View Book',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: GoogleFonts.raleway(
+                          color: Colors.white, fontSize: 16),
                     ),
                     IconButton(
                       icon: Icon(Icons.close, color: Colors.white),
@@ -1341,7 +1396,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         return Center(
                           child: Text(
                             'Failed to load PDF',
-                            style: TextStyle(color: Colors.red),
+                            style: GoogleFonts.raleway(color: Colors.red),
                           ),
                         );
                       } else {
@@ -1365,7 +1420,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
   Future<void> _loadPdf() async {
     if (!isPdfLoaded) {
       // Simulate loading time
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(Duration(milliseconds: 2500));
       setState(() {
         isPdfLoaded = true;
       });
@@ -1404,7 +1459,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       children: [
                         Text(
                           'Ask a Question',
-                          style: TextStyle(color: Colors.white, fontSize: 16),
+                          style: GoogleFonts.raleway(
+                              color: Colors.white, fontSize: 16),
                         ),
                         IconButton(
                           icon: Icon(Icons.close, color: Colors.white),
@@ -1483,7 +1539,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         : (_isRecording
                             ? 'Recording... Tap to submit question'
                             : 'Tap to ask question'),
-                    style: const TextStyle(
+                    style: GoogleFonts.raleway(
                       fontSize: 16,
                       color: Colors.white,
                     ),
@@ -1518,7 +1574,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   children: [
                     Text(
                       'Subsections',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: GoogleFonts.raleway(
+                          color: Colors.white, fontSize: 16),
                     ),
                     IconButton(
                       icon: Icon(Icons.close, color: Colors.white),
@@ -1552,7 +1609,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         return ListTile(
                           title: Text(
                             conceptName,
-                            style: TextStyle(
+                            style: GoogleFonts.raleway(
                               color: isActive
                                   ? Color.fromRGBO(
                                       255, 217, 0, 1) // Highlight color
@@ -1562,7 +1619,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                           ),
                           // trailing: Text(
                           //   _formatDuration(startTime),
-                          //   style: TextStyle(color: Colors.grey, fontSize: 14),
+                          //   style: GoogleFonts.raleway(color: Colors.grey, fontSize: 14),
                           // ),
                           onTap: () {
                             Navigator.pop(context);
@@ -1603,6 +1660,21 @@ class _PodcastScreenState extends State<PodcastScreen> {
     return "${endDuration.inMinutes}:${(endDuration.inSeconds % 60).toString().padLeft(2, '0')}";
   }
 
+  void checkThatCheckpointShown() async {
+    final subsection = transformedSubsections[currentSubsectionIndex];
+    if (subsection['type'] == 'qna' &&
+        !visitedCheckpoints.contains(subsection['id']) &&
+        currentPosition.inMilliseconds < subsection['startTime'] + 7000) {
+      await _audioPlayer.seek(Duration(
+          milliseconds: transformedSubsections[currentSubsectionIndex - 2]
+                  ['endTime'] -
+              300));
+      // setState(() {
+      //   currentSubsectionIndex = currentSubsectionIndex - 2;
+      // });
+    }
+  }
+
   void jumpForward() {
     final remainingDuration = totalDuration - currentPosition;
     if (remainingDuration.inSeconds <= 10) {
@@ -1610,6 +1682,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
     } else {
       final newPosition = currentPosition + Duration(seconds: 10);
       _audioPlayer.seek(newPosition);
+      // checkThatCheckpointShown();
     }
   }
 
@@ -1617,6 +1690,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
     final newPosition = currentPosition - Duration(seconds: 10);
     if (newPosition > Duration.zero) {
       _audioPlayer.seek(newPosition);
+      // checkThatCheckpointShown();
     } else {
       _audioPlayer.seek(Duration.zero);
     }
@@ -1696,19 +1770,20 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   children: [
                     Text(
                       widget.title,
-                      style: TextStyle(
+                      style: GoogleFonts.raleway(
                         fontSize: 20,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.left,
                     ),
-                    SizedBox(height: 10),
+                    SizedBox(height: 5),
                     Text(
                       "Chapter ${widget.chapterNo} • ${widget.chapterName}",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: GoogleFonts.arOneSans(
+                          fontSize: 14, color: Colors.grey),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.left,
@@ -1717,7 +1792,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         widget.subsections!.isNotEmpty)
                       Padding(
                         padding: EdgeInsets.only(
-                            top: 10.0), // Adjust the left padding as needed
+                            top: 5.0), // Adjust the left padding as needed
                         child: Row(
                           children: [
                             GestureDetector(
@@ -1736,7 +1811,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                   activeSubsectionName.isNotEmpty
                                       ? activeSubsectionName
                                       : '',
-                                  style: TextStyle(
+                                  style: GoogleFonts.raleway(
                                     color: Color.fromRGBO(255, 217, 0, 1),
                                     fontSize: 16,
                                     decoration: TextDecoration.underline,
@@ -1785,7 +1860,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                                         'intro'
                                                     ? 'Skip Intro'
                                                     : 'Skip Concept',
-                                        style: TextStyle(
+                                        style: GoogleFonts.raleway(
                                           color: Colors.white,
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
@@ -1830,22 +1905,22 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         inactiveColor: Colors.grey[700],
                         thumbColor: Color.fromRGBO(255, 217, 0, 1),
                       )),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "${currentPosition.inMinutes}:${(currentPosition.inSeconds % 60).toString().padLeft(2, '0')}",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        Text(
-                          _formatEndTimeDuration(widget.duration),
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  //   child: Row(
+                  //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  //     children: [
+                  //       Text(
+                  //         "${currentPosition.inMinutes}:${(currentPosition.inSeconds % 60).toString().padLeft(2, '0')}",
+                  //         style: GoogleFonts.raleway(color: Colors.white),
+                  //       ),
+                  //       Text(
+                  //         _formatEndTimeDuration(widget.duration),
+                  //         style: GoogleFonts.raleway(color: Colors.white),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -1909,10 +1984,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               ),
                               label: Text(
                                 'Ask Questions',
-                                style: TextStyle(
+                                style: GoogleFonts.raleway(
                                   color: Colors.white,
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               onPressed: () {
@@ -1945,10 +2020,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                               ),
                               label: Text(
                                 'View Book',
-                                style: TextStyle(
+                                style: GoogleFonts.raleway(
                                   color: Colors.white,
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               onPressed: () {
@@ -2001,10 +2076,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
               ),
               label: Text(
                 'Go To Book Q&A',
-                style: TextStyle(
+                style: GoogleFonts.raleway(
                   color: Colors.white,
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               onPressed: () async {

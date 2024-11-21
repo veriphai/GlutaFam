@@ -269,7 +269,7 @@ class _MoodTrackerScreenState extends State<MoodTrackerScreen> {
     var kolkata = tz.getLocation('Asia/Kolkata');
     tz.setLocalLocation(kolkata);
     var initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/logo');
     var initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
     flutterLocalNotificationsPlugin.initialize(initializationSettings);

@@ -1,6 +1,7 @@
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/signupScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,29 +16,56 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
   int selectedClass = -1;
 
   // Define your onboarding data
+  // final List<Map<String, String>> onboardingData = [
+  //   {
+  //     "topText": "Learn & revise anytime,",
+  //     "secondTopText": "anywhere",
+  //     "imagePath": "lib/assets/on-1.png",
+  //     "bottomText": "Replace boring books with",
+  //     "bottomMidText": "engaging Interest-Led",
+  //     "bottomBoldText": "audio lessons"
+  //   },
+  //   {
+  //     "topText": "Get hands-on understanding ",
+  //     "secondTopText": "of complex concepts",
+  //     "imagePath": "lib/assets/on-2.png",
+  //     "bottomText": "Perform experiments &",
+  //     "bottomMidText": "activities with",
+  //     "bottomBoldText": "AI tutor-led simulations"
+  //   },
+  //   {
+  //     "topText": "No more rote memorization ",
+  //     "secondTopText": "of Q&As",
+  //     "imagePath": "lib/assets/on-3.png",
+  //     "bottomText": "Improve critical reasoning ",
+  //     "bottomMidText": "and build cases using our",
+  //     "bottomBoldText": "CER framework"
+  //   }
+  // ];
+
   final List<Map<String, String>> onboardingData = [
     {
-      "topText": "Learn & revise anytime,",
-      "secondTopText": "anywhere",
+      "topText": "Reading NCERT is now",
+      "secondTopText": "exciting.",
       "imagePath": "lib/assets/on-1.png",
-      "bottomText": "Replace boring books with",
-      "bottomMidText": "engaging Interest-Led",
+      "bottomText": "Interactive audio guides",
+      "bottomMidText": "explain as you read.",
       "bottomBoldText": "audio lessons"
     },
     {
-      "topText": "Get hands-on understanding ",
-      "secondTopText": "of complex concepts",
+      "topText": "Have a doubt? Ask our AI",
+      "secondTopText": "tutor anytime.",
       "imagePath": "lib/assets/on-2.png",
-      "bottomText": "Perform experiments &",
-      "bottomMidText": "activities with",
+      "bottomText": "Instant answers, just like",
+      "bottomMidText": "a real teacher.",
       "bottomBoldText": "AI tutor-led simulations"
     },
     {
-      "topText": "No more rote memorization ",
-      "secondTopText": "of Q&As",
+      "topText": "Revise effectively with AI",
+      "secondTopText": "quizzes.",
       "imagePath": "lib/assets/on-3.png",
-      "bottomText": "Improve critical reasoning ",
-      "bottomMidText": "and build cases using our",
+      "bottomText": "Answer aloud and get",
+      "bottomMidText": "immediate feedback.",
       "bottomBoldText": "CER framework"
     }
   ];
@@ -111,10 +139,10 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
           child: Text(
             topText,
-            style: const TextStyle(
+            style: GoogleFonts.raleway(
               color: Colors.black,
               fontSize: 20,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
           ),
@@ -123,10 +151,10 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           padding: const EdgeInsets.symmetric(horizontal: 30.0),
           child: Text(
             secondTopText,
-            style: const TextStyle(
+            style: GoogleFonts.raleway(
               color: Colors.black,
               fontSize: 20,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
           ),
@@ -145,8 +173,8 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Text(
             bottomText,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 25, fontWeight: FontWeight.w300),
+            style: GoogleFonts.raleway(
+                color: Colors.white, fontSize: 25, fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
         ),
@@ -154,20 +182,20 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Text(
             bottomMidText,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 25, fontWeight: FontWeight.w300),
+            style: GoogleFonts.raleway(
+                color: Colors.white, fontSize: 25, fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Text(
-            bottomBoldText,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-        ),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        //   child: Text(
+        //     bottomBoldText,
+        //     style: const GoogleFonts.raleway(
+        //         color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold),
+        //     textAlign: TextAlign.center,
+        //   ),
+        // ),
         const Spacer(flex: 2),
       ],
     );
@@ -197,7 +225,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
   //             padding: EdgeInsets.symmetric(horizontal: 20.0),
   //             child: Text(
   //               "Select Your Class",
-  //               style: TextStyle(
+  //               style: GoogleFonts.raleway(
   //                 color: Colors.black,
   //                 fontSize: 28,
   //                 fontWeight: FontWeight.bold,
@@ -245,7 +273,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
   //                   child: Center(
   //                     child: Text(
   //                       'Class $classNumber',
-  //                       style: TextStyle(
+  //                       style: GoogleFonts.raleway(
   //                         color: isSelected ? Colors.black : Colors.white,
   //                         fontSize: 22,
   //                         fontWeight: FontWeight.bold,

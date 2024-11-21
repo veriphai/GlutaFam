@@ -23,10 +23,13 @@ import 'package:audio_service/audio_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.gluta.glutafam.audio',
-    androidNotificationChannelName: 'Audio Playback',
-    androidNotificationOngoing: true, // Keeps the notification active
-  );
+      androidNotificationChannelId: 'com.gluta.glutafam.audio',
+      androidNotificationChannelName: 'Audio Playback',
+      androidNotificationOngoing: true,
+      androidNotificationIcon: 'mipmap/notification_icon'
+
+      // Keeps the notification active
+      );
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

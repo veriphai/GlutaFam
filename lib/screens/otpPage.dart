@@ -229,16 +229,16 @@ class _OtpPageState extends State<OtpPage> {
                 const SizedBox(height: 10),
                 Text(
                   "Verification Code",
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.raleway(
                     fontSize: 28,
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   "We have sent the verification code to ${widget.phoneNumber}",
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.raleway(
                     fontSize: 18,
                     color: Colors.grey[500],
                     fontWeight: FontWeight.w400,
@@ -255,9 +255,9 @@ class _OtpPageState extends State<OtpPage> {
                         inputFormatters: [LengthLimitingTextInputFormatter(6)],
                         decoration: InputDecoration(
                           labelText: "Enter OTP",
-                          labelStyle: const TextStyle(
+                          labelStyle: GoogleFonts.raleway(
                             color: Colors.orange,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                           ),
                           contentPadding: const EdgeInsets.only(
                               left: 20, top: 16, bottom: 16),
@@ -277,7 +277,7 @@ class _OtpPageState extends State<OtpPage> {
                           ),
                           floatingLabelBehavior: FloatingLabelBehavior.always,
                         ),
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.raleway(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -293,7 +293,7 @@ class _OtpPageState extends State<OtpPage> {
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
                             _errorMessage,
-                            style: const TextStyle(
+                            style: GoogleFonts.raleway(
                                 color: Colors.red, fontSize: 14),
                           ),
                         ),
@@ -322,9 +322,9 @@ class _OtpPageState extends State<OtpPage> {
                                     ),
                                     child: Text(
                                       "Confirm",
-                                      style: GoogleFonts.nunito(
+                                      style: GoogleFonts.raleway(
                                         fontSize: 20,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w700,
                                         color: Colors.black,
                                       ),
                                     ),
@@ -350,7 +350,7 @@ class _OtpPageState extends State<OtpPage> {
                 children: [
                   Text(
                     "Not able to get OTP?",
-                    style: GoogleFonts.nunito(
+                    style: GoogleFonts.raleway(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: Colors.grey[500],

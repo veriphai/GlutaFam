@@ -111,7 +111,7 @@ class _SignupscreenState extends State<Signupscreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "OTP Verification",
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.raleway(
                     fontSize: 28,
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -123,7 +123,7 @@ class _SignupscreenState extends State<Signupscreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "Enter phone number to send one-time password",
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.raleway(
                     fontSize: 22,
                     color: Colors.grey[500],
                     fontWeight: FontWeight.w400,
@@ -159,14 +159,14 @@ class _SignupscreenState extends State<Signupscreen> {
                     textFieldController: _controller,
                     inputDecoration: InputDecoration(
                       labelText: "Phone Number",
-                      labelStyle: TextStyle(
+                      labelStyle: GoogleFonts.raleway(
                         color: Colors.orange,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                       ),
                       contentPadding:
                           EdgeInsets.only(left: 20, top: 16, bottom: 16),
                       hintText: "Enter Phone Number",
-                      hintStyle: TextStyle(color: Colors.grey[600]),
+                      hintStyle: GoogleFonts.raleway(color: Colors.grey[600]),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
@@ -187,7 +187,7 @@ class _SignupscreenState extends State<Signupscreen> {
                     maxLength: 15,
                     keyboardType: TextInputType.numberWithOptions(
                         signed: true, decimal: true),
-                    textStyle: GoogleFonts.nunito(
+                    textStyle: GoogleFonts.raleway(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -198,7 +198,7 @@ class _SignupscreenState extends State<Signupscreen> {
                         padding: EdgeInsets.only(top: 8),
                         child: Text(
                           _errorMessage,
-                          style: GoogleFonts.nunito(
+                          style: GoogleFonts.raleway(
                             color: Colors.red,
                             fontSize: 14,
                           ),
@@ -230,9 +230,9 @@ class _SignupscreenState extends State<Signupscreen> {
                                 ),
                                 child: Text(
                                   "Continue",
-                                  style: GoogleFonts.nunito(
+                                  style: GoogleFonts.raleway(
                                     fontSize: 20,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w700,
                                     color: Colors.black,
                                   ),
                                 ),

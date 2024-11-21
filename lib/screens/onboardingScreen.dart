@@ -2,6 +2,7 @@ import 'package:eureka_app/screens/profileCreationScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/widgets.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -53,7 +54,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           padding: EdgeInsets.symmetric(vertical: 0, horizontal: 70),
           child: Text(title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              style: GoogleFonts.raleway(
+                  fontSize: 26, fontWeight: FontWeight.bold)),
         ),
         SizedBox(height: 20),
         Container(
@@ -80,7 +82,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           padding: EdgeInsets.symmetric(vertical: 0, horizontal: 20),
           child: Text(bottomText,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              style: GoogleFonts.raleway(
+                  fontSize: 26, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -98,7 +101,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           padding: EdgeInsets.symmetric(vertical: 0, horizontal: 90),
           child: Text(title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              style: GoogleFonts.raleway(
+                  fontSize: 26, fontWeight: FontWeight.bold)),
         ),
         SizedBox(
           height: 30,
@@ -118,7 +122,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           padding: EdgeInsets.symmetric(vertical: 0, horizontal: 20),
           child: Text(bottomText,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              style: GoogleFonts.raleway(
+                  fontSize: 26, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -157,7 +162,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: ElevatedButton.styleFrom(
                     elevation: 0, backgroundColor: Colors.transparent),
                 child: Text('Skip',
-                    style: TextStyle(
+                    style: GoogleFonts.raleway(
                         color: Colors.black,
                         fontSize: 18,
                         fontWeight: FontWeight.w400)),
@@ -182,7 +187,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     padding:
                         EdgeInsets.symmetric(horizontal: 50, vertical: 10)),
                 child: Text('Next',
-                    style: TextStyle(
+                    style: GoogleFonts.raleway(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.w400)),

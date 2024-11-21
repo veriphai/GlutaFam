@@ -102,7 +102,7 @@ class AudioProvider extends ChangeNotifier {
     );
 
     // Start playback
-    await player.play();
+    // await player.play();
     isPlaying = true;
     notifyListeners();
   }
@@ -136,5 +136,9 @@ class AudioProvider extends ChangeNotifier {
   void setShowMiniPlayer(bool value) {
     showMiniPlayer = value;
     notifyListeners();
+  }
+
+  String getCurrentAudioUrl() {
+    return currentAudioUrl ?? '';
   }
 }

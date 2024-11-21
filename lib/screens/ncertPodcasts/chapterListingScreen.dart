@@ -15,6 +15,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:just_audio/just_audio.dart';
+import 'dart:math';
 
 class Chapterscreen extends StatefulWidget {
   final int standard = 8;
@@ -31,6 +32,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
   List<dynamic> carouselData = [];
   final String screenName = "HomePage-ChapterListingScreen";
   final int cacheExpiryDurationInHours = 24;
+  late SharedPreferences prefs;
 
   String getChaptersCacheKey() => 'cached_chapters_standard_$standard';
   String getCacheTimestampKey() =>
@@ -38,7 +40,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
   Map<String, List<Map<String, dynamic>>> subjectChapters = {
     'Science': [],
-    'English-2': []
+    'English-2': [],
+    'English-1': []
   };
 
   List<dynamic> podcasts = [];
@@ -53,6 +56,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
   @override
   void initState() {
     super.initState();
+
     _loadSelectedClass(); // Fetch the selected class before fetching chapters
 
     Future<void> _setCurrentScreen() async {
@@ -71,7 +75,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
   // Fetch the selected class from SharedPreferences
   Future<void> _loadSelectedClass() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs = await SharedPreferences.getInstance();
+
     setState(() {
       standard = prefs.getInt('selected_class') ??
           8; // Default to class 8 if not found
@@ -84,8 +89,6 @@ class _ChapterscreenState extends State<Chapterscreen> {
   }
 
   Future<void> fetchAllChapters() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
     // Check if cached data is available and not expired
     String? cachedChapters = prefs.getString(getChaptersCacheKey());
     int? cachedTimestamp = prefs.getInt(getCacheTimestampKey());
@@ -101,6 +104,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
             List<Map<String, dynamic>>.from(data['Science']);
         subjectChapters['English-2'] =
             List<Map<String, dynamic>>.from(data['English-2']);
+        subjectChapters['English-1'] =
+            List<Map<String, dynamic>>.from(data['English-1']);
         isLoading = false;
       });
     } else {
@@ -112,14 +117,17 @@ class _ChapterscreenState extends State<Chapterscreen> {
   Future<void> _fetchAndCacheChapters() async {
     try {
       // Fetch chapters for each subject
-      await Future.wait(
-          [fetchChapterList('Science'), fetchChapterList('English-2')]);
+      await Future.wait([
+        fetchChapterList('Science'),
+        fetchChapterList('English-2'),
+        fetchChapterList('English-1')
+      ]);
 
       // Cache the data along with the current timestamp if successful
-      SharedPreferences prefs = await SharedPreferences.getInstance();
       Map<String, dynamic> cacheData = {
         'Science': subjectChapters['Science'],
         'English-2': subjectChapters['English-2'],
+        'English-1': subjectChapters['English-1'],
       };
       int currentTimestamp = DateTime.now().millisecondsSinceEpoch;
 
@@ -269,9 +277,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
                   ListTile(
                     title: Text(
                       'Class $classNumber',
-                      style: TextStyle(
+                      style: GoogleFonts.arOneSans(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: classNumber == standard
                             ? Color.fromRGBO(255, 217, 0, 1)
                             : Colors.white,
@@ -288,7 +296,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
                         isLoading = true;
                       });
 
-                      // Fetch updated chapters for the new class
+                      await prefs.setInt('selected_class', classNumber);
+
                       fetchAllChapters();
                       fetchRecommendedPodcasts();
                       fetchCarouselData();
@@ -344,6 +353,13 @@ class _ChapterscreenState extends State<Chapterscreen> {
   }
 
   String formatTimeToComplete(int timeInMillis) {
+    if (timeInMillis < 100) {
+      final random = Random();
+      // Generate a random number of minutes between 35 and 50, then convert to milliseconds
+      int randomMinutes =
+          35 + random.nextInt(16); // 35 + random number between 0 and 15
+      timeInMillis = randomMinutes * 60 * 1000;
+    }
     final int hours = (timeInMillis / (1000 * 60 * 60)).floor();
     final int minutes =
         ((timeInMillis % (1000 * 60 * 60)) / (1000 * 60)).floor();
@@ -364,7 +380,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
             title,
-            style: const TextStyle(
+            style: GoogleFonts.raleway(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -415,7 +431,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                         // Name of the item (Scientist or Interest)
                         Text(
                           item['name'],
-                          style: TextStyle(
+                          style: GoogleFonts.raleway(
                             color: Colors.grey[200],
                             fontSize: 14,
                           ),
@@ -445,7 +461,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
           padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
             title,
-            style: TextStyle(
+            style: GoogleFonts.raleway(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -578,7 +594,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                           Text(
                             episode[
                                 'name'], // Replace with your episode name field
-                            style: const TextStyle(
+                            style: GoogleFonts.raleway(
                               fontSize: 16,
                               color: Colors.white,
                               fontWeight: FontWeight.w500,
@@ -594,7 +610,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                                     episode['chapterName'].isNotEmpty
                                 ? "${episode['subject']} • ${episode['chapterName']}"
                                 : "${episode['subject']}",
-                            style: const TextStyle(
+                            style: GoogleFonts.raleway(
                               fontSize: 12,
                               color: Colors.grey,
                             ),
@@ -610,7 +626,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                   // Description
                   Text(
                     episode['description'] ?? 'No description available',
-                    style: TextStyle(
+                    style: GoogleFonts.raleway(
                       fontSize: 14,
                       color: Colors.grey[200],
                     ),
@@ -680,9 +696,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
                                 ),
                               );
                             },
-                            child: const Text(
+                            child: Text(
                               'Go to Case',
-                              style: TextStyle(
+                              style: GoogleFonts.raleway(
                                 color: Colors.black,
                                 fontSize: 12,
                               ),
@@ -746,7 +762,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
         child: isLoading
-            ? Center(child: CircularProgressIndicator())
+            ? Center(
+                child: CircularProgressIndicator(
+                    color: Color.fromRGBO(255, 217, 0, 1)))
             : hasError
                 ? Center(
                     child: Column(
@@ -754,7 +772,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                       children: [
                         Text(
                           'Failed to load chapters',
-                          style: TextStyle(color: Colors.white),
+                          style: GoogleFonts.raleway(color: Colors.white),
                         ),
                         SizedBox(height: 10),
                         ElevatedButton(
@@ -772,7 +790,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                           ),
                           child: Text(
                             'Reload',
-                            style: TextStyle(color: Colors.black),
+                            style: GoogleFonts.raleway(color: Colors.black),
                           ),
                         ),
                       ],
@@ -786,7 +804,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                               padding: const EdgeInsets.all(16.0),
                               child: Text(
                                 'We are working on the data for this class.\nYou may check other classes.',
-                                style: TextStyle(
+                                style: GoogleFonts.raleway(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
@@ -862,11 +880,11 @@ class _ChapterscreenState extends State<Chapterscreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                subject,
-                style: const TextStyle(
+                chapters[0]['bookName'],
+                style: GoogleFonts.raleway(
                   color: Colors.white,
                   fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -953,7 +971,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
             children: [
               Text(
                 'Class $standard',
-                style: const TextStyle(
+                style: GoogleFonts.arOneSans(
                   color: Colors.white,
                   fontSize: 18,
                 ),
@@ -992,7 +1010,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                 children: [
                   Text(
                     chapter['name'],
-                    style: const TextStyle(
+                    style: GoogleFonts.raleway(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                       color: Colors.white,
@@ -1003,7 +1021,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                   const SizedBox(height: 4),
                   Text(
                     "${chapter['sections'].length} Sections • ${formatTimeToComplete(chapter['timeToComplete'])}",
-                    style: const TextStyle(
+                    style: GoogleFonts.arOneSans(
                       fontSize: 14,
                       color: Colors.grey,
                     ),
@@ -1057,14 +1075,14 @@ class _ChapterscreenState extends State<Chapterscreen> {
                 ),
                 title: Text(
                   chapter['name'],
-                  style: const TextStyle(
+                  style: GoogleFonts.raleway(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 subtitle: Text(
-                  "Chapter ${chapter['chapterNo']} • ${chapter['sections'].length} Sections • ${chapter['timeToComplete']} mins",
-                  style: const TextStyle(
+                  "Chapter ${chapter['chapterNo']} • ${chapter['sections'].length} Sections • ${formatTimeToComplete(chapter['timeToComplete'])} mins",
+                  style: GoogleFonts.arOneSans(
                     fontSize: 14,
                     color: Colors.grey,
                   ),
@@ -1078,7 +1096,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                     color: Colors.white),
                 title: Text(
                   "Go To Chapter",
-                  style: TextStyle(color: Colors.white),
+                  style: GoogleFonts.raleway(color: Colors.white),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -1102,7 +1120,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                 ),
                 title: Text(
                   isBookmarked ? "Bookmarked" : "Bookmark",
-                  style: TextStyle(color: Colors.white),
+                  style: GoogleFonts.raleway(color: Colors.white),
                 ),
                 onTap: () {
                   setState(() {
@@ -1119,7 +1137,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
               //   leading: Icon(Icons.share_outlined, color: Colors.white),
               //   title: Text(
               //     "Share",
-              //     style: TextStyle(color: Colors.white),
+              //     style: GoogleFonts.raleway(color: Colors.white),
               //   ),
               //   onTap: () {
               //     Navigator.pop(context);

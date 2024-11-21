@@ -1,6 +1,8 @@
 import 'package:eureka_app/apis/fetchChapterQuestionsApi.dart';
+import 'package:eureka_app/screens/ncertPodcasts/resultsScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:http/http.dart' as http;
@@ -11,12 +13,31 @@ import 'dart:math';
 import 'package:audio_session/audio_session.dart' as audioSession;
 import 'package:http_parser/http_parser.dart';
 
+class QuestionResult {
+  final String? feedbackText;
+  final String? audioFeedbackPath;
+  final String? evaluation; // correct, incorrect, or partially correct
+  final String answer;
+
+  QuestionResult(
+      {required this.feedbackText,
+      required this.audioFeedbackPath,
+      required this.evaluation,
+      required this.answer});
+}
+
 class EndQuestionScreen extends StatefulWidget {
   final String chapterId;
   final List<dynamic>? sectionEndQuestions;
+  final bool isReviewMode;
+  final Map<String, QuestionResult>? questionResults;
 
   const EndQuestionScreen(
-      {Key? key, required this.chapterId, this.sectionEndQuestions})
+      {Key? key,
+      required this.chapterId,
+      this.sectionEndQuestions,
+      this.isReviewMode = false,
+      this.questionResults})
       : super(key: key);
 
   @override
@@ -31,6 +52,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
   bool _showFeedback = false;
   bool _isLoading = false;
   bool _questionAnswered = false;
+  late Map<String, QuestionResult> questionResults;
 
   String? _audioPath;
   List<double> waveformData = []; // Data for the waveform visualization
@@ -85,6 +107,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
   @override
   void initState() {
     super.initState();
+    questionResults = widget.questionResults ?? {};
     _pageController = PageController();
 
     _audioRecorder = FlutterSoundRecorder();
@@ -212,17 +235,20 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
 
       final currentQuestion =
           chapterQuestions!['questions'][currentQuestionIndex];
+      final questionId = currentQuestion['id'];
       String questionText = currentQuestion['question'];
       String answer = currentQuestion['answer'] ?? '';
+      String uniqueKey = questionId;
 
       if (currentQuestion['subQuestions'] != null &&
           currentQuestion['subQuestions'].isNotEmpty &&
           currentSubQuestionIndex < currentQuestion['subQuestions'].length) {
-        questionText = questionText +
-            currentQuestion['subQuestions'][currentSubQuestionIndex]
-                ['question'];
-        answer =
-            currentQuestion['subQuestions'][currentSubQuestionIndex]['answer'];
+        final subQuestion =
+            currentQuestion['subQuestions'][currentSubQuestionIndex];
+        final subQuestionId = subQuestion['id']; // Subquestion ID
+        uniqueKey = '${questionId}_$subQuestionId'; // Combined unique key
+        questionText += subQuestion['question'];
+        answer = subQuestion['answer'];
       }
       request.files.add(await http.MultipartFile.fromPath(
         'audio',
@@ -240,6 +266,8 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
 
         final evaluationMessage = responseJson['evaluationResponse']['message'];
         final audioBase64 = responseJson['evaluationResponse']['audioMessage'];
+        final evaluationStatus =
+            responseJson['evaluationResponse']['evaluationResult'];
 
         setState(() {
           feedbackText = evaluationMessage;
@@ -251,7 +279,12 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
         _controller.forward();
 
         if (audioBase64 != null) {
-          _playBase64Audio(audioBase64);
+          await _playBase64Audio(audioBase64, uniqueKey);
+          questionResults[uniqueKey] = QuestionResult(
+              feedbackText: evaluationMessage,
+              audioFeedbackPath: audioFeedbackPath,
+              evaluation: evaluationStatus,
+              answer: answer);
         }
       } else {
         print('Failed to upload audio. Status code: ${response.statusCode}');
@@ -265,11 +298,11 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     }
   }
 
-  Future<void> _playBase64Audio(String base64Audio) async {
+  Future<void> _playBase64Audio(String base64Audio, String uniqueKey) async {
     try {
       final audioBytes = base64Decode(base64Audio);
       final tempDir = await getTemporaryDirectory();
-      final audioFile = File('${tempDir.path}/response_audio.wav');
+      final audioFile = File('${tempDir.path}/${uniqueKey}_response_audio.wav');
       await audioFile.writeAsBytes(audioBytes);
       audioFeedbackPath = audioFile.path;
 
@@ -278,6 +311,43 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     } catch (e) {
       print('Error playing base64 audio: $e');
     }
+  }
+
+  void _showResultScreen() {
+    int totalQuestions = 0;
+    final questions = chapterQuestions!['questions'] ?? [];
+
+    for (var question in questions) {
+      if (question['subQuestions'] != null &&
+          question['subQuestions'].isNotEmpty) {
+        // Only count subquestions if they exist
+        totalQuestions += (question['subQuestions'] as List).length;
+      } else {
+        // Count the main question if no subquestions
+        totalQuestions++;
+      }
+    }
+    final correctAnswers = questionResults.values
+        .where((result) => result.evaluation?.toLowerCase() == 'correct')
+        .length;
+
+    final partiallyCorrectAnswers = questionResults.values
+        .where(
+            (result) => result.evaluation?.toLowerCase() == 'partiallycorrect')
+        .length;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultScreen(
+          correctAnswers: correctAnswers,
+          partiallyCorrect: partiallyCorrectAnswers,
+          totalQuestions: totalQuestions,
+          chapterId: widget.chapterId,
+          questionResults: questionResults,
+        ),
+      ),
+    );
   }
 
   void _goToNext() async {
@@ -301,6 +371,30 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
       if (questions.isNotEmpty) {
         final currentQuestion = questions[currentQuestionIndex];
 
+        final questionId = currentQuestion['id'];
+        String questionText = currentQuestion['question'];
+        String answer = currentQuestion['answer'] ?? '';
+        String uniqueKey = questionId;
+
+        if (currentQuestion['subQuestions'] != null &&
+            currentQuestion['subQuestions'].isNotEmpty &&
+            currentSubQuestionIndex < currentQuestion['subQuestions'].length) {
+          final subQuestion =
+              currentQuestion['subQuestions'][currentSubQuestionIndex];
+          final subQuestionId = subQuestion['id']; // Subquestion ID
+          uniqueKey = '${questionId}_$subQuestionId'; // Combined unique key
+          questionText += subQuestion['question'];
+          answer = subQuestion['answer'];
+        }
+
+        if (!questionResults.containsKey(uniqueKey)) {
+          questionResults[uniqueKey] = QuestionResult(
+            feedbackText: null,
+            audioFeedbackPath: null,
+            evaluation: null,
+            answer: answer,
+          );
+        }
         if (currentQuestion['subQuestions'] != null &&
             currentQuestion['subQuestions'].isNotEmpty) {
           if (currentSubQuestionIndex <
@@ -322,10 +416,11 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
         }
 
         if (currentQuestionIndex >= questions.length) {
-          setState(() {
-            currentQuestionIndex = 0;
-            currentSubQuestionIndex = 0;
-          });
+          _showResultScreen();
+          // setState(() {
+          //   currentQuestionIndex = 0;
+          //   currentSubQuestionIndex = 0;
+          // });
         }
       }
     }
@@ -397,8 +492,47 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     }
   }
 
-  void _flipCard() {
-    if (_showFeedback) {
+  QuestionResult? getCurrentQuestionResult() {
+    // Get the current question from chapterQuestions
+    final currentQuestion =
+        chapterQuestions?['questions'][currentQuestionIndex];
+
+    if (currentQuestion == null) {
+      // Handle null case gracefully
+      return null;
+    }
+
+    // Extract the question ID
+    final questionId = currentQuestion['id'];
+    String uniqueKey = questionId;
+
+    // Check for subQuestions and update the unique key if applicable
+    if (currentQuestion['subQuestions'] != null &&
+        currentQuestion['subQuestions'].isNotEmpty &&
+        currentSubQuestionIndex < currentQuestion['subQuestions'].length) {
+      final subQuestionId =
+          currentQuestion['subQuestions'][currentSubQuestionIndex]['id'];
+      uniqueKey = '${questionId}_$subQuestionId';
+    }
+
+    // Return the corresponding result from questionResults
+    return widget.questionResults?[uniqueKey];
+  }
+
+  void _flipCard() async {
+    if (_showFeedback || widget.isReviewMode) {
+      if (widget.isReviewMode) {
+        final result = getCurrentQuestionResult();
+        if (result != null) {
+          setState(() {
+            feedbackText = result.feedbackText ?? result.answer;
+            audioFeedbackPath = result.audioFeedbackPath ?? '';
+          });
+          // await _audioPlayer!.openPlayer();
+          // await _audioPlayer!.startPlayer(fromURI: result.audioFeedbackPath);
+        }
+      }
+
       setState(() {
         if (_controller.isCompleted) {
           _controller.reverse();
@@ -436,12 +570,12 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: true,
         centerTitle: false,
-        title: const Text(
+        title: Text(
           'Book Q&A',
-          style: TextStyle(
+          style: GoogleFonts.raleway(
             fontSize: 24,
             color: Colors.white,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
           ),
         ),
         iconTheme: const IconThemeData(
@@ -525,10 +659,10 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
                               ),
                               label: Text(
                                 'Previous',
-                                style: TextStyle(
+                                style: GoogleFonts.raleway(
                                   color: Colors.white,
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               onPressed: _goToPrevious,
@@ -558,10 +692,10 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
                               children: [
                                 Text(
                                   'Next',
-                                  style: TextStyle(
+                                  style: GoogleFonts.raleway(
                                     color: Colors.white,
                                     fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                                 const SizedBox(
@@ -605,7 +739,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
               alignment: Alignment.topCenter,
               child: Text(
                 'Question ${currentQuestionIndex + 1}',
-                style: const TextStyle(
+                style: GoogleFonts.raleway(
                   fontSize: 24,
                   fontWeight: FontWeight.w500,
                   color: Colors.white,
@@ -621,7 +755,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
                 children: [
                   Text(
                     mainQuestionText,
-                    style: TextStyle(
+                    style: GoogleFonts.raleway(
                       fontSize: subQuestionText.isNotEmpty ? 20 : 24,
                       fontWeight: subQuestionText.isNotEmpty
                           ? FontWeight.normal
@@ -637,7 +771,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
                     const SizedBox(height: 20),
                     Text(
                       '${String.fromCharCode(97 + currentSubQuestionIndex)}) $subQuestionText',
-                      style: const TextStyle(
+                      style: GoogleFonts.raleway(
                         fontSize: 24,
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
@@ -657,76 +791,10 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
                   Spacer(
                     flex: 1,
                   ),
-                  GestureDetector(
-                    onTap: _toggleRecording,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: _isRecording
-                            ? LinearGradient(
-                                colors: [Colors.redAccent, Colors.red],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : LinearGradient(
-                                colors: [
-                                  Color.fromRGBO(255, 217, 0, 1),
-                                  Color.fromRGBO(255, 217, 0, 1),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _isRecording
-                                ? Colors.redAccent
-                                : Color.fromRGBO(255, 217, 0, 1),
-                            blurRadius: 20,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: _isLoading
-                          ? SizedBox(
-                              width: 50, // Set the desired width
-                              height: 50, // Set the desired height
-                              child: Center(
-                                child: Transform.scale(
-                                  scale:
-                                      1, // Adjust this scale to make it bigger or smaller
-                                  child: CircularProgressIndicator(
-                                    color: Colors
-                                        .white, // Adjust the color to your preference
-                                    strokeWidth:
-                                        4.0, // Adjust the thickness of the progress indicator
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Icon(
-                              _isRecording ? Icons.mic : Icons.mic_none,
-                              color: Colors.white,
-                              size: 50,
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    _isLoading
-                        ? 'AI Tutor is validating your answer... Please wait'
-                        : (_isRecording
-                            ? 'Recording... Tap to submit answer'
-                            : 'Tap to answer'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign
-                        .center, // Center-align the microphone hint text
-                  ),
+                  if (widget.isReviewMode)
+                    _buildReviewModeActions(
+                        width, height), // Show review buttons
+                  if (!widget.isReviewMode) _buildRecordingButton(),
                 ],
               ),
             ),
@@ -736,6 +804,157 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     );
   }
 
+// Function to show microphone button when not in review mode
+  Widget _buildRecordingButton() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _toggleRecording,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: _isRecording
+                  ? LinearGradient(
+                      colors: [Colors.redAccent, Colors.red],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : LinearGradient(
+                      colors: [
+                        Color.fromRGBO(255, 217, 0, 1),
+                        Color.fromRGBO(255, 217, 0, 1),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+              boxShadow: [
+                BoxShadow(
+                  color: _isRecording
+                      ? Colors.redAccent
+                      : Color.fromRGBO(255, 217, 0, 1),
+                  blurRadius: 20,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: _isLoading
+                ? SizedBox(
+                    width: 50, // Set the desired width
+                    height: 50, // Set the desired height
+                    child: Center(
+                      child: Transform.scale(
+                        scale:
+                            1, // Adjust this scale to make it bigger or smaller
+                        child: CircularProgressIndicator(
+                          color: Colors
+                              .white, // Adjust the color to your preference
+                          strokeWidth:
+                              4.0, // Adjust the thickness of the progress indicator
+                        ),
+                      ),
+                    ),
+                  )
+                : Icon(
+                    _isRecording ? Icons.mic : Icons.mic_none,
+                    color: Colors.white,
+                    size: 50,
+                  ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          _isLoading
+              ? 'AI Tutor is validating your answer... Please wait'
+              : (_isRecording
+                  ? 'Recording... Tap to submit answer'
+                  : 'Tap to answer'),
+          style: GoogleFonts.raleway(
+            fontSize: 16,
+            color: Colors.white,
+          ),
+          textAlign: TextAlign.center, // Center-align the microphone hint text
+        ),
+      ],
+    );
+  }
+
+// Function to show review mode actions
+  Widget _buildReviewModeActions(double height, double width) {
+    final currentQuestion =
+        chapterQuestions?['questions'][currentQuestionIndex];
+
+    if (currentQuestion == null) {
+      // Handle null case gracefully
+      return Text(
+        "",
+        style: GoogleFonts.raleway(color: Colors.white, fontSize: 16),
+      );
+    }
+    final questionId = currentQuestion['id'];
+    String uniqueKey = questionId;
+
+    if (currentQuestion['subQuestions'] != null &&
+        currentQuestion['subQuestions'].isNotEmpty &&
+        currentSubQuestionIndex < currentQuestion['subQuestions'].length) {
+      final subQuestionId =
+          currentQuestion['subQuestions'][currentSubQuestionIndex]['id'];
+      uniqueKey = '${questionId}_$subQuestionId';
+    }
+
+    final result =
+        widget.questionResults?[uniqueKey]; // Access passed question results
+    final hasFeedback = result?.audioFeedbackPath?.isNotEmpty ?? false;
+
+    return Column(
+      children: [
+        if (hasFeedback)
+          ElevatedButton(
+            onPressed: () async {
+              if (result != null) {
+                setState(() {
+                  feedbackText = result.feedbackText ?? '';
+                  audioFeedbackPath = result.audioFeedbackPath ?? '';
+                });
+                _flipCardForReview();
+                await _audioPlayer!.openPlayer();
+                await _audioPlayer!
+                    .startPlayer(fromURI: result.audioFeedbackPath);
+              }
+            },
+            child: const Text('Replay Feedback'),
+          )
+        else
+          ElevatedButton(
+            onPressed: () {
+              _showCorrectAnswer(result?.answer);
+            },
+            child: const Text('Show Correct Answer'),
+          ),
+      ],
+    );
+  }
+
+  void _flipCardForReview() {
+    setState(() {
+      if (_controller.isCompleted) {
+        _controller.reverse();
+      } else {
+        _controller.forward();
+      }
+    });
+  }
+
+// Method to show correct answer in review mode
+  void _showCorrectAnswer(String? answer) {
+    setState(() {
+      feedbackText = answer ?? '';
+    });
+    _flipCardForReview(); // Flip to display answer on the back of the card
+  }
+
   Widget _buildOptions(Map<String, dynamic> options) {
     return Column(
       children: options.entries.map((entry) {
@@ -743,7 +962,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
           padding: const EdgeInsets.symmetric(vertical: 4.0),
           child: Text(
             '${entry.key}) ${entry.value}',
-            style: const TextStyle(
+            style: GoogleFonts.raleway(
               fontSize: 20,
               fontWeight: FontWeight.w400,
               color: Colors.white,
@@ -756,6 +975,23 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
   }
 
   Widget _buildFeedbackCard(double width, double height) {
+    final currentQuestion =
+        chapterQuestions!['questions'][currentQuestionIndex];
+    final questionId = currentQuestion['id'];
+    String uniqueKey = questionId;
+
+    if (currentQuestion['subQuestions'] != null &&
+        currentQuestion['subQuestions'].isNotEmpty &&
+        currentSubQuestionIndex < currentQuestion['subQuestions'].length) {
+      final subQuestionId =
+          currentQuestion['subQuestions'][currentSubQuestionIndex]['id'];
+      uniqueKey = '${questionId}_$subQuestionId';
+    }
+
+    final result =
+        widget.questionResults?[uniqueKey]; // Access passed question results
+    final hasFeedback = result?.audioFeedbackPath?.isNotEmpty ?? false;
+
     return Container(
       width: width, // Use the full width available
       height: height, // Use the full height available
@@ -768,17 +1004,18 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Feedback',
-              style: TextStyle(
+            Text(
+              widget.isReviewMode && !(hasFeedback) ? 'Answer' : 'Feedback',
+              style: GoogleFonts.raleway(
                 fontSize: 24,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 color: Colors.white,
               ),
             ),
             const SizedBox(height: 20),
             Expanded(
               child: Container(
+                width: width - 20,
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(
                       0.3), // Optional background color for better readability
@@ -788,23 +1025,26 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
                 child: SingleChildScrollView(
                   child: Text(
                     feedbackText,
-                    style: const TextStyle(
+                    style: GoogleFonts.raleway(
                       fontSize: 18,
                       color: Colors.white70,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                if (audioFeedbackPath.isNotEmpty) {
-                  await _audioPlayer!.startPlayer(fromURI: audioFeedbackPath);
-                }
-              },
-              child: const Text('Replay Feedback'),
-            ),
+            if (!(widget.isReviewMode && !hasFeedback))
+              ElevatedButton(
+                onPressed: () async {
+                  if (audioFeedbackPath.isNotEmpty) {
+                    await _audioPlayer!.openPlayer();
+                    await _audioPlayer!.startPlayer(fromURI: audioFeedbackPath);
+                  }
+                },
+                child: const Text('Replay Feedback'),
+              ),
           ],
         ),
       ),

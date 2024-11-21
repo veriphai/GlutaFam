@@ -2,6 +2,7 @@
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
@@ -95,6 +96,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
+              const SizedBox(width: 20),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
@@ -111,24 +113,29 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   children: [
                     Text(
                       audioProvider.episodeName,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: GoogleFonts.raleway(
+                          color: Colors.white, fontSize: 14),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       audioProvider.chapterName,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style:
+                          GoogleFonts.raleway(color: Colors.grey, fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      _formatEndTimeDuration(audioProvider.duration),
-                      style: const TextStyle(color: Colors.grey, fontSize: 10),
                     )
+                    // Text(
+                    //   _formatEndTimeDuration(audioProvider.duration),
+                    //   style: const GoogleFonts.raleway(color: Colors.grey, fontSize: 10),
+                    // )
                   ],
                 ),
               ),
               IconButton(
+                padding:
+                    EdgeInsets.zero, // Removes default padding around the icon
+
                 icon: Icon(
                   audioProvider.isPlaying
                       ? Icons.pause_circle_filled
@@ -137,6 +144,31 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   size: 40,
                 ),
                 onPressed: playPauseAudio,
+              ),
+              Container(
+                height: 35, // Adjust height
+                width: 35,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.transparent,
+                  border: Border.all(
+                    color: Color.fromRGBO(255, 217, 0, 1), // Border color
+                    width: 2.0, // Border width
+                  ),
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(
+                    Icons.close,
+                    color: Color.fromRGBO(255, 217, 0, 1),
+                    size: 16,
+                  ),
+                  onPressed: () {
+                    // Hide the MiniPlayer
+                    audioProvider.stopAudio();
+                    audioProvider.showMiniPlayer = false;
+                  },
+                ),
               ),
             ],
           ),

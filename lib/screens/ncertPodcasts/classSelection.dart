@@ -1,6 +1,7 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -87,14 +88,14 @@ class _ClassSelection extends State<ClassSelectionPage> {
       children: [
         const SizedBox(height: 100),
         Center(
-            child: const Padding(
+            child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.0),
           child: Text(
             "Select Your Class",
-            style: TextStyle(
+            style: GoogleFonts.raleway(
               color: Colors.black,
               fontSize: 28,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
           ),
@@ -134,10 +135,10 @@ class _ClassSelection extends State<ClassSelectionPage> {
                 child: Center(
                   child: Text(
                     'Class $classNumber',
-                    style: TextStyle(
+                    style: GoogleFonts.raleway(
                       color: isSelected ? Colors.black : Colors.white,
                       fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
