@@ -18,7 +18,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false; // Loading state
 
   Future<UserCredential> signInWithGoogle() async {
-    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+    scopes: ['email', 'https://www.googleapis.com/auth/userinfo.profile'],
+    clientId: "550557666388-63droq2fcbdbp6b0is1seudikinugev3.apps.googleusercontent.com",
+  );
+    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
     if (googleUser == null) {
       return Future.error("Google sign-in cancelled");
