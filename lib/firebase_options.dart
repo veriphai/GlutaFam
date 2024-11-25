@@ -74,7 +74,9 @@ class DefaultFirebaseOptions {
     appId: '1:550557666388:ios:0e682e3eb390ed398f31c1',
     messagingSenderId: '550557666388',
     projectId: 'glutafam-4aa2f',
-    storageBucket: 'glutafam-4aa2f.appspot.com',
+    storageBucket: 'glutafam-4aa2f.firebasestorage.app',
+    androidClientId: '550557666388-d7c6s8f5g2u806a34oigl53ev5nfkn74.apps.googleusercontent.com',
+    iosClientId: '550557666388-s22v50bou60prpld306p4ml35qt34gav.apps.googleusercontent.com',
     iosBundleId: 'com.example.eurekaApp',
   );
 
@@ -83,6 +85,7 @@ class DefaultFirebaseOptions {
     appId: '1:550557666388:android:3f450bccebaf432b8f31c1',
     messagingSenderId: '550557666388',
     projectId: 'glutafam-4aa2f',
-    storageBucket: 'glutafam-4aa2f.appspot.com',
+    storageBucket: 'glutafam-4aa2f.firebasestorage.app',
   );
+
 }
