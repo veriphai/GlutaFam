@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -23,10 +24,10 @@ Future<void> logEvent({
   required int eventTime,
 }) async {
   const String apiUrl = 'https://glutaclass.com:8080/gluta/fam/log-event';
-  final secureStorage = const FlutterSecureStorage();
+  final AuthTokenService authTokenService = AuthTokenService();
 
   // Retrieve the auth token from secure storage
-  final authToken = await secureStorage.read(key: 'authKey');
+  final String? authToken = await authTokenService.getAuthToken();
 
   if (authToken != null) {
     final body = {
