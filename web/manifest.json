@@ -1,11 +1,11 @@
 {
-    "name": "eureka_app",
-    "short_name": "eureka_app",
+    "name": "GlutaClass: AI Tutor for NCERT",
+    "short_name": "GlutaClass: AI Tutor for NCERT",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Read NCERT in a new and engaging manner.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
