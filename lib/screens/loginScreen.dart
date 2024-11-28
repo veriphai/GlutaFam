@@ -134,46 +134,49 @@ class _LoginScreenState extends State<LoginScreen> {
                   const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
               child: Column(
                 children: [
-                  OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Signupscreen()),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: Color.fromRGBO(128, 128, 128,
-                              1)), // Border color // Border color
-                      minimumSize:
-                          const Size(double.infinity, 50), // Full width
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(
-                          Icons.smartphone_outlined,
-                          color: Colors.white,
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              'Continue with phone number',
-                              style: GoogleFonts.raleway(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                  if (!kIsWeb)
+                    OutlinedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => Signupscreen()),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                            color: Color.fromRGBO(128, 128, 128,
+                                1)), // Border color // Border color
+                        minimumSize:
+                            const Size(double.infinity, 50), // Full width
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Icon(
+                            Icons.smartphone_outlined,
+                            color: Colors.white,
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'Continue with phone number',
+                                style: GoogleFonts.raleway(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(
-                          width: 24, // Placeholder space to match the icon size
-                        )
-                      ],
+                          const SizedBox(
+                            width:
+                                24, // Placeholder space to match the icon size
+                          )
+                        ],
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 20),
                   // Google Sign-In Button
                   OutlinedButton(
