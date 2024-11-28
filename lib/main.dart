@@ -10,6 +10,7 @@ import 'package:eureka_app/services/myAudioHandler.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
@@ -117,6 +118,12 @@ class MyAppState extends ChangeNotifier {
 }
 
 Future<bool> checkIfRealDevice() async {
+
+  if (kIsWeb) {
+    print("Running on the Web");
+    return false;
+  }
+
   if (Platform.isIOS) {
     final iosDeviceInfo = await DeviceInfoPlugin().iosInfo;
     return iosDeviceInfo.isPhysicalDevice;

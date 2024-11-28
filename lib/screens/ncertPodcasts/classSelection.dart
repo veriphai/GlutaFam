@@ -1,5 +1,7 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
+import 'package:eureka_app/utils/authTokenService.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+
 class ClassSelectionPage extends StatefulWidget {
   @override
   _ClassSelection createState() => _ClassSelection();
@@ -15,6 +18,7 @@ class ClassSelectionPage extends StatefulWidget {
 
 class _ClassSelection extends State<ClassSelectionPage> {
   final PageController _controller = PageController();
+  final AuthTokenService authTokenService = AuthTokenService();
   int currentPageIndex = 0;
   int selectedClass = -1;
 
@@ -201,11 +205,8 @@ class _ClassSelection extends State<ClassSelectionPage> {
 
   Future<void> classSelected() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    final secureStorage = FlutterSecureStorage();
-
-    // Retrieve the saved class and auth token
     int? selectedClass = prefs.getInt('selected_class');
-    String? authToken = await secureStorage.read(key: "authKey");
+    final String? authToken = await authTokenService.getAuthToken();
 
     // Check if authToken and selectedClass are valid
     if (authToken != null && selectedClass != null) {
@@ -254,6 +255,11 @@ class _ClassSelection extends State<ClassSelectionPage> {
         print("Error occurred while saving class selection: $e");
       }
     } else {
+      // Navigator.pushAndRemoveUntil(
+      //       context,
+      //       MaterialPageRoute(builder: (context) => Chapterscreen()),
+      //       (Route<dynamic> route) => false, // Removes all previous routes
+      //     );
       print("Auth token or selected class is missing");
     }
   }

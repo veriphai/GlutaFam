@@ -1,5 +1,7 @@
 import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
 import 'package:eureka_app/screens/signupscreen.dart'; // Import the signup screen
+import 'package:eureka_app/utils/authTokenService.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -15,6 +17,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final secureStorage = FlutterSecureStorage();
+  final AuthTokenService authTokenService = AuthTokenService();
   bool _isLoading = false; // Loading state
 
   Future<UserCredential> signInWithGoogle() async {
@@ -64,8 +67,10 @@ class _LoginScreenState extends State<LoginScreen> {
         // If the API call is successful, navigate to the next screen
         Map<String, dynamic> data = json.decode(response.body);
         print("Auth api:$data");
+        String authToken = data['token'];
+        await authTokenService.setAuthToken(authToken);
 
-        await secureStorage.write(key: "authKey", value: data['token']);
+        // await secureStorage.write(key: "authKey", value: data['token']);
       } else {
         // Handle API errors
         print("Failed to save profile data: ${response.statusCode}");
