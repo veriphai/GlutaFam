@@ -11,6 +11,7 @@ import 'package:eureka_app/services/myAudioHandler.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -40,16 +41,23 @@ void main() async {
   bool firstLaunch = firstLaunchBool ?? true; // Default to true if null
 
   // Initialize notifications
-  final notificationService = NotificationService();
-  await notificationService.initNotifications();
 
-  bool isRealDevice = await checkIfRealDevice();
-  if (isRealDevice) {
-    String? token = await notificationService.getDeviceToken();
-    print("FCM Device Token: $token");
-    await notificationService.subscribeToTopic("all_users");
+  final notificationService = NotificationService();
+  if (!kIsWeb) {
+    await notificationService.initNotifications();
+
+    bool isRealDevice = await checkIfRealDevice();
+    if (isRealDevice) {
+      String? token = await notificationService.getDeviceToken();
+      print("FCM Device Token: $token");
+      await notificationService.subscribeToTopic("all_users");
+    }
   }
   print("First Launch: $firstLaunch");
+  if (!kIsWeb) {
+    initDynamicLinkListener(prefs);
+    await handleInitialDynamicLink(prefs);
+  }
 
   runApp(MyApp(
     firstLaunch: firstLaunch,
@@ -143,4 +151,37 @@ Future<bool> checkIfRealDevice() async {
     return iosDeviceInfo.isPhysicalDevice;
   }
   return true;
+}
+
+void initDynamicLinkListener(SharedPreferences prefs) {
+  // Listen for incoming dynamic links
+  FirebaseDynamicLinks.instance.onLink.listen((PendingDynamicLinkData? data) {
+    final Uri? deepLink = data?.link;
+
+    if (deepLink != null &&
+        deepLink.queryParameters.containsKey('referralCode')) {
+      String referralCode = deepLink.queryParameters['referralCode']!;
+      print('Referral Code: $referralCode');
+      prefs.setString("referralCode", referralCode);
+      // Store referral code or send it to your backend for further processing
+    }
+  }).onError((error) {
+    print('Dynamic Link Error: $error');
+  });
+}
+
+// Retrieve initial link (for when the app is opened via a referral link)
+Future<void> handleInitialDynamicLink(SharedPreferences prefs) async {
+  final PendingDynamicLinkData? initialLink =
+      await FirebaseDynamicLinks.instance.getInitialLink();
+
+  if (initialLink?.link != null) {
+    final Uri deepLink = initialLink!.link;
+    String? referralCode = deepLink.queryParameters['referralCode'];
+    if (referralCode != null) {
+      print('Referral Code from Initial Link: $referralCode');
+      prefs.setString("referralCode", referralCode);
+      // Handle referral code logic
+    }
+  }
 }

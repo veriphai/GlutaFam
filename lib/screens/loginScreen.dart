@@ -187,6 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         User? user = userCredential.user;
 
                         if (user != null) {
+                          print(user);
                           String? displayName = user.displayName;
                           String? email = user.email;
                           String? photoURL = user.photoURL;

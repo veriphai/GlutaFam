@@ -3,7 +3,9 @@ import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/miniPlayer.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/referralScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
+import 'package:eureka_app/utils/generateReferralLink.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -255,6 +257,16 @@ class _ChapterscreenState extends State<Chapterscreen> {
   //     });
   //   }
   // }
+
+  void shareReferralLink(String referralCode) async {
+    referralCode = 'Sahu';
+    String referralLink = await generateReferralLink(referralCode);
+
+    Share.share(
+      'Join me on GlutaClass! Use my referral link: $referralLink',
+      subject: 'Your GlutaClass Referral Link',
+    );
+  }
 
   // Function to open the bottom sheet for class selection
   void _showClassSelectionBottomSheet() {
@@ -977,6 +989,34 @@ class _ChapterscreenState extends State<Chapterscreen> {
                 ),
               ),
               const Icon(Icons.arrow_drop_down, color: Colors.white),
+              SizedBox(
+                width: 10,
+              ),
+              Center(
+                  child: Container(
+                width: 40, // Adjust inner circle size
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color.fromRGBO(255, 217, 0, 1),
+                ),
+                child: Center(
+                  child: IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ReferralScreen(),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.card_giftcard,
+                        color: Colors.black,
+                        // Icon color
+                      )),
+                ),
+              )),
             ],
           ),
         ),

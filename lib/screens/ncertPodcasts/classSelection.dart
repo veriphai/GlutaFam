@@ -1,15 +1,13 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
+import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 
 class ClassSelectionPage extends StatefulWidget {
   @override
@@ -220,20 +218,26 @@ class _ClassSelection extends State<ClassSelectionPage> {
         eventTime: currentTimestamp,
       );
       // Prepare the API URL (replace with your actual backend URL)
-      final url = 'https://glutaclass.com:8080/gluta/fam/profile';
+      const url = 'https://glutaclass.com:8080/gluta/fam/profile';
 
       try {
-        // Make the POST request with the Authorization header
+        Map<String, String> deviceDetails = await getDeviceDetails();
+        String deviceId = deviceDetails['deviceId'] ?? "Unknown";
+        String platform = deviceDetails['platform'] ?? "Unknown";
+        String userIP = await getUserIP();
+
         final response = await http.post(
           Uri.parse(url),
           headers: {
-            "Authorization":
-                "Bearer $authToken", // Pass the token in the header
+            "Authorization": "Bearer $authToken",
             "Content-Type": "application/json"
           },
           body: jsonEncode({
-            "standard":
-                selectedClass, // Include the selected class in the request body
+            "standard": selectedClass,
+            "deviceId": deviceId,
+            "refereeCode": prefs.getString("referralCode"),
+            "devicePlatform": platform,
+            "userIp": userIP
           }),
         );
 

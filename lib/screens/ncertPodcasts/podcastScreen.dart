@@ -2043,6 +2043,64 @@ class _PodcastScreenState extends State<PodcastScreen> {
         )));
   }
 
+  void _showBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading:
+                    Icon(Icons.question_answer_outlined, color: Colors.white),
+                title: Text(
+                  "Go To Book Q&A",
+                  style: GoogleFonts.raleway(color: Colors.white),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _audioPlayer.pause();
+                  setState(() {
+                    isPlaying = false;
+                  });
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EndQuestionScreen(
+                        chapterId: widget.chapterId,
+                        sectionEndQuestions: widget.sectionEndQuestions,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.bookmark_outline,
+                  color: Colors.white,
+                ),
+                title: Text(
+                  "Listen in Higlish",
+                  style: GoogleFonts.raleway(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context); // Close the bottom sheet
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   AppBar appBar() {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -2059,48 +2117,60 @@ class _PodcastScreenState extends State<PodcastScreen> {
         Padding(
             padding:
                 const EdgeInsets.only(right: 16.0), // Add padding to the right
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[850],
-                padding: EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: Icon(
-                Icons.question_answer_outlined,
-                color: Color.fromRGBO(255, 217, 0, 1),
-              ),
-              label: Text(
-                'Go To Book Q&A',
-                style: GoogleFonts.raleway(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              onPressed: () async {
-                await _audioPlayer.pause();
-                setState(() {
-                  isPlaying = false;
-                });
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EndQuestionScreen(
-                      chapterId: widget.chapterId,
-                      sectionEndQuestions: widget.sectionEndQuestions,
-                    ),
+            child: Row(children: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[850],
+                  padding: EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 12,
                   ),
-                );
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: Icon(
+                  Icons.question_answer_outlined,
+                  color: Color.fromRGBO(255, 217, 0, 1),
+                ),
+                label: Text(
+                  'Go To Book Q&A',
+                  style: GoogleFonts.raleway(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                onPressed: () async {
+                  await _audioPlayer.pause();
+                  setState(() {
+                    isPlaying = false;
+                  });
 
-                // Add functionality for the microphone button here
-              },
-            )),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EndQuestionScreen(
+                        chapterId: widget.chapterId,
+                        sectionEndQuestions: widget.sectionEndQuestions,
+                      ),
+                    ),
+                  );
+
+                  // Add functionality for the microphone button here
+                },
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.more_vert,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                onPressed: () {
+                  _showBottomSheet(context);
+                },
+              ),
+            ])),
       ],
     );
   }
