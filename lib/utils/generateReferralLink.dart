@@ -9,10 +9,9 @@ Future<String> generateReferralLink(String referralCode) async {
       minimumVersion: 1,
     ),
     iosParameters: IOSParameters(
-      bundleId: 'com.example.eurekaApp',
-      appStoreId: '6736943726',
-      fallbackUrl: Uri.parse(
-          'https://apps.apple.com/us/app/glutaclass-ai-tutor-for-ncert/id6736943726'),
+        bundleId: 'com.example.eurekaApp', appStoreId: '6736943726'),
+    navigationInfoParameters: NavigationInfoParameters(
+      forcedRedirectEnabled: true, // Force bypassing the app preview page
     ),
     socialMetaTagParameters: SocialMetaTagParameters(
       title: 'Invite Your Friends to GlutaClass',
@@ -22,7 +21,6 @@ Future<String> generateReferralLink(String referralCode) async {
           Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/logo_1.png'),
     ),
   );
-
   // Generate the short dynamic link
   final ShortDynamicLink shortLink =
       await FirebaseDynamicLinks.instance.buildShortLink(parameters);
