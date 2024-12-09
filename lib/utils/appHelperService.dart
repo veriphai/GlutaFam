@@ -1,4 +1,5 @@
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -38,6 +39,12 @@ Future<Map<String, String>> getDeviceDetails() async {
       return {
         'deviceId': iosInfo.identifierForVendor ?? "Unknown Device ID",
         'platform': 'iOS',
+      };
+    } else if (kIsWeb) {
+      // For web
+      return {
+        'deviceId': "Website",
+        'platform': 'web',
       };
     } else {
       return {

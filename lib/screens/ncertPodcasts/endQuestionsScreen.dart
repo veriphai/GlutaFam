@@ -1,4 +1,5 @@
 import 'package:eureka_app/apis/fetchChapterQuestionsApi.dart';
+import 'package:eureka_app/events/bookEndQnaEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/resultsScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
@@ -31,10 +32,12 @@ class EndQuestionScreen extends StatefulWidget {
   final List<dynamic>? sectionEndQuestions;
   final bool isReviewMode;
   final Map<String, QuestionResult>? questionResults;
+  final String sourceScreen;
 
   const EndQuestionScreen(
       {Key? key,
       required this.chapterId,
+      required this.sourceScreen,
       this.sectionEndQuestions,
       this.isReviewMode = false,
       this.questionResults})
@@ -107,6 +110,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
   @override
   void initState() {
     super.initState();
+    logBookEndQnAScreenView(widget.chapterId, widget.sourceScreen);
     questionResults = widget.questionResults ?? {};
     _pageController = PageController();
 
@@ -188,11 +192,33 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     super.dispose();
   }
 
+  String getSubQuestionId(Map<String, dynamic>? chapterQuestions) {
+    // Safely check if subQuestions exist and fetch the sub-question ID
+    if (chapterQuestions == null) {
+      return "";
+    }
+    if (chapterQuestions['questions'][currentQuestionIndex]
+            .containsKey('subQuestions') &&
+        chapterQuestions['questions'][currentQuestionIndex]['subQuestions'] !=
+            null &&
+        chapterQuestions['questions'][currentQuestionIndex]['subQuestions']
+            .isNotEmpty) {
+      return chapterQuestions['questions'][currentQuestionIndex]['subQuestions']
+              [currentSubQuestionIndex]['id'] ??
+          "";
+    }
+    return ""; // Return an empty string if subQuestions don't exist or are invalid
+  }
+
   Future<void> _toggleRecording() async {
     if (_isLoading) {
       return;
     }
     if (_isRecording) {
+      logAnswerQuestionMicrophoneClose(
+          widget.chapterId,
+          chapterQuestions!['questions'][currentQuestionIndex]['id'],
+          getSubQuestionId(chapterQuestions));
       await _audioRecorder!.stopRecorder();
       setState(() {
         _isRecording = false;
@@ -206,9 +232,12 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
         print('Audio path is null or empty');
       }
     } else {
+      logAnswerQuestionMicrophoneOn(
+          widget.chapterId,
+          chapterQuestions!['questions'][currentQuestionIndex]['id'],
+          getSubQuestionId(chapterQuestions));
       final tempDir = await getTemporaryDirectory();
       _audioPath = '${tempDir.path}/audio_record.wav';
-
       await _audioRecorder!.startRecorder(
         toFile: _audioPath,
         codec: Codec.pcm16WAV,
@@ -308,6 +337,12 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
 
       await _audioPlayer!.openPlayer();
       await _audioPlayer!.startPlayer(fromURI: audioFile.path);
+
+      logAnswerQuestionFeedbackPlayed(
+          widget.chapterId,
+          chapterQuestions!['questions'][currentQuestionIndex]['id'],
+          getSubQuestionId(chapterQuestions),
+          "attempt");
     } catch (e) {
       print('Error playing base64 audio: $e');
     }
@@ -361,6 +396,13 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     if (!isFront) {
       await _controller.reverse();
     }
+
+    logMovedToNextQuestion(
+        widget.chapterId,
+        chapterQuestions!['questions'][currentQuestionIndex]['id'],
+        getSubQuestionId(chapterQuestions),
+        widget.isReviewMode ? "review" : "attempt");
+
     setState(() {
       _showFeedback = false;
       _chooseNewGradient();
@@ -437,6 +479,12 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     if (!isFront) {
       await _controller.reverse();
     }
+
+    logMovedToPreviousQuestion(
+        widget.chapterId,
+        chapterQuestions!['questions'][currentQuestionIndex]['id'],
+        getSubQuestionId(chapterQuestions),
+        widget.isReviewMode ? "review" : "attempt");
 
     setState(() {
       _showFeedback = false; // Reset feedback state for the previous question
@@ -535,8 +583,20 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
 
       setState(() {
         if (_controller.isCompleted) {
+          logCardFlip(
+              widget.chapterId,
+              chapterQuestions!['questions'][currentQuestionIndex]['id'],
+              getSubQuestionId(chapterQuestions),
+              "feedback",
+              widget.isReviewMode ? "review" : "attempt");
           _controller.reverse();
         } else {
+          logCardFlip(
+              widget.chapterId,
+              chapterQuestions!['questions'][currentQuestionIndex]['id'],
+              getSubQuestionId(chapterQuestions),
+              "question",
+              widget.isReviewMode ? "review" : "attempt");
           _controller.forward();
         }
       });
@@ -547,7 +607,23 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     String mainQuestionText = "";
     String subQuestionText = "";
     Map<String, dynamic>? currentSubQuestion;
-
+    if (chapterQuestions == null) {
+      return SizedBox(
+        width: 50, // Set the desired width
+        height: 50, // Set the desired height
+        child: Center(
+          child: Transform.scale(
+            scale: 1, // Adjust this scale to make it bigger or smaller
+            child: CircularProgressIndicator(
+              color: Color.fromRGBO(
+                  255, 217, 0, 1), // Adjust the color to your preference
+              strokeWidth:
+                  4.0, // Adjust the thickness of the progress indicator
+            ),
+          ),
+        ),
+      );
+    }
     if (chapterQuestions != null && chapterQuestions!['questions'] != null) {
       final questions = chapterQuestions!['questions'];
       if (questions.isNotEmpty && currentQuestionIndex < questions.length) {
@@ -723,6 +799,11 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
 
   Widget _buildQuestionCard(String mainQuestionText, String subQuestionText,
       double width, double height, Map<String, dynamic>? subQuestion) {
+    logQuestionViewScreen(
+        widget.chapterId,
+        chapterQuestions!['questions'][currentQuestionIndex]['id'],
+        subQuestion != null ? subQuestion['id'] : "",
+        widget.isReviewMode ? "review" : "attempt");
     return Container(
       width: width, // Use the full width available
       height: height, // Use the full height available
@@ -919,6 +1000,16 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
                   audioFeedbackPath = result.audioFeedbackPath ?? '';
                 });
                 _flipCardForReview();
+                logAnswerQuestionFeedbackPlayed(
+                    widget.chapterId,
+                    chapterQuestions!['questions'][currentQuestionIndex]['id'],
+                    getSubQuestionId(chapterQuestions),
+                    "review");
+                logReplayFeedbackButton(
+                    widget.chapterId,
+                    chapterQuestions!['questions'][currentQuestionIndex]['id'],
+                    getSubQuestionId(chapterQuestions),
+                    "review");
                 await _audioPlayer!.openPlayer();
                 await _audioPlayer!
                     .startPlayer(fromURI: result.audioFeedbackPath);
@@ -1039,6 +1130,18 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
               ElevatedButton(
                 onPressed: () async {
                   if (audioFeedbackPath.isNotEmpty) {
+                    logAnswerQuestionFeedbackPlayed(
+                        widget.chapterId,
+                        chapterQuestions!['questions'][currentQuestionIndex]
+                            ['id'],
+                        getSubQuestionId(chapterQuestions),
+                        "attempt");
+                    logReplayFeedbackButton(
+                        widget.chapterId,
+                        chapterQuestions!['questions'][currentQuestionIndex]
+                            ['id'],
+                        getSubQuestionId(chapterQuestions),
+                        "review");
                     await _audioPlayer!.openPlayer();
                     await _audioPlayer!.startPlayer(fromURI: audioFeedbackPath);
                   }

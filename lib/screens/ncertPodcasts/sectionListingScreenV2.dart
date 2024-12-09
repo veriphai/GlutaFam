@@ -380,8 +380,10 @@ class _SectionscreenState extends State<Sectionscreen>
                                               MaterialPageRoute(
                                                 builder: (context) =>
                                                     EndQuestionScreen(
-                                                        chapterId:
-                                                            widget.chapterId),
+                                                  chapterId: widget.chapterId,
+                                                  sourceScreen:
+                                                      "SectionListingScreenDeprecated",
+                                                ),
                                               ),
                                             );
 

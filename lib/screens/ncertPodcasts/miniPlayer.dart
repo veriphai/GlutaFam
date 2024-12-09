@@ -1,10 +1,16 @@
 // import 'package:audioplayers/audioplayers.dart';
+import 'dart:math';
+
+import 'package:eureka_app/apis/submitFeedbackApi.dart';
+import 'package:eureka_app/events/miniPlayerEvents.dart';
+import 'package:eureka_app/screens/ncertPodcasts/earlyExitFeedbackModal.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MiniPlayer extends StatefulWidget {
   @override
@@ -14,6 +20,15 @@ class MiniPlayer extends StatefulWidget {
 class _MiniPlayerState extends State<MiniPlayer> {
   Duration currentPosition = Duration.zero;
   Duration totalDuration = Duration.zero;
+  int earlyExitModalLastDisplayTime = 0;
+
+  void getTimeForLastAppearanceEarlyExitModal() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      earlyExitModalLastDisplayTime =
+          prefs.getInt('earlyExitModalShownTime') ?? 0;
+    });
+  }
 
   @override
   void initState() {
@@ -51,8 +66,23 @@ class _MiniPlayerState extends State<MiniPlayer> {
     audioProvider.isPlaying = audioProvider.audioPlayer?.playing ?? false;
   }
 
+  bool earlyExitModalToShow() {
+    final audioProvider = Provider.of<AudioProvider>(context, listen: false);
+    int currentEpochTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    int randomNumber = Random().nextInt(10) + 1;
+    bool shouldShowModal = randomNumber % 3 == 0 &&
+        audioProvider.subSectionNumber < 2 &&
+        currentEpochTime - earlyExitModalLastDisplayTime > 300;
+    return shouldShowModal;
+  }
+
   void playPauseAudio() async {
     final audioProvider = Provider.of<AudioProvider>(context, listen: false);
+
+    if (earlyExitModalToShow() && audioProvider.audioPlayer!.playing) {
+      _showEarlyExitModal(() {});
+    }
     await audioProvider.playPauseAudio();
   }
 
@@ -61,14 +91,44 @@ class _MiniPlayerState extends State<MiniPlayer> {
     return "${endDuration.inMinutes} mins ${(endDuration.inSeconds % 60).toString()} seconds";
   }
 
+  void _showEarlyExitModal(VoidCallback onClose) {
+    final audioProvider = Provider.of<AudioProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return EarlyExitFeedbackModal(onSubmit: (selectedOptions) {
+          // Handle feedback submission here
+          print("User feedback: $selectedOptions");
+          submitFeedback(
+            chapterId: audioProvider.chapterId,
+            sectionId: audioProvider.sectionId,
+            feedbackOptions: selectedOptions.toList(),
+            type: 'earlyExit',
+          );
+          Navigator.of(context).pop(); // Close the modal
+          onClose(); // Close the MiniPlayer after feedback
+        }, onclose: () {
+          Navigator.of(context).pop();
+          onClose();
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final audioProvider = Provider.of<AudioProvider>(context);
-
+    getTimeForLastAppearanceEarlyExitModal();
     return Visibility(
       visible: audioProvider.showMiniPlayer,
       child: GestureDetector(
         onTap: () {
+          logMiniPlayerClick(
+              audioProvider.sectionId,
+              audioProvider.audioPlayer!.playing,
+              audioProvider.audioPlayer!.position.inSeconds);
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -82,6 +142,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   chapterNo: audioProvider.chapterNo,
                   cerData: audioProvider.cerData,
                   chapterId: audioProvider.chapterId,
+                  sectionId: audioProvider.sectionId,
                   sectionNumber: audioProvider.sectionNumber,
                   audioPlayer: audioProvider.audioPlayer!,
                   totalDurationFromMiniplayer: totalDuration,
@@ -164,9 +225,17 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     size: 16,
                   ),
                   onPressed: () {
-                    // Hide the MiniPlayer
-                    audioProvider.stopAudio();
-                    audioProvider.showMiniPlayer = false;
+                    if (earlyExitModalToShow()) {
+                      _showEarlyExitModal(() {
+                        // Close the MiniPlayer after submitting feedback
+                        audioProvider.stopAudio();
+                        audioProvider.showMiniPlayer = false;
+                      });
+                    } else {
+                      // Close the MiniPlayer directly
+                      audioProvider.stopAudio();
+                      audioProvider.showMiniPlayer = false;
+                    }
                   },
                 ),
               ),

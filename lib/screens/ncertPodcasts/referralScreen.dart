@@ -1,4 +1,5 @@
 import 'package:eureka_app/apis/getProfile.dart';
+import 'package:eureka_app/events/referralScreenEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/giftScreen.dart';
 import 'package:eureka_app/utils/generateReferralLink.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
   void initState() {
     super.initState();
     _fetchUserProfileAndReferralCode();
+    logReferralScreenView(joinedReferrals);
   }
 
   Future<void> _fetchUserProfileAndReferralCode() async {
@@ -48,6 +50,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
         'Join me on GlutaClass! Use my referral link: $referralLink',
         subject: 'Your GlutaClass Referral Link',
       );
+      logInviteButtonClick(joinedReferrals);
     } else {
       print("Referral code is not available.");
     }
@@ -152,13 +155,15 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
             ElevatedButton(
               onPressed: () {
+                logRedeemGiftButtonClick(
+                    joinedReferrals, redeemedGiftId != '' ? true : false);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
                         // GiftScreen(joinedReferrals: joinedReferrals),
                         GiftScreen(
-                      joinedReferrals: 10,
+                      joinedReferrals: joinedReferrals,
                       redeemedGiftId: redeemedGiftId,
                     ),
                   ),

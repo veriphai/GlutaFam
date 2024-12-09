@@ -1,10 +1,13 @@
+import 'package:eureka_app/events/audioPlayerScreenEvents.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class BestPracticesModal extends StatefulWidget {
   final VoidCallback onDismiss;
+  final String topicId;
 
-  const BestPracticesModal({Key? key, required this.onDismiss})
+  const BestPracticesModal(
+      {Key? key, required this.onDismiss, required this.topicId})
       : super(key: key);
 
   @override
@@ -20,6 +23,7 @@ class _BestPracticesModalState extends State<BestPracticesModal>
   @override
   void initState() {
     super.initState();
+    logBestPracticesModalView(widget.topicId);
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 400),
@@ -113,7 +117,10 @@ class _BestPracticesModalState extends State<BestPracticesModal>
                                 color: Colors.white,
                                 size: 20,
                               ),
-                              onPressed: widget.onDismiss,
+                              onPressed: () {
+                                logBestPracticesClosed(widget.topicId);
+                                widget.onDismiss();
+                              },
                               tooltip:
                                   "Close", // Optional tooltip for accessibility
                             ),
@@ -164,7 +171,11 @@ class _BestPracticesModalState extends State<BestPracticesModal>
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed: widget.onDismiss,
+                        onPressed: () {
+                          logBestPracticesStartLessonClick(widget.topicId);
+
+                          widget.onDismiss();
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                           shape: RoundedRectangleBorder(

@@ -1,3 +1,4 @@
+import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/screens/communityScreen.dart';
 import 'package:eureka_app/screens/landingScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
@@ -9,6 +10,8 @@ import 'package:eureka_app/screens/signupScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/myAudioHandler.dart';
 import 'package:eureka_app/services/notificationService.dart';
+import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:eureka_app/utils/lifecycle_event_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
@@ -54,6 +57,11 @@ void main() async {
     }
   }
   print("First Launch: $firstLaunch");
+  Map<String, String> deviceDetails = await getDeviceDetails();
+  String deviceId = deviceDetails['deviceId'] ?? "Unknown";
+  String platform = deviceDetails['platform'] ?? "Unknown";
+  String userIP = await getUserIP();
+  logAppLaunchEvent(deviceId, platform, userIP, firstLaunch);
   if (!kIsWeb) {
     initDynamicLinkListener(prefs);
     await handleInitialDynamicLink(prefs);
@@ -88,8 +96,11 @@ class MyApp extends StatelessWidget {
       ],
       child: Builder(
         builder: (context) {
+          WidgetsBinding.instance.addObserver(LifecycleEventHandler(
+              context: context, firstLaunch: firstLaunch));
+
           return MaterialApp(
-            title: 'GlutaClass',
+            title: 'GlutaClass: AI Tutor for NCERT',
             theme: ThemeData(
               useMaterial3: true,
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),

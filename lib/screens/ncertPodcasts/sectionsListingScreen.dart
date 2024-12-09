@@ -1,4 +1,6 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
+import 'package:eureka_app/events/genericEvents.dart';
+import 'package:eureka_app/events/sectionListingEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
@@ -206,13 +208,7 @@ class _SectionscreenState extends State<Sectionscreen>
   void initState() {
     super.initState();
     _setupTabController();
-    logPageOpenEvent(
-      screenName: screenName,
-      eventDetails: {
-        "description": "User opened the section listing page",
-        "chapterId": widget.chapterId
-      },
-    );
+    logSectionListingScreenView(widget.chapterId);
     // fetchInterestLedDetails();
 
     fetchChapterDetails().then((_) => fetchSimulations());
@@ -337,22 +333,6 @@ class _SectionscreenState extends State<Sectionscreen>
                                                   fontSize: 14,
                                                 ),
                                               ),
-                                              // const SizedBox(height: 8),
-                                              // ElevatedButton(
-                                              //   onPressed: () {
-                                              //     // Handle follow or action
-                                              //   },
-                                              //   style: ElevatedButton.styleFrom(
-                                              //     backgroundColor: Colors.green,
-                                              //     shape: RoundedRectangleBorder(
-                                              //       borderRadius: BorderRadius.circular(20),
-                                              //     ),
-                                              //   ),
-                                              //   child: const Text(
-                                              //     'Follow',
-                                              //     style: GoogleFonts.raleway(color: Colors.white),
-                                              //   ),
-                                              // ),
                                             ],
                                           ),
                                         ),
@@ -364,33 +344,27 @@ class _SectionscreenState extends State<Sectionscreen>
                                           MainAxisAlignment.start,
                                       children: [
                                         IconButton(
-                                          icon: Icon(
-                                            isBookmarked
-                                                ? Icons.bookmark
-                                                : Icons
-                                                    .bookmark_border, // Toggle between filled and outline
-                                            color: Colors.grey,
-                                          ),
-                                          onPressed:
-                                              toggleBookmark, // Call bookmark toggle function
-                                        ),
-                                        // IconButton(
-                                        //   icon: const Icon(
-                                        //     Icons.download_rounded,
-                                        //     color: Colors.grey,
-                                        //   ),
-                                        //   onPressed: () {
-                                        //     // Handle download action
-                                        //   },
-                                        // ),
+                                            icon: Icon(
+                                              isBookmarked
+                                                  ? Icons.bookmark
+                                                  : Icons.bookmark_border,
+                                              color: Colors.grey,
+                                            ),
+                                            onPressed: () {
+                                              logChapterBookmark(
+                                                  widget.chapterId);
+                                              toggleBookmark();
+                                            }),
                                         IconButton(
-                                          icon: const Icon(
-                                            Icons.share_outlined,
-                                            color: Colors.grey,
-                                          ),
-                                          onPressed:
-                                              shareChapter, // Call share function
-                                        ),
+                                            icon: const Icon(
+                                              Icons.share_outlined,
+                                              color: Colors.grey,
+                                            ),
+                                            onPressed: () {
+                                              logChapterShareClick(
+                                                  widget.chapterId);
+                                              shareChapter();
+                                            }),
                                         // SizedBox(
                                         //   width: 20,
                                         // ),
@@ -424,13 +398,18 @@ class _SectionscreenState extends State<Sectionscreen>
                                                 ),
                                               ),
                                               onPressed: () async {
+                                                logGoToBookQnAClick(
+                                                    widget.chapterId);
                                                 Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
                                                     builder: (context) =>
                                                         EndQuestionScreen(
-                                                            chapterId: widget
-                                                                .chapterId),
+                                                      chapterId:
+                                                          widget.chapterId,
+                                                      sourceScreen:
+                                                          "SectionListingScreen",
+                                                    ),
                                                   ),
                                                 );
 
@@ -501,6 +480,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                           // Wrap the whole card in GestureDetector
                                           onTap: () {
                                             // Navigate to PodcastScreen on card tap
+                                            logTopicClick(widget.chapterId,
+                                                sections[index]['id']);
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
@@ -535,9 +516,17 @@ class _SectionscreenState extends State<Sectionscreen>
                                                         sections[index]['sectionEndQuestions'] ?? []),
                                               ),
                                             ).then((result) {
-                                              context
-                                                  .read<AudioProvider>()
+                                              final audioProvider =
+                                                  context.read<AudioProvider>();
+                                              audioProvider
                                                   .setShowMiniPlayer(true);
+                                              logBackButtonClick(
+                                                  audioProvider.sectionId,
+                                                  audioProvider
+                                                      .audioPlayer!.playing,
+                                                  audioProvider.audioPlayer!
+                                                      .position.inSeconds,
+                                                  "AudioPlayerScreen");
                                             });
                                           },
                                           child: Column(
@@ -666,8 +655,13 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                     Colors.grey,
                                                               ),
                                                               onPressed: () {
+                                                                logTopicBookmarked(
+                                                                    widget
+                                                                        .chapterId,
+                                                                    sections[
+                                                                            index]
+                                                                        ['id']);
                                                                 setState(() {
-                                                                  // Toggle the bookmark state.
                                                                   if (bookmarkedSections
                                                                       .contains(
                                                                           section)) {
@@ -682,15 +676,6 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                 });
                                                               },
                                                             ),
-                                                            // IconButton(
-                                                            //   icon: const Icon(
-                                                            //     Icons.download_rounded,
-                                                            //     color: Colors.grey,
-                                                            //   ),
-                                                            //   onPressed: () {
-                                                            //     // Handle download action
-                                                            //   },
-                                                            // ),
                                                             IconButton(
                                                               icon: const Icon(
                                                                 Icons
@@ -699,8 +684,14 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                     Colors.grey,
                                                               ),
                                                               onPressed: () {
+                                                                logTopicShared(
+                                                                    widget
+                                                                        .chapterId,
+                                                                    sections[
+                                                                            index]
+                                                                        ['id']);
+
                                                                 shareChapter();
-                                                                // Handle share action
                                                               },
                                                             ),
                                                             const Spacer(),
@@ -724,10 +715,10 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                       horizontal:
                                                                           16,
                                                                       vertical:
-                                                                          8), // Reduced padding
-                                                                  minimumSize: Size(
-                                                                      20,
-                                                                      20), // Minimum size for a smaller button
+                                                                          8),
+                                                                  minimumSize:
+                                                                      Size(20,
+                                                                          20),
                                                                   shape:
                                                                       RoundedRectangleBorder(
                                                                     borderRadius:
@@ -778,6 +769,13 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                 size: 40,
                                                               ),
                                                               onPressed: () {
+                                                                logTopicClick(
+                                                                    widget
+                                                                        .chapterId,
+                                                                    sections[
+                                                                            index]
+                                                                        ['id']);
+
                                                                 Navigator.push(
                                                                   context,
                                                                   MaterialPageRoute(
@@ -871,9 +869,10 @@ class _SectionscreenState extends State<Sectionscreen>
                                             simulationList[index]['id'];
 
                                         return GestureDetector(
-                                            // Wrap the whole card in GestureDetector
                                             onTap: () {
-                                              // Navigate to PodcastScreen on card tap
+                                              logSimulationPlayed(
+                                                  widget.chapterId,
+                                                  simulationList[index]['id']);
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
@@ -975,20 +974,6 @@ class _SectionscreenState extends State<Sectionscreen>
                                                           ),
                                                         ),
                                                         SizedBox(height: 10),
-                                                        // Padding(
-                                                        //   padding: const EdgeInsets.symmetric(
-                                                        //     horizontal: 8.0,
-                                                        //   ),
-                                                        //   child: Text(
-                                                        //     "20 mins",
-                                                        //     style: const GoogleFonts.raleway(
-                                                        //       fontSize: 14,
-                                                        //       color: Colors.grey,
-                                                        //     ),
-                                                        //     maxLines: 2,
-                                                        //     overflow: TextOverflow.ellipsis,
-                                                        //   ),
-                                                        // ),
                                                         Padding(
                                                           padding:
                                                               const EdgeInsets
@@ -1013,6 +998,13 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                       .grey,
                                                                 ),
                                                                 onPressed: () {
+                                                                  logSimulationBookmarked(
+                                                                      widget
+                                                                          .chapterId,
+                                                                      simulationList[
+                                                                              index]
+                                                                          [
+                                                                          'id']);
                                                                   setState(() {
                                                                     // Toggle the bookmark state.
                                                                     if (bookmarkedSimulations
@@ -1029,15 +1021,6 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                   });
                                                                 },
                                                               ),
-                                                              // IconButton(
-                                                              //   icon: const Icon(
-                                                              //     Icons.download_rounded,
-                                                              //     color: Colors.grey,
-                                                              //   ),
-                                                              //   onPressed: () {
-                                                              //     // Handle download action
-                                                              //   },
-                                                              // ),
                                                               IconButton(
                                                                 icon:
                                                                     const Icon(
@@ -1047,6 +1030,13 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                       .grey,
                                                                 ),
                                                                 onPressed: () {
+                                                                  logSimulationShared(
+                                                                      widget
+                                                                          .chapterId,
+                                                                      simulationList[
+                                                                              index]
+                                                                          [
+                                                                          'id']);
                                                                   shareSimulation(
                                                                       simulationId);
                                                                 },
@@ -1066,6 +1056,13 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                   size: 40,
                                                                 ),
                                                                 onPressed: () {
+                                                                  logSimulationPlayed(
+                                                                      widget
+                                                                          .chapterId,
+                                                                      simulationList[
+                                                                              index]
+                                                                          [
+                                                                          'id']);
                                                                   Navigator
                                                                       .push(
                                                                     context,

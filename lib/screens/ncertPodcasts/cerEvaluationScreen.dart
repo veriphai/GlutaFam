@@ -413,11 +413,9 @@ class _CEREvaluationScreenState extends State<CEREvaluationScreen> {
     };
 
     await logEvent(
-      eventType: "buttonClick",
-      screenName: screenName,
-      eventDetails: eventDetails,
-      eventTime: currentTimestamp,
-    );
+        eventType: "buttonClick",
+        screenName: screenName,
+        eventDetails: eventDetails);
   }
 
   void evaluateCER() {

@@ -1,4 +1,5 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
+import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
@@ -36,10 +37,7 @@ class _ClassSelection extends State<ClassSelectionPage> {
   void initState() {
     super.initState();
     // Log the event when this page is opened using the generic function
-    logPageOpenEvent(
-      screenName: "ClassSelectionPage",
-      eventDetails: {"description": "User opened the class selection page"},
-    );
+    logClassSelectionScreenView();
   }
 
   @override
@@ -208,15 +206,6 @@ class _ClassSelection extends State<ClassSelectionPage> {
 
     // Check if authToken and selectedClass are valid
     if (authToken != null && selectedClass != null) {
-      int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      Map<String, dynamic> eventDetails = {"selectedClass": selectedClass};
-
-      await logEvent(
-        eventType: "buttonClick",
-        screenName: "ClassSelectionPage",
-        eventDetails: eventDetails,
-        eventTime: currentTimestamp,
-      );
       // Prepare the API URL (replace with your actual backend URL)
       const url = 'https://glutaclass.com:8080/gluta/fam/profile';
 
@@ -225,6 +214,10 @@ class _ClassSelection extends State<ClassSelectionPage> {
         String deviceId = deviceDetails['deviceId'] ?? "Unknown";
         String platform = deviceDetails['platform'] ?? "Unknown";
         String userIP = await getUserIP();
+        String refereeCode = prefs.getString("referralCode") ?? '';
+
+        logClassSelecletedOnOnboarding(
+            deviceId, platform, selectedClass, refereeCode);
 
         final response = await http.post(
           Uri.parse(url),
@@ -235,7 +228,7 @@ class _ClassSelection extends State<ClassSelectionPage> {
           body: jsonEncode({
             "standard": selectedClass,
             "deviceId": deviceId,
-            "refereeCode": prefs.getString("referralCode"),
+            "refereeCode": refereeCode,
             "devicePlatform": platform,
             "userIp": userIP
           }),

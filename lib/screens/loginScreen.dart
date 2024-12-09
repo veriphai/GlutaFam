@@ -1,5 +1,7 @@
+import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
 import 'package:eureka_app/screens/signupscreen.dart'; // Import the signup screen
+import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +22,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthTokenService authTokenService = AuthTokenService();
   bool _isLoading = false; // Loading state
 
+  @override
+  void initState() {
+    super.initState();
+    logLoginScreenOpen();
+  }
+
+  void logLoginScreenOpen() async {
+    Map<String, String> deviceDetails = await getDeviceDetails();
+    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
+    String platform = deviceDetails['platform'] ?? "Unknown";
+    String userIP = await getUserIP();
+
+    logLoginScreenView(deviceId, platform, userIP);
+  }
+
   Future<UserCredential> signInWithGoogle() async {
+    Map<String, String> deviceDetails = await getDeviceDetails();
+    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
+    String platform = deviceDetails['platform'] ?? "Unknown";
+    String userIP = await getUserIP();
+    logGoogleAuthButtonClick(deviceId, platform, userIP);
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
     if (googleUser == null) {
@@ -136,7 +158,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   if (!kIsWeb)
                     OutlinedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        Map<String, String> deviceDetails =
+                            await getDeviceDetails();
+                        String deviceId =
+                            deviceDetails['deviceId'] ?? "Unknown";
+                        String platform =
+                            deviceDetails['platform'] ?? "Unknown";
+                        String userIP = await getUserIP();
+                        logPhoneAuthButtonClick(deviceId, platform, userIP);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -192,8 +222,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           String? email = user.email;
                           String? photoURL = user.photoURL;
                           String? uid = user.uid;
-                          print(user);
-                          print(uid);
+                          Map<String, String> deviceDetails =
+                              await getDeviceDetails();
+                          String deviceId =
+                              deviceDetails['deviceId'] ?? "Unknown";
+                          String platform =
+                              deviceDetails['platform'] ?? "Unknown";
+                          String userIP = await getUserIP();
+                          logGoogleAuthSuccess(uid, deviceId, platform, userIP);
                           saveProfile(displayName, email, uid, photoURL);
                         }
 

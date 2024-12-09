@@ -1,3 +1,4 @@
+import 'package:eureka_app/events/bookEndQnaEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,9 @@ class ResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final percentage =
         totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+
+    logResultScreenView(
+        chapterId, correctAnswers, partiallyCorrect, totalQuestions);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -106,15 +110,17 @@ class ResultScreen extends StatelessWidget {
                       icon: Icons.replay,
                       color: Color.fromRGBO(255, 217, 0, 1),
                       onPressed: () {
+                        logReviewQuestionsClickedOnResult(chapterId);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => EndQuestionScreen(
-                                chapterId: chapterId, // Pass chapter ID
-                                sectionEndQuestions:
-                                    null, // Pass questions here
-                                isReviewMode: true, // Enable review mode
-                                questionResults: questionResults),
+                              chapterId: chapterId, // Pass chapter ID
+                              sectionEndQuestions: null, // Pass questions here
+                              isReviewMode: true, // Enable review mode
+                              questionResults: questionResults,
+                              sourceScreen: "BookEndQuestionResultScreen",
+                            ),
                           ),
                         );
                       },
@@ -126,6 +132,8 @@ class ResultScreen extends StatelessWidget {
                       color: Colors.grey[850]!,
                       borderColor: Color.fromRGBO(255, 217, 0, 1),
                       onPressed: () {
+                        logReattemptQuestions(chapterId);
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -133,6 +141,7 @@ class ResultScreen extends StatelessWidget {
                               chapterId: chapterId,
                               sectionEndQuestions: null,
                               isReviewMode: false,
+                              sourceScreen: "BookEndQuestionResultScreen",
                             ),
                           ),
                         );
@@ -145,6 +154,7 @@ class ResultScreen extends StatelessWidget {
                       color: Color.fromRGBO(255, 217, 0, 1),
                       // borderColor: Color.fromRGBO(255, 217, 0, 1),
                       onPressed: () {
+                        logGoBackToChapter(chapterId);
                         Navigator.push(
                           context,
                           MaterialPageRoute(

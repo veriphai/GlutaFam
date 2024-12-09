@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,7 +14,7 @@ class AuthTokenService {
       // use flutter secure storage for mobile
       await secureStorage.write(key: "authKey", value: token);
     }
-  } 
+  }
 
   Future<String?> getAuthToken() async {
     try {

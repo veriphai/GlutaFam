@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/submitFeedbackApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:flutter/material.dart';
@@ -63,40 +64,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         selectedFeedbackOptions.add(option);
       }
     });
-  }
-
-  // Function to send feedback data to the backend
-  Future<void> submitFeedback() async {
-    const String feedbackApiUrl =
-        'https://glutaclass.com:8080/gluta/fam/submit-feedback';
-
-    final feedbackData = {
-      "chapterId": widget.chapterId,
-      "sectionId": widget.sectionId ?? "", // Optional section ID if provided
-      "rating": selectedRating,
-      "feedbackOptions": selectedFeedbackOptions.toList(),
-    };
-    // Retrieve the auth token from secure storage
-    final authToken = await secureStorage.read(key: 'authKey');
-
-    try {
-      final response = await http.post(
-        Uri.parse(feedbackApiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-        body: json.encode(feedbackData),
-      );
-
-      if (response.statusCode == 200) {
-        print("Feedback submitted successfully.");
-      } else {
-        print("Failed to submit feedback. Status code: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Error submitting feedback: $e");
-    }
   }
 
   @override
@@ -195,13 +162,19 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       ),
                     ),
                     onPressed: () async {
-                      submitFeedback();
+                      submitFeedback(
+                          chapterId: widget.chapterId,
+                          sectionId: widget.sectionId ?? '',
+                          feedbackOptions: selectedFeedbackOptions.toList(),
+                          type: 'endLesson',
+                          rating: selectedRating);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => EndQuestionScreen(
                             chapterId: widget.chapterId,
                             sectionEndQuestions: widget.sectionEndQuestions,
+                            sourceScreen: "FeedbackScreen",
                           ),
                         ),
                       );
@@ -224,7 +197,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       ),
                     ),
                     onPressed: () async {
-                      submitFeedback();
+                      submitFeedback(
+                          chapterId: widget.chapterId,
+                          sectionId: widget.sectionId ?? '',
+                          feedbackOptions: selectedFeedbackOptions.toList(),
+                          type: 'endLesson',
+                          rating: selectedRating);
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(

@@ -1,5 +1,7 @@
+import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/signupScreen.dart';
+import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -42,6 +44,24 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
   //     "bottomBoldText": "CER framework"
   //   }
   // ];
+
+  @override
+  void initState() {
+    super.initState();
+    logOnboardingEvents(false);
+  }
+
+  void logOnboardingEvents(bool buttonClick) async {
+    Map<String, String> deviceDetails = await getDeviceDetails();
+    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
+    String platform = deviceDetails['platform'] ?? "Unknown";
+    String userIP = await getUserIP();
+    if (buttonClick) {
+      logNextButtonClick(deviceId, platform, userIP, currentPageIndex);
+    } else {
+      logOnboardingScreenView(deviceId, platform, userIP, currentPageIndex);
+    }
+  }
 
   final List<Map<String, String>> onboardingData = [
     {
@@ -98,6 +118,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
                       setState(() {
                         currentPageIndex = index;
                       });
+                      logOnboardingEvents(false);
                     },
                     itemCount: onboardingData.length,
                     itemBuilder: (context, index) {
@@ -235,6 +256,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 );
+                logOnboardingEvents(true);
               }
             },
             style: ElevatedButton.styleFrom(

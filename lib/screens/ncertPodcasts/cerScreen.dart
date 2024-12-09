@@ -458,7 +458,6 @@ class _CERPageState extends State<CERPage> with SingleTickerProviderStateMixin {
       eventType: "buttonClick",
       screenName: screenName,
       eventDetails: eventDetails,
-      eventTime: currentTimestamp,
     );
   }
 

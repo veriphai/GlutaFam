@@ -1,4 +1,6 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
+import 'package:eureka_app/events/chapterListingEvents.dart';
+import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/miniPlayer.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastListingScreen.dart';
@@ -40,6 +42,14 @@ class _ChapterscreenState extends State<Chapterscreen> {
   String getCacheTimestampKey() =>
       'cached_chapters_timestamp_standard_$standard';
 
+  String getCarouselCacheKey() => 'cached_carousel_standard_$standard';
+  String getCarouselTimestampKey() =>
+      'cached_carousel_timestamp_standard_$standard';
+
+  String getPodcastsCacheKey() => 'cached_podcasts_standard_$standard';
+  String getPodcastsTimestampKey() =>
+      'cached_podcasts_timestamp_standard_$standard';
+
   Map<String, List<Map<String, dynamic>>> subjectChapters = {
     'Science': [],
     'English-2': [],
@@ -68,11 +78,6 @@ class _ChapterscreenState extends State<Chapterscreen> {
         'firebase_screen_class': "Chapterscreen",
       });
     }
-
-    logPageOpenEvent(
-      screenName: "HomePage-ChapterListingScreen",
-      eventDetails: {"description": "User opened the chapter listing page"},
-    );
   }
 
   // Fetch the selected class from SharedPreferences
@@ -84,7 +89,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
           8; // Default to class 8 if not found
       print(standard);
     });
-    // Now that the standard is loaded, fetch the chapters
+    logChapterListingScreenView(standard);
     fetchAllChapters();
     fetchCarouselData();
     fetchRecommendedPodcasts();
@@ -180,83 +185,50 @@ class _ChapterscreenState extends State<Chapterscreen> {
   }
 
   Future<void> fetchRecommendedPodcasts() async {
-    print("***********************************************");
-    print(standard);
+    String? cachedPodcasts = prefs.getString(getPodcastsCacheKey());
+    int? cachedTimestamp = prefs.getInt(getPodcastsTimestampKey());
+    int currentTime = DateTime.now().millisecondsSinceEpoch;
+
+    if (cachedPodcasts != null &&
+        cachedTimestamp != null &&
+        currentTime - cachedTimestamp < cacheExpiryDurationInHours * 3600000) {
+      // Use cached podcast data if within expiry
+      setState(() {
+        podcasts = json.decode(cachedPodcasts);
+        isLoading = false;
+      });
+    } else {
+      // Fetch and cache new podcast data if no valid cache is found
+      await _fetchAndCachePodcasts();
+    }
+  }
+
+  Future<void> _fetchAndCachePodcasts() async {
     final String url =
         'https://glutaclass.com:8080/gluta/fam/recommended-podcasts?standard=$standard';
 
     try {
-      print("Fetching recommended-podcasts details from API: $url");
-
       final response = await client.get(
         Uri.parse(url),
         headers: {
-          'Accept-Encoding': 'gzip', // Enable gzip compression
+          'Accept-Encoding': 'gzip',
         },
       );
-      // print("response: ${json.decode(response.body)}");
 
       if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-        // print("Decoded data: $data");
-
-        // Use null-aware operators to assign default values if a key is missing or null.
         setState(() {
-          podcasts = data;
-          // isLoading = false;
+          podcasts = json.decode(response.body);
         });
+        await prefs.setString(getPodcastsCacheKey(), response.body);
+        await prefs.setInt(
+            getPodcastsTimestampKey(), DateTime.now().millisecondsSinceEpoch);
       } else {
-        setState(() {
-          print("Error: Status code ${response.statusCode}");
-          // isLoading = false;
-          // hasError = true;
-        });
+        hasError = true;
       }
     } catch (e) {
-      setState(() {
-        print("catch error $e");
-        // isLoading = false;
-        // hasError = true;
-      });
+      hasError = true;
     }
   }
-
-  // Future<void> fetchChapterList(String subject) async {
-  //   final String url =
-  //       'https://glutaclass.com:8080/gluta/fam/chapters?subject=$subject&standard=$standard';
-
-  //   try {
-  //     print("Fetching data for $subject from API: $url");
-
-  //     final response = await client.get(
-  //       Uri.parse(url),
-  //       headers: {
-  //         'Accept-Encoding': 'gzip', // Enable gzip compression
-  //       },
-  //     );
-  //     print("response for $subject: $response");
-
-  //     if (response.statusCode == 200) {
-  //       List<dynamic> data = json.decode(response.body);
-  //       List<Map<String, dynamic>> sortedChapters = data
-  //           .map((e) => e as Map<String, dynamic>)
-  //           .toList()
-  //         ..sort((a, b) => a['chapterNo'].compareTo(b['chapterNo']));
-
-  //       setState(() {
-  //         subjectChapters[subject] = sortedChapters;
-  //       });
-  //     } else {
-  //       setState(() {
-  //         hasError = true;
-  //       });
-  //     }
-  //   } catch (e) {
-  //     setState(() {
-  //       hasError = true;
-  //     });
-  //   }
-  // }
 
   void shareReferralLink(String referralCode) async {
     referralCode = 'Sahu';
@@ -270,6 +242,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
   // Function to open the bottom sheet for class selection
   void _showClassSelectionBottomSheet() {
+    logClassChangeEvent(standard);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.grey[900],
@@ -310,6 +283,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
                       await prefs.setInt('selected_class', classNumber);
 
+                      logSelectedClassChangedEvent(classNumber);
                       fetchAllChapters();
                       fetchRecommendedPodcasts();
                       fetchCarouselData();
@@ -332,29 +306,48 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
   // Fetch carousel data from API
   Future<void> fetchCarouselData() async {
+    String? cachedCarousel = prefs.getString(getCarouselCacheKey());
+    int? cachedTimestamp = prefs.getInt(getCarouselTimestampKey());
+    int currentTime = DateTime.now().millisecondsSinceEpoch;
+
+    if (cachedCarousel != null &&
+        cachedTimestamp != null &&
+        currentTime - cachedTimestamp < cacheExpiryDurationInHours * 3600000) {
+      // Use cached carousel data if within expiry
+      setState(() {
+        carouselData = json.decode(cachedCarousel);
+        isLoading = false;
+      });
+    } else {
+      // Fetch and cache new carousel data if no valid cache is found
+      await _fetchAndCacheCarouselData();
+    }
+  }
+
+  Future<void> _fetchAndCacheCarouselData() async {
     final String url =
         'https://glutaclass.com:8080/gluta/fam/carousal-data?standard=$standard';
+
     try {
       final response = await client.get(
         Uri.parse(url),
         headers: {
-          'Accept-Encoding': 'gzip', // Enable gzip compression
+          'Accept-Encoding': 'gzip',
         },
       );
+
       if (response.statusCode == 200) {
         setState(() {
           carouselData = json.decode(response.body);
-          print(carouselData);
         });
+        await prefs.setString(getCarouselCacheKey(), response.body);
+        await prefs.setInt(
+            getCarouselTimestampKey(), DateTime.now().millisecondsSinceEpoch);
       } else {
-        setState(() {
-          // hasError = true;
-        });
+        hasError = true;
       }
     } catch (e) {
-      setState(() {
-        // hasError = true;
-      });
+      hasError = true;
     }
   }
 
@@ -494,7 +487,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                 child: Transform.translate(
                   offset: Offset(
                       -20, 0), // Slight offset to ensure center alignment
-                  child: buildEpisodeCard(episode, index),
+                  child: buildEpisodeCard(episode, index, title),
                 ),
               );
             },
@@ -504,7 +497,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
     );
   }
 
-  Widget buildEpisodeCard(Map<String, dynamic> episode, int index) {
+  Widget buildEpisodeCard(
+      Map<String, dynamic> episode, int index, String source) {
     // Define a list of gradients to use for the background of the cards.
     final List<LinearGradient> gradients = [
       LinearGradient(
@@ -545,6 +539,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
 
     return GestureDetector(
       onTap: () {
+        logEpisodeCardClick(episodeId, source);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -565,7 +560,13 @@ class _ChapterscreenState extends State<Chapterscreen> {
             ),
           ),
         ).then((result) {
-          context.read<AudioProvider>().setShowMiniPlayer(true);
+          final audioProvider = context.read<AudioProvider>();
+          audioProvider.setShowMiniPlayer(true);
+          logBackButtonClick(
+              audioProvider.sectionId,
+              audioProvider.audioPlayer!.playing,
+              audioProvider.audioPlayer!.position.inSeconds,
+              "AudioPlayerScreen");
         });
       },
       child: Padding(
@@ -661,6 +662,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                             color: Colors.grey,
                           ),
                           onPressed: () {
+                            logBookmarkButtonClick(episodeId, source);
                             setState(() {
                               // Toggle the bookmark state.
                               if (bookmarkedSections.contains(episodeId)) {
@@ -678,6 +680,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                             color: Colors.grey,
                           ),
                           onPressed: () {
+                            logShareButtonClick(episodeId, source);
                             share();
                             // Handle share functionality
                           },
@@ -920,33 +923,24 @@ class _ChapterscreenState extends State<Chapterscreen> {
                         final chapter = pageChapters[index];
                         return GestureDetector(
                           onTap: () {
-                            if (subject == 'Englis-1') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => Sectionscreen(
-                                    chapterId: chapter['id'],
-                                  ),
+                            logChapterClick(chapter['id']);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Sectionscreen(
+                                  chapterId: chapter['id'],
                                 ),
-                              ).then((result) {
-                                context
-                                    .read<AudioProvider>()
-                                    .setShowMiniPlayer(true);
-                              });
-                            } else {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => Sectionscreen(
-                                    chapterId: chapter['id'],
-                                  ),
-                                ),
-                              ).then((result) {
-                                context
-                                    .read<AudioProvider>()
-                                    .setShowMiniPlayer(true);
-                              });
-                            }
+                              ),
+                            ).then((result) {
+                              final audioProvider =
+                                  context.read<AudioProvider>();
+                              audioProvider.setShowMiniPlayer(true);
+                              logBackButtonClick(
+                                  audioProvider.sectionId,
+                                  audioProvider.audioPlayer!.playing,
+                                  audioProvider.audioPlayer!.position.inSeconds,
+                                  "SectionListingScreen");
+                            });
                           },
                           child: _buildChapterItem(chapter),
                         );
@@ -1003,6 +997,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
                 child: Center(
                   child: IconButton(
                       onPressed: () {
+                        logReferralButtonClick(standard);
                         Navigator.push(
                           context,
                           MaterialPageRoute(

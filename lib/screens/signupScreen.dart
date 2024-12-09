@@ -1,3 +1,5 @@
+import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
+import 'package:eureka_app/utils/appHelperService.dart';
 import "package:flutter/material.dart";
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -26,6 +28,17 @@ class _SignupscreenState extends State<Signupscreen> {
   void initState() {
     super.initState();
     _initializeFirebase();
+
+    logPhoneAuthScreenEvents();
+  }
+
+  void logPhoneAuthScreenEvents() async {
+    Map<String, String> deviceDetails = await getDeviceDetails();
+    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
+    String platform = deviceDetails['platform'] ?? "Unknown";
+    String userIP = await getUserIP();
+
+    logPhoneLoginScreenView(deviceId, platform, userIP);
   }
 
   Future<void> _initializeFirebase() async {
@@ -50,6 +63,11 @@ class _SignupscreenState extends State<Signupscreen> {
       _isLoading = true; // Start loading when OTP is being sent
     });
 
+    Map<String, String> deviceDetails = await getDeviceDetails();
+    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
+    String platform = deviceDetails['platform'] ?? "Unknown";
+    logContinueButtonClickForOtp(deviceId, platform, _phoneNumber);
+
     await FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: _phoneNumber, // Now includes country code
       verificationCompleted: (PhoneAuthCredential credential) {
@@ -67,6 +85,7 @@ class _SignupscreenState extends State<Signupscreen> {
         setState(() {
           _isLoading = false; // Stop loading once code is sent
         });
+
         Navigator.push(
           context,
           MaterialPageRoute(

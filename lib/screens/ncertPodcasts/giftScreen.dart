@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:eureka_app/events/referralScreenEvents.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -29,6 +30,8 @@ class _GiftScreenState extends State<GiftScreen> {
       redeemedGiftId = widget.redeemedGiftId;
     });
     _fetchGifts();
+    logRedeemGiftScreenView(
+        widget.joinedReferrals, redeemedGiftId != '' ? true : false);
   }
 
   Future<void> _fetchGifts() async {
@@ -165,6 +168,8 @@ class _GiftScreenState extends State<GiftScreen> {
                               giftId,
                               phoneController.text,
                             );
+                            logPhoneNumberForRedemption(widget.joinedReferrals,
+                                giftId, phoneController.text);
                           } catch (e) {}
                         }
                       : null,
@@ -215,7 +220,11 @@ class _GiftScreenState extends State<GiftScreen> {
               MainAxisAlignment.center, // Center alignment for buttons
           actions: [
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                logGiftSucessfullyRedeemedContinueButtonClick(
+                    widget.joinedReferrals, giftId);
+                Navigator.of(context).pop();
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
               ),
@@ -305,7 +314,7 @@ class _GiftScreenState extends State<GiftScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              redeemedGiftId != null
+              redeemedGiftId != ""
                   ? "You have redeemed your gift!"
                   : referralsToGo > 0
                       ? "You have $referralsToGo more referrals to go."
@@ -364,6 +373,8 @@ class _GiftScreenState extends State<GiftScreen> {
                                   ? () {
                                       _showPhoneNumberPopup(
                                           context, gift["title"], gift["id"]);
+                                      logRedeemButtonClick(
+                                          widget.joinedReferrals, gift["id"]);
                                     }
                                   : null,
                           style: ElevatedButton.styleFrom(

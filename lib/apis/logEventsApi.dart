@@ -2,39 +2,44 @@ import 'dart:convert';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+final AuthTokenService authTokenService = AuthTokenService();
 
 Future<void> logPageOpenEvent({
   required String screenName,
   required Map<String, dynamic> eventDetails,
 }) async {
-  int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-
   await logEvent(
     eventType: "screenView",
     screenName: screenName,
     eventDetails: eventDetails,
-    eventTime: currentTimestamp,
   );
 }
 
-Future<void> logEvent({
-  required String eventType,
-  required String screenName,
-  required Map<String, dynamic> eventDetails,
-  required int eventTime,
-}) async {
+Future<void> logEvent(
+    {required String eventType,
+    required String screenName,
+    required Map<String, dynamic> eventDetails,
+    String? eventName}) async {
   const String apiUrl = 'https://glutaclass.com:8080/gluta/fam/log-event';
-  final AuthTokenService authTokenService = AuthTokenService();
 
   // Retrieve the auth token from secure storage
-  final String? authToken = await authTokenService.getAuthToken();
-
+  String? authToken = await authTokenService.getAuthToken();
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool? firstLaunchBool = prefs.getBool('firstLaunch');
+  bool firstLaunch = firstLaunchBool ?? true;
+  if (firstLaunch) {
+    authToken = "app-first-launch";
+  }
+  int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
   if (authToken != null) {
     final body = {
+      "eventName": eventName,
       "eventType": eventType,
       "screenName": screenName,
       "eventDetails": eventDetails,
-      "eventTime": eventTime,
+      "eventTime": currentTimestamp,
     };
 
     // Construct the request

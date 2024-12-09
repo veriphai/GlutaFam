@@ -1,6 +1,12 @@
+import 'dart:math';
+
 import 'package:eureka_app/apis/logEventsApi.dart';
+import 'package:eureka_app/apis/saveCheckpointResultApi.dart';
+import 'package:eureka_app/apis/submitFeedbackApi.dart';
+import 'package:eureka_app/events/audioPlayerScreenEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/bestPracticesModal.dart';
 import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/earlyExitFeedbackModal.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
@@ -93,13 +99,50 @@ class _PodcastScreenState extends State<PodcastScreen> {
   Set<String> visitedCheckpoints = {};
   bool _showBestPractices = true;
 
+  late String currentAudioUrl;
+  late List<dynamic>? currentSubsections;
+  String currentLanguage = 'EN';
+
+  void toggleLanguage() {
+    setState(() {
+      currentLanguage = currentLanguage == 'EN' ? 'HI' : 'EN';
+    });
+  }
+
+  void _showEarlyExitModal() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return EarlyExitFeedbackModal(
+          onSubmit: (selectedOptions) {
+            // Handle feedback submission here
+            print("User feedback: $selectedOptions");
+            submitFeedback(
+              chapterId: widget.chapterId,
+              sectionId: widget.sectionId ?? '',
+              feedbackOptions: selectedOptions.toList(),
+              type: 'earlyExit',
+            );
+            Navigator.of(context).pop(); // Close the modal
+            Navigator.of(context).pop(); // Navigate back
+          },
+          onclose: () {
+            Navigator.of(context).pop(); // Close the modal
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
+  }
+
   void _prepareSubsections() {
     transformedSubsections = [];
     bool isFirstSubsection = true;
     int currentOrder = 1;
     int checkpointNumber = 1;
 
-    widget.subsections?.forEach((subsection) {
+    currentSubsections?.forEach((subsection) {
       if (isFirstSubsection) {
         // Add the first subsection as it is, without splitting
         transformedSubsections.add({
@@ -166,6 +209,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   ? subsection['order'] - 1
                   : 0;
           print("current subsection: ${currentSubsectionIndex}");
+          context
+              .read<AudioProvider>()
+              .updateAudioParams(currentSubsectionIndex);
           checkThatCheckpointShown();
         });
         return;
@@ -276,6 +322,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
     currentKeyPoints = subsection['keypoints'];
 
+    logCheckpointAppeared(
+        widget.sectionId ?? '',
+        _audioPlayer.playing,
+        _audioPlayer.position.inSeconds,
+        subsectionId,
+        transformedSubsections[currentSubsectionIndex]['id']);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -311,6 +364,15 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       IconButton(
                         icon: Icon(Icons.close, color: Colors.white),
                         onPressed: () {
+                          if (!showQuestions && !showResult && !inReviewMode) {
+                            logCheckpointClosedWithoutMcq(
+                                widget.sectionId ?? '',
+                                _audioPlayer.playing,
+                                _audioPlayer.position.inSeconds,
+                                subsectionId,
+                                transformedSubsections[currentSubsectionIndex]
+                                    ['id']);
+                          }
                           Navigator.pop(context);
                         },
                       ),
@@ -463,7 +525,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                         color: Colors.black,
                                       ),
                                       label: Text(
-                                        'Continue Lesson',
+                                        currentSubsectionIndex >=
+                                                transformedSubsections.length -
+                                                    3
+                                            ? 'End Lesson'
+                                            : 'Continue Lesson',
                                         style: GoogleFonts.raleway(
                                           color: Colors.black,
                                           fontSize: 14,
@@ -471,16 +537,41 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                         ),
                                       ),
                                       onPressed: () {
-                                        if (index > 0) {
+                                        logCheckpointContinueLesson(
+                                            widget.sectionId ?? '',
+                                            _audioPlayer.playing,
+                                            _audioPlayer.position.inSeconds,
+                                            subsectionId,
+                                            transformedSubsections[
+                                                currentSubsectionIndex]['id'],
+                                            inReviewMode
+                                                ? "review"
+                                                : "attempt");
+                                        if (currentSubsectionIndex >=
+                                            transformedSubsections.length - 3) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  FeedbackScreen(
+                                                chapterId: widget.chapterId,
+                                                sectionEndQuestions:
+                                                    widget.sectionEndQuestions,
+                                                sectionId: widget.sectionId,
+                                              ),
+                                            ),
+                                          );
+                                        } else if (index > 0) {
                                           _seekToTime(
                                               transformedSubsections[index + 3]
                                                   ['startTime']);
+                                          Navigator.pop(context);
                                         } else {
                                           _seekToTime(transformedSubsections[
                                                   currentSubsectionIndex + 3]
                                               ['startTime']);
+                                          Navigator.pop(context);
                                         }
-                                        Navigator.pop(context);
                                       },
                                     ),
                                   ),
@@ -519,6 +610,16 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                         ),
                                       ),
                                       onPressed: () {
+                                        logCheckpointCuriousQna(
+                                            widget.sectionId ?? '',
+                                            _audioPlayer.playing,
+                                            _audioPlayer.position.inSeconds,
+                                            subsectionId,
+                                            transformedSubsections[
+                                                currentSubsectionIndex]['id'],
+                                            inReviewMode
+                                                ? "review"
+                                                : "attempt");
                                         if (index > 0) {
                                           _seekToTime(
                                               transformedSubsections[index + 2]
@@ -569,6 +670,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                   showQuestions = subsection['mcqs'] != null &&
                                       subsection['mcqs'].isNotEmpty;
                                 });
+                                logCheckpointMcqSectionOpened(
+                                    widget.sectionId ?? '',
+                                    _audioPlayer.playing,
+                                    _audioPlayer.position.inSeconds,
+                                    subsectionId,
+                                    transformedSubsections[
+                                        currentSubsectionIndex]['id']);
                               },
                               child: Text(
                                 "Continue",
@@ -595,6 +703,17 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                 ),
                               ),
                               onPressed: () {
+                                logCheckpointNextMcq(
+                                    widget.sectionId ?? '',
+                                    _audioPlayer.playing,
+                                    _audioPlayer.position.inSeconds,
+                                    subsectionId,
+                                    transformedSubsections[
+                                        currentSubsectionIndex]['id'],
+                                    subsection['mcqs'][currentQuestionIndex]
+                                        ['id'],
+                                    selectedOption ?? '',
+                                    inReviewMode ? "review" : "attempt");
                                 if (selectedOption != null) {
                                   if (selectedOption ==
                                       subsection['mcqs'][currentQuestionIndex]
@@ -609,10 +728,30 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                     selectedOption = null;
                                   });
                                 } else {
+                                  logCheckpointResultsScreen(
+                                      widget.sectionId ?? '',
+                                      _audioPlayer.playing,
+                                      _audioPlayer.position.inSeconds,
+                                      subsectionId,
+                                      transformedSubsections[
+                                          currentSubsectionIndex]['id'],
+                                      reviewMode ? "review" : "attempt",
+                                      correctAnswers);
                                   modalSetState(() {
                                     showResult = true;
                                     showQuestions = false;
                                   });
+                                  final userAnswerForCheckpoint = userAnswers[
+                                      transformedSubsections[
+                                          currentSubsectionIndex]['id']];
+                                  saveCheckpointResultApi(
+                                      chapterId: widget.chapterId,
+                                      episodeId: widget.sectionId ?? '',
+                                      checkpointId: transformedSubsections[
+                                          currentSubsectionIndex]['id'],
+                                      score: correctAnswers,
+                                      userAnswers:
+                                          userAnswerForCheckpoint ?? []);
                                 }
                               },
                               child: Text(
@@ -670,6 +809,14 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                         inReviewMode = true;
                                         currentQuestionIndex = 0;
                                       });
+                                      logCheckpointReviewQuestions(
+                                          widget.sectionId ?? '',
+                                          _audioPlayer.playing,
+                                          _audioPlayer.position.inSeconds,
+                                          subsectionId,
+                                          transformedSubsections[
+                                              currentSubsectionIndex]['id'],
+                                          inReviewMode ? "review" : "attempt");
                                       // Add functionality for the microphone button here
                                     },
                                   ),
@@ -693,6 +840,19 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                 ),
                               ),
                               onPressed: () {
+                                logCheckpointNextMcq(
+                                    widget.sectionId ?? '',
+                                    _audioPlayer.playing,
+                                    _audioPlayer.position.inSeconds,
+                                    subsectionId,
+                                    transformedSubsections[
+                                        currentSubsectionIndex]['id'],
+                                    subsection['mcqs'][currentQuestionIndex]
+                                        ['id'],
+                                    userAnswers[subsectionId]
+                                            ?[currentQuestionIndex] ??
+                                        '',
+                                    "review");
                                 if (currentQuestionIndex <
                                     subsection['mcqs'].length - 1) {
                                   modalSetState(() {
@@ -745,6 +905,15 @@ class _PodcastScreenState extends State<PodcastScreen> {
   ) {
     // Define gradient colors for each option
     currentSubsectionIndex = subsectionIndex;
+    logCheckpointMcqViewed(
+        widget.sectionId ?? '',
+        _audioPlayer.playing,
+        _audioPlayer.position.inSeconds,
+        transformedSubsections[currentSubsectionIndex]['id'],
+        transformedSubsections[currentSubsectionIndex]['id'],
+        transformedSubsections[currentSubsectionIndex]['mcqs']
+            [currentQuestionIndex]['id'],
+        "attempt");
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       padding: EdgeInsets.all(12),
@@ -789,6 +958,15 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
                 return GestureDetector(
                   onTap: () {
+                    logCheckpointMcqOptionSelect(
+                        widget.sectionId ?? '',
+                        _audioPlayer.playing,
+                        _audioPlayer.position.inSeconds,
+                        transformedSubsections[currentSubsectionIndex]['id'],
+                        transformedSubsections[currentSubsectionIndex]['id'],
+                        transformedSubsections[currentSubsectionIndex]['mcqs']
+                            [currentQuestionIndex]['id'],
+                        option['id']);
                     modalSetState(() {
                       onOptionSelected(option['id']);
                     });
@@ -860,6 +1038,14 @@ class _PodcastScreenState extends State<PodcastScreen> {
     final userAnswer = userAnswers[subSectionId]
         ?[currentQuestionIndex]; // Retrieve user's answer from the map
 
+    logCheckpointMcqViewed(
+        widget.sectionId ?? '',
+        _audioPlayer.playing,
+        _audioPlayer.position.inSeconds,
+        subSectionId,
+        transformedSubsections[currentSubsectionIndex]['id'],
+        question['id'],
+        "review");
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       padding: EdgeInsets.all(12),
@@ -973,17 +1159,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
   @override
   void initState() {
     super.initState();
+    currentAudioUrl = widget.audioUrl;
+    currentSubsections = widget.subsections;
     _audioRecorder = flutter_sound.FlutterSoundRecorder();
     _audioPlayerV2 = flutter_sound.FlutterSoundPlayer();
 
-    logPageOpenEvent(
-      screenName: screenName,
-      eventDetails: {
-        "description": "User opened the audio lesson",
-        "chapterId": widget.chapterId,
-        "section": widget.title
-      },
-    );
+    logPodcastScreenView(widget.chapterId, widget.sectionId ?? '');
 
     _prepareSubsections();
     _audioPlayer = context.read<AudioProvider>().audioPlayer ?? AudioPlayer();
@@ -1000,7 +1181,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AudioProvider>().setAudioPlayer(
-          _audioPlayer, widget.audioUrl,
+          _audioPlayer, currentAudioUrl,
           title: widget.title,
           album: widget.chapterName,
           artUri: widget.imageUrl,
@@ -1012,9 +1193,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
           totalDuration: totalDuration,
           chapterNo: widget.chapterNo,
           chapterId: widget.chapterId,
+          sectionId: widget.sectionId ?? '',
           pdfUrl: widget.pdfUrl,
           sectionNumber: widget.sectionNumber,
-          subsections: widget.subsections,
+          subsections: currentSubsections,
           sectionEndQuestions: widget.sectionEndQuestions);
     });
     // Set audio player listeners
@@ -1066,23 +1248,6 @@ class _PodcastScreenState extends State<PodcastScreen> {
       }
     });
 
-    // playPauseAudio();
-    // if (_audioPlayer.playing) {
-    //   // Player is currently playing, so we can seek to a position
-    //   _audioPlayer.seek(widget.totalDurationFromMiniplayer ?? Duration.zero);
-    // } else if (_audioPlayer.playerState.processingState ==
-    //         ProcessingState.idle ||
-    //     _audioPlayer.playerState.processingState == ProcessingState.ready) {
-    //   // Player is stopped or paused, so we start playback from the specified position
-    //   _audioPlayer.setUrl(widget.audioUrl).then((_) {
-    //     _audioPlayer.seek(widget.totalDurationFromMiniplayer ?? Duration.zero);
-    //     _audioPlayer.play();
-    //   });
-    // }
-
-    // if (!_audioPlayer.playing) {
-    //   _audioPlayer.play();
-    // }
     _audioPlayer.playerStateStream.listen((playerState) {
       if (mounted) {
         setState(() {
@@ -1099,17 +1264,73 @@ class _PodcastScreenState extends State<PodcastScreen> {
     }
   }
 
+  Future<void> _fetchLanguageSpecificDataAndUpdate() async {
+    String languageSuffix = currentLanguage == 'HI' ? '_hindi' : '';
+
+    String url =
+        'https://glutaclass.com:8080/gluta/fam/podcast?episodeId=${widget.sectionId}$languageSuffix';
+    try {
+      final response = await http.get(Uri.parse(url), headers: {
+        'Content-Type': 'application/json',
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          currentAudioUrl = data['audioUrl'];
+          currentSubsections = data['subSections'];
+        });
+        _prepareSubsections();
+
+        // Restart the audio player with the new audioUrl
+        context.read<AudioProvider>().setAudioPlayer(
+              _audioPlayer,
+              currentAudioUrl,
+              title: widget.title,
+              album: widget.chapterName,
+              artUri: widget.imageUrl,
+              artist: widget.chapterName,
+              episodeName: widget.title,
+              chapterName: widget.chapterName,
+              duration: widget.duration,
+              currentPosition: currentPosition,
+              totalDuration: totalDuration,
+              chapterNo: widget.chapterNo,
+              chapterId: widget.chapterId,
+              sectionId: widget.sectionId ?? '',
+              pdfUrl: widget.pdfUrl,
+              sectionNumber: widget.sectionNumber,
+              subsections: currentSubsections,
+              sectionEndQuestions: widget.sectionEndQuestions,
+            );
+
+        Navigator.pop(context);
+      } else {
+        throw Exception("Failed to fetch Hinglish data: ${response.body}");
+      }
+    } catch (e) {
+      print("Error in _fetchHinglishDataAndUpdate: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Failed to load Hinglish version. Please try again later.",
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _showBestPracticesModal() {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent dismissal by tapping outside
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor:
-              Colors.transparent, // Makes the dialog background transparent
-          elevation: 0, // Removes shadow
-          insetPadding:
-              EdgeInsets.all(0), // Optional: To remove default padding
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: EdgeInsets.all(0),
           child: BestPracticesModal(
             onDismiss: () {
               setState(() {
@@ -1117,7 +1338,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
                 _audioPlayer.play();
               });
               Navigator.pop(context);
+              if (_audioPlayer.playing) {
+                logPodcastStart(widget.sectionId ?? '');
+              }
             },
+            topicId: widget.sectionId ?? '',
           ),
         );
       },
@@ -1161,13 +1386,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
   }
 
   Future<void> logEvents(eventDetails, eventType) async {
-    int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     await logEvent(
-      eventType: eventType,
-      screenName: screenName,
-      eventDetails: eventDetails,
-      eventTime: currentTimestamp,
-    );
+        eventType: eventType,
+        screenName: screenName,
+        eventDetails: eventDetails);
   }
 
   void stopAudioAndJumpToCER() async {
@@ -1183,7 +1405,6 @@ class _PodcastScreenState extends State<PodcastScreen> {
       eventType: "buttonClick",
       screenName: screenName,
       eventDetails: eventDetails,
-      eventTime: currentTimestamp,
     );
     setState(() {
       isPlaying = false;
@@ -1220,6 +1441,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
         _isLoading = true;
       });
 
+      logAskQuestionMicrophoneOff(
+          widget.sectionId ?? '',
+          _audioPlayer.playing,
+          _audioPlayer.position.inSeconds,
+          transformedSubsections[currentSubsectionIndex]['id']);
+
       if (_audioPath != null && _audioPath!.isNotEmpty) {
         print('Audio path: $_audioPath');
         await _sendAudioToBackend(File(_audioPath!));
@@ -1250,6 +1477,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
         bitRate: 16000,
         sampleRate: 44100,
       );
+      logAskQuestionMicrophoneOn(
+          widget.sectionId ?? '',
+          _audioPlayer.playing,
+          _audioPlayer.position.inSeconds,
+          transformedSubsections[currentSubsectionIndex]['id']);
     }
   }
 
@@ -1320,6 +1552,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
       await _audioPlayerV2!.openPlayer();
       await _audioPlayerV2!.startPlayer(fromURI: audioFile.path);
+      if (_audioPlayerV2!.isPlaying) {
+        logAskQuestionResponsePlayed(
+            widget.sectionId ?? '',
+            _audioPlayer.playing,
+            _audioPlayer.position.inSeconds,
+            transformedSubsections[currentSubsectionIndex]['id']);
+      }
     } catch (e) {
       print('Error playing base64 audio: $e');
     }
@@ -1327,16 +1566,28 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
   void playPauseAudio() async {
     if (isPlaying) {
+      logPauseButtonClick(
+          widget.sectionId ?? '',
+          _audioPlayer.playing,
+          _audioPlayer.position.inSeconds,
+          transformedSubsections[currentSubsectionIndex]['id']);
       await _audioPlayer.pause();
       setState(() {
         isPlaying = false;
       });
     } else {
       // await _audioPlayer.setUrl(widget.audioUrl); // Set the audio source URL
+      logPlayButtonClick(
+          widget.sectionId ?? '',
+          _audioPlayer.playing,
+          _audioPlayer.position.inSeconds,
+          transformedSubsections[currentSubsectionIndex]['id']);
       await _audioPlayer.play(); // Start playback
-      setState(() {
-        isPlaying = true;
-      });
+      if (mounted) {
+        setState(() {
+          isPlaying = true;
+        });
+      }
     }
   }
 
@@ -1369,6 +1620,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
                     IconButton(
                       icon: Icon(Icons.close, color: Colors.white),
                       onPressed: () {
+                        logViewBookClosed(
+                            widget.sectionId ?? '',
+                            _audioPlayer.playing,
+                            _audioPlayer.position.inSeconds,
+                            transformedSubsections[currentSubsectionIndex]
+                                ['id']);
                         Navigator.pop(context); // Close the modal
                       },
                     ),
@@ -1393,6 +1650,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         );
                       } else if (snapshot.hasError) {
                         // Handle any loading errors
+                        logViewBookPdfLoaded(
+                            widget.sectionId ?? '',
+                            _audioPlayer.playing,
+                            _audioPlayer.position.inSeconds,
+                            transformedSubsections[currentSubsectionIndex]
+                                ['id'],
+                            false);
                         return Center(
                           child: Text(
                             'Failed to load PDF',
@@ -1401,6 +1665,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         );
                       } else {
                         // Display PDF when loaded
+                        logViewBookPdfLoaded(
+                            widget.sectionId ?? '',
+                            _audioPlayer.playing,
+                            _audioPlayer.position.inSeconds,
+                            transformedSubsections[currentSubsectionIndex]
+                                ['id'],
+                            true);
                         return PdfView(
                           controller: _pdfController!,
                           scrollDirection: Axis.vertical,
@@ -1428,13 +1699,6 @@ class _PodcastScreenState extends State<PodcastScreen> {
   }
 
   void _openAskQuestionModel(BuildContext context) {
-    Map<String, dynamic> eventDetails = {
-      "chapterId": widget.chapterId,
-      "section": widget.title,
-      "description": "NCERT Book Opened"
-    };
-    logEvents(eventDetails, "buttonClick");
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1471,6 +1735,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
                             if (_audioPlayerV2!.isPlaying) {
                               _audioPlayerV2!.pausePlayer();
                             }
+                            logAskQuestionClosed(
+                                widget.sectionId ?? '',
+                                _audioPlayer.playing,
+                                _audioPlayer.position.inSeconds,
+                                transformedSubsections[currentSubsectionIndex]
+                                    ['id']);
                             Navigator.pop(context);
                           },
                         ),
@@ -1555,6 +1825,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
   }
 
   void _showSubsectionList(BuildContext context) {
+    logSubsectionsBottomSheetOpened(
+        widget.sectionId ?? '',
+        _audioPlayer.playing,
+        _audioPlayer.position.inSeconds,
+        transformedSubsections[currentSubsectionIndex]['id']);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
@@ -1623,6 +1898,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
                           // ),
                           onTap: () {
                             Navigator.pop(context);
+                            logSubsectionSelected(
+                                widget.sectionId ?? '',
+                                _audioPlayer.playing,
+                                _audioPlayer.position.inSeconds,
+                                transformedSubsections[currentSubsectionIndex]
+                                    ['id'],
+                                subsection['id']);
                             if (subsection['type'] == 'checkpoint') {
                               renderCheckpoint(index);
                             } else {
@@ -1676,6 +1958,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
   }
 
   void jumpForward() {
+    logForwardBackwardClick(
+        widget.sectionId ?? '',
+        _audioPlayer.playing,
+        _audioPlayer.position.inSeconds,
+        transformedSubsections[currentSubsectionIndex]['id'],
+        'forward');
     final remainingDuration = totalDuration - currentPosition;
     if (remainingDuration.inSeconds <= 10) {
       _audioPlayer.seek(totalDuration);
@@ -1687,6 +1975,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
   }
 
   void jumpBackward() {
+    logForwardBackwardClick(
+        widget.sectionId ?? '',
+        _audioPlayer.playing,
+        _audioPlayer.position.inSeconds,
+        transformedSubsections[currentSubsectionIndex]['id'],
+        'backward');
     final newPosition = currentPosition - Duration(seconds: 10);
     if (newPosition > Duration.zero) {
       _audioPlayer.seek(newPosition);
@@ -1704,6 +1998,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
       setState(() {
         isPlaying = false;
       });
+
+      logSkipClick(
+          widget.sectionId ?? '',
+          _audioPlayer.playing,
+          _audioPlayer.position.inSeconds,
+          transformedSubsections[currentSubsectionIndex]['id'],
+          "End Lesson");
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -1715,6 +2016,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
         ),
       );
     } else {
+      logSkipClick(
+          widget.sectionId ?? '',
+          _audioPlayer.playing,
+          _audioPlayer.position.inSeconds,
+          transformedSubsections[currentSubsectionIndex]['id'],
+          transformedSubsections[currentSubsectionIndex]['type']);
       final nextSubsection = transformedSubsections[currentSubsectionIndex + 1];
 
       if (nextSubsection['type'] == 'checkpoint') {
@@ -1731,7 +2038,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
   void _exitAndShowMiniPlayer() {
     // Navigator.pop(context);
     Navigator.pop(context, {
-      'audioUrl': widget.audioUrl,
+      'audioUrl': currentAudioUrl,
       'episodeName': widget.title,
       'imageUrl': widget.imageUrl,
       'chapterName': widget.chapterName,
@@ -1743,304 +2050,345 @@ class _PodcastScreenState extends State<PodcastScreen> {
     });
   }
 
+  bool _canPop() {
+    if (currentSubsectionIndex >= 2) {
+      return true; // Allow pop if the user is past the early subsections
+    }
+
+    int randomNumber =
+        Random().nextInt(10) + 1; // Generate a number between 1 and 10
+    bool shouldShowModal = randomNumber % 3 == 0 && !_audioPlayer.playing;
+    return shouldShowModal;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: appBar(),
-        backgroundColor: Colors.black,
-        body: Container(
-            child: Column(
-          children: [
-            // Podcast image
-            Container(
-              width: double.infinity,
-              padding:
-                  EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 20),
-              child: Image.network(
-                widget.imageUrl,
-                fit: BoxFit.contain,
-              ),
-            ),
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+    return PopScope(
+        canPop: _canPop(), // Determine if the screen can pop
+        onPopInvoked: (didPop) {
+          if (!didPop) {
+            _showEarlyExitModal();
+          }
+        },
+        child: Scaffold(
+            appBar: appBar(),
+            backgroundColor: Colors.black,
+            body: Container(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      style: GoogleFonts.raleway(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.left,
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      "Chapter ${widget.chapterNo} • ${widget.chapterName}",
-                      style: GoogleFonts.arOneSans(
-                          fontSize: 14, color: Colors.grey),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.left,
-                    ),
-                    if (widget.subsections != null &&
-                        widget.subsections!.isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(
-                            top: 5.0), // Adjust the left padding as needed
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () => _showSubsectionList(context),
-                              child: Icon(
-                                Icons.list,
-                                color: Color.fromRGBO(255, 217, 0, 1),
-                                size: 24, // Adjust the size as needed
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => _showSubsectionList(context),
-                                child: Text(
-                                  activeSubsectionName.isNotEmpty
-                                      ? activeSubsectionName
-                                      : '',
-                                  style: GoogleFonts.raleway(
+              children: [
+                // Podcast image
+                Container(
+                  width: double.infinity,
+                  padding:
+                      EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 20),
+                  child: Image.network(
+                    widget.imageUrl,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: GoogleFonts.raleway(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          "Chapter ${widget.chapterNo} • ${widget.chapterName}",
+                          style: GoogleFonts.arOneSans(
+                              fontSize: 14, color: Colors.grey),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                        ),
+                        if (currentSubsections != null &&
+                            currentSubsections!.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(
+                                top: 5.0), // Adjust the left padding as needed
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () => _showSubsectionList(context),
+                                  child: Icon(
+                                    Icons.list,
                                     color: Color.fromRGBO(255, 217, 0, 1),
-                                    fontSize: 16,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: Color.fromRGBO(
-                                        255, 217, 0, 1), // Set underline color
+                                    size: 24, // Adjust the size as needed
                                   ),
-                                  maxLines: 1,
-                                  overflow:
-                                      TextOverflow.ellipsis, // Prevent overflow
                                 ),
-                              ),
+                                SizedBox(width: 4),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => _showSubsectionList(context),
+                                    child: Text(
+                                      activeSubsectionName.isNotEmpty
+                                          ? activeSubsectionName
+                                          : '',
+                                      style: GoogleFonts.raleway(
+                                        color: Color.fromRGBO(255, 217, 0, 1),
+                                        fontSize: 16,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: Color.fromRGBO(255,
+                                            217, 0, 1), // Set underline color
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow
+                                          .ellipsis, // Prevent overflow
+                                    ),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8.0),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.grey[850],
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 4,
+                                          horizontal: 10,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed: skipContent,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            currentSubsectionIndex ==
+                                                    transformedSubsections
+                                                            .length -
+                                                        1
+                                                ? 'End Lesson'
+                                                : transformedSubsections[
+                                                                currentSubsectionIndex]
+                                                            ['type'] ==
+                                                        'qna'
+                                                    ? 'Skip QnA'
+                                                    : transformedSubsections[
+                                                                    currentSubsectionIndex]
+                                                                ['type'] ==
+                                                            'intro'
+                                                        ? 'Skip Intro'
+                                                        : 'Skip Concept',
+                                            style: GoogleFonts.raleway(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Icon(
+                                            Icons.fast_forward_rounded,
+                                            color:
+                                                Color.fromRGBO(255, 217, 0, 1),
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Align(
-                              alignment: Alignment.centerRight,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Music controls
+
+                Padding(
+                  padding: EdgeInsets.only(bottom: 0),
+                  child: Column(
+                    children: [
+                      Container(
+                          height: 20,
+                          child: Slider(
+                            value: currentPosition.inMilliseconds
+                                .toDouble()
+                                .clamp(0.0,
+                                    totalDuration.inMilliseconds.toDouble()),
+                            min: 0,
+                            max: totalDuration.inMilliseconds.toDouble(),
+                            onChanged: (value) {
+                              _audioPlayer
+                                  .seek(Duration(milliseconds: value.toInt()));
+                              logSeekerClick(
+                                  widget.sectionId ?? '',
+                                  _audioPlayer.playing,
+                                  _audioPlayer.position.inSeconds,
+                                  transformedSubsections[currentSubsectionIndex]
+                                      ['id']);
+                            },
+                            activeColor: Color.fromRGBO(255, 217, 0, 1),
+                            inactiveColor: Colors.grey[700],
+                            thumbColor: Color.fromRGBO(255, 217, 0, 1),
+                          )),
+                      // Padding(
+                      //   padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      //   child: Row(
+                      //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      //     children: [
+                      //       Text(
+                      //         "${currentPosition.inMinutes}:${(currentPosition.inSeconds % 60).toString().padLeft(2, '0')}",
+                      //         style: GoogleFonts.raleway(color: Colors.white),
+                      //       ),
+                      //       Text(
+                      //         _formatEndTimeDuration(widget.duration),
+                      //         style: GoogleFonts.raleway(color: Colors.white),
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            iconSize: 50,
+                            icon: Icon(Icons.replay_10,
+                                color: Color.fromRGBO(255, 217, 0, 1)),
+                            onPressed: jumpBackward,
+                          ),
+                          SizedBox(width: 20),
+                          IconButton(
+                            iconSize: 80,
+                            icon: Icon(
+                              isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_fill,
+                              color: Color.fromRGBO(255, 217, 0, 1),
+                            ),
+                            onPressed: playPauseAudio,
+                          ),
+                          SizedBox(width: 20),
+                          IconButton(
+                            iconSize: 50,
+                            icon: Icon(
+                              Icons.forward_10,
+                              color: Color.fromRGBO(255, 217, 0, 1),
+                            ),
+                            onPressed: jumpForward,
+                          ),
+                        ],
+                      ),
+                      // Buttons Panel
+                      // SizedBox(
+                      //   height: 10,
+                      // ),
+                      Container(
+                        margin: EdgeInsets.only(top: 20, bottom: 30),
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Ask Questions Button
+                            Expanded(
                               child: Padding(
                                 padding:
-                                    const EdgeInsets.symmetric(horizontal: 8.0),
-                                child: ElevatedButton(
+                                    const EdgeInsets.symmetric(horizontal: 5.0),
+                                child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.grey[850],
                                     padding: EdgeInsets.symmetric(
-                                      vertical: 4,
-                                      horizontal: 10,
+                                      vertical: 12,
+                                      horizontal: 12,
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  onPressed: skipContent,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        currentSubsectionIndex ==
-                                                transformedSubsections.length -
-                                                    1
-                                            ? 'End Lesson'
-                                            : transformedSubsections[
-                                                            currentSubsectionIndex]
-                                                        ['type'] ==
-                                                    'qna'
-                                                ? 'Skip QnA'
-                                                : transformedSubsections[
-                                                                currentSubsectionIndex]
-                                                            ['type'] ==
-                                                        'intro'
-                                                    ? 'Skip Intro'
-                                                    : 'Skip Concept',
-                                        style: GoogleFonts.raleway(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Icon(
-                                        Icons.fast_forward_rounded,
-                                        color: Color.fromRGBO(255, 217, 0, 1),
-                                        size: 20,
-                                      ),
-                                    ],
+                                  icon: Icon(
+                                    Icons.mic,
+                                    color: Color.fromRGBO(255, 217, 0, 1),
                                   ),
+                                  label: Text(
+                                    'Ask Questions',
+                                    style: GoogleFonts.raleway(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    logAskQuestionButtonClick(
+                                        widget.sectionId ?? '',
+                                        _audioPlayer.playing,
+                                        _audioPlayer.position.inSeconds,
+                                        transformedSubsections[
+                                            currentSubsectionIndex]['id']);
+                                    _openAskQuestionModel(context);
+
+                                    // Add functionality for the microphone button here
+                                  },
+                                ),
+                              ),
+                            ),
+                            // View Book Button
+                            Expanded(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5.0),
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey[850],
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: Icon(
+                                    Icons.menu_book,
+                                    color: Color.fromRGBO(255, 217, 0, 1),
+                                  ),
+                                  label: Text(
+                                    'View Book',
+                                    style: GoogleFonts.raleway(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    // Add functionality to view the book here
+                                    logViewBookButtonClick(
+                                        widget.sectionId ?? '',
+                                        _audioPlayer.playing,
+                                        _audioPlayer.position.inSeconds,
+                                        transformedSubsections[
+                                            currentSubsectionIndex]['id']);
+                                    _openPdfInModal(context);
+                                  },
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                  ],
-                ),
-              ),
-            ),
-            // Music controls
-
-            Padding(
-              padding: EdgeInsets.only(bottom: 0),
-              child: Column(
-                children: [
-                  Container(
-                      height: 20,
-                      child: Slider(
-                        value: currentPosition.inMilliseconds.toDouble().clamp(
-                            0.0, totalDuration.inMilliseconds.toDouble()),
-                        min: 0,
-                        max: totalDuration.inMilliseconds.toDouble(),
-                        onChanged: (value) {
-                          _audioPlayer
-                              .seek(Duration(milliseconds: value.toInt()));
-                        },
-                        activeColor: Color.fromRGBO(255, 217, 0, 1),
-                        inactiveColor: Colors.grey[700],
-                        thumbColor: Color.fromRGBO(255, 217, 0, 1),
-                      )),
-                  // Padding(
-                  //   padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  //   child: Row(
-                  //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //     children: [
-                  //       Text(
-                  //         "${currentPosition.inMinutes}:${(currentPosition.inSeconds % 60).toString().padLeft(2, '0')}",
-                  //         style: GoogleFonts.raleway(color: Colors.white),
-                  //       ),
-                  //       Text(
-                  //         _formatEndTimeDuration(widget.duration),
-                  //         style: GoogleFonts.raleway(color: Colors.white),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        iconSize: 50,
-                        icon: Icon(Icons.replay_10,
-                            color: Color.fromRGBO(255, 217, 0, 1)),
-                        onPressed: jumpBackward,
-                      ),
-                      SizedBox(width: 20),
-                      IconButton(
-                        iconSize: 80,
-                        icon: Icon(
-                          isPlaying
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_fill,
-                          color: Color.fromRGBO(255, 217, 0, 1),
-                        ),
-                        onPressed: playPauseAudio,
-                      ),
-                      SizedBox(width: 20),
-                      IconButton(
-                        iconSize: 50,
-                        icon: Icon(
-                          Icons.forward_10,
-                          color: Color.fromRGBO(255, 217, 0, 1),
-                        ),
-                        onPressed: jumpForward,
-                      ),
                     ],
                   ),
-                  // Buttons Panel
-                  // SizedBox(
-                  //   height: 10,
-                  // ),
-                  Container(
-                    margin: EdgeInsets.only(top: 20, bottom: 30),
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Ask Questions Button
-                        Expanded(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 5.0),
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey[850],
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              icon: Icon(
-                                Icons.mic,
-                                color: Color.fromRGBO(255, 217, 0, 1),
-                              ),
-                              label: Text(
-                                'Ask Questions',
-                                style: GoogleFonts.raleway(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              onPressed: () {
-                                _openAskQuestionModel(context);
-
-                                // Add functionality for the microphone button here
-                              },
-                            ),
-                          ),
-                        ),
-                        // View Book Button
-                        Expanded(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 5.0),
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey[850],
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              icon: Icon(
-                                Icons.menu_book,
-                                color: Color.fromRGBO(255, 217, 0, 1),
-                              ),
-                              label: Text(
-                                'View Book',
-                                style: GoogleFonts.raleway(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              onPressed: () {
-                                // Add functionality to view the book here
-                                _openPdfInModal(context);
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        )));
+                ),
+              ],
+            ))));
   }
 
   void _showBottomSheet(BuildContext context) {
@@ -2051,51 +2399,117 @@ class _PodcastScreenState extends State<PodcastScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (BuildContext context) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading:
-                    Icon(Icons.question_answer_outlined, color: Colors.white),
-                title: Text(
-                  "Go To Book Q&A",
-                  style: GoogleFonts.raleway(color: Colors.white),
-                ),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await _audioPlayer.pause();
-                  setState(() {
-                    isPlaying = false;
-                  });
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EndQuestionScreen(
-                        chapterId: widget.chapterId,
-                        sectionEndQuestions: widget.sectionEndQuestions,
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter modalSetState) {
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      Icons.language,
+                      color: currentLanguage == 'EN'
+                          ? Color.fromRGBO(255, 217, 0, 1)
+                          : Colors.white,
+                    ),
+                    title: Text(
+                      "Listen in English",
+                      style: GoogleFonts.raleway(
+                        color: currentLanguage == 'EN'
+                            ? Color.fromRGBO(255, 217, 0, 1)
+                            : Colors.white,
                       ),
                     ),
-                  );
-                },
+                    onTap: () async {
+                      if (currentLanguage == 'EN') {
+                        Navigator.pop(context); // Just close the sheet
+                      } else {
+                        modalSetState(() {
+                          currentLanguage = 'EN';
+                        });
+                        logLanguageSelected(
+                            widget.sectionId ?? '',
+                            _audioPlayer.playing,
+                            _audioPlayer.position.inSeconds,
+                            currentLanguage);
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: Color.fromRGBO(255, 217, 0, 1),
+                              ),
+                            );
+                          },
+                        );
+
+                        try {
+                          await _fetchLanguageSpecificDataAndUpdate();
+                        } finally {
+                          Navigator.pop(context); // Close the loading dialog
+                          await _audioPlayer.play(); // Start playback
+                          setState(() {
+                            isPlaying = true;
+                          });
+                        }
+                      }
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.language,
+                      color: currentLanguage == 'HI'
+                          ? Color.fromRGBO(255, 217, 0, 1)
+                          : Colors.white,
+                    ),
+                    title: Text(
+                      "Listen in Hindi",
+                      style: GoogleFonts.raleway(
+                        color: currentLanguage == 'HI'
+                            ? Color.fromRGBO(255, 217, 0, 1)
+                            : Colors.white,
+                      ),
+                    ),
+                    onTap: () async {
+                      if (currentLanguage == 'HI') {
+                        Navigator.pop(context);
+                      } else {
+                        modalSetState(() {
+                          currentLanguage = 'HI';
+                        });
+                        logLanguageSelected(
+                            widget.sectionId ?? '',
+                            _audioPlayer.playing,
+                            _audioPlayer.position.inSeconds,
+                            currentLanguage);
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: Color.fromRGBO(255, 217, 0, 1),
+                              ),
+                            );
+                          },
+                        );
+
+                        try {
+                          await _fetchLanguageSpecificDataAndUpdate();
+                        } finally {
+                          Navigator.pop(context); // Close the loading dialog
+                          await _audioPlayer.play(); // Start playback
+                          setState(() {
+                            isPlaying = true;
+                          });
+                        }
+                      }
+                    },
+                  ),
+                ],
               ),
-              ListTile(
-                leading: Icon(
-                  Icons.bookmark_outline,
-                  color: Colors.white,
-                ),
-                title: Text(
-                  "Listen in Higlish",
-                  style: GoogleFonts.raleway(color: Colors.white),
-                ),
-                onTap: () {
-                  Navigator.pop(context); // Close the bottom sheet
-                },
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -2109,10 +2523,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
       iconTheme: const IconThemeData(
         color: Colors.white, // Set the back button color to white
       ),
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back),
-        onPressed: _exitAndShowMiniPlayer,
-      ),
+      // leading: IconButton(
+      //   icon: Icon(Icons.arrow_back),
+      //   onPressed: _exitAndShowMiniPlayer,
+      // ),
       actions: [
         Padding(
             padding:
@@ -2142,6 +2556,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   ),
                 ),
                 onPressed: () async {
+                  logGoToBookQnaButtonClick(widget.sectionId ?? '',
+                      _audioPlayer.playing, _audioPlayer.position.inSeconds);
                   await _audioPlayer.pause();
                   setState(() {
                     isPlaying = false;
@@ -2153,6 +2569,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
                       builder: (context) => EndQuestionScreen(
                         chapterId: widget.chapterId,
                         sectionEndQuestions: widget.sectionEndQuestions,
+                        sourceScreen: "AudioPlayerScreen",
                       ),
                     ),
                   );
@@ -2160,16 +2577,40 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   // Add functionality for the microphone button here
                 },
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.more_vert,
-                  color: Colors.white,
-                  size: 20,
+              SizedBox(
+                width: 10,
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[850],
+                  padding: EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 onPressed: () {
+                  logLanguageChangeButtonClick(widget.sectionId ?? '',
+                      _audioPlayer.playing, _audioPlayer.position.inSeconds);
                   _showBottomSheet(context);
                 },
-              ),
+                icon: Icon(
+                  Icons.language,
+                  color: Color.fromRGBO(255, 217, 0, 1),
+                ),
+                label: Text(
+                  currentLanguage == 'EN'
+                      ? 'EN'
+                      : 'HI', // Update based on selected language
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
             ])),
       ],
     );
