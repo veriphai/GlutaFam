@@ -1,10 +1,5 @@
-import 'dart:async';
-
-import 'package:eureka_app/apis/askAnyQuestionQnaWeb.dart';
-import 'package:eureka_app/apis/askAnyQuestionWeb.dart';
 import 'package:eureka_app/apis/fetchChapterQuestionsApi.dart';
 import 'package:eureka_app/screens/ncertPodcasts/resultsScreen.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,7 +12,6 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:math';
 import 'package:audio_session/audio_session.dart' as audioSession;
 import 'package:http_parser/http_parser.dart';
-import 'dart:html' as html;
 
 class QuestionResult {
   final String? feedbackText;
@@ -68,17 +62,12 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
 
   String feedbackText = "";
   String audioFeedbackPath = "";
-  String audioFeedbackStringWeb = "";
 
   late PageController _pageController;
 
   // Animation controller for the flipping effect
   late AnimationController _controller;
   late Animation<double> _flipAnimation;
-
-  html.MediaRecorder? _mediaRecorder;
-  List<html.Blob> _audioChunks = [];
-  html.MediaStream? _mediaStream;
 
   final List<LinearGradient> gradients = [
     LinearGradient(
@@ -151,7 +140,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
         };
       });
     } else {
-      // Fallback to fetch from API if `sectionEndQuestions` is not provided
+      // Fallback to fetch from API if sectionEndQuestions is not provided
       final data = await fetchChapterQuestions(chapterId: widget.chapterId);
       if (data != null) {
         setState(() {
@@ -204,125 +193,36 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
       return;
     }
     if (_isRecording) {
-      // print("stopping recording......");
       await _audioRecorder!.stopRecorder();
       setState(() {
         _isRecording = false;
         waveformData.clear();
       });
 
-      if (kIsWeb) {
-        _mediaRecorder?.stop();
-        // print("stopped MediaRecorder");
-        final Completer<void> dataAvailableCompleter = Completer<void>();
-
-        _mediaRecorder?.addEventListener('dataavailable', (event) {
-          final blob = (event as html.BlobEvent).data;
-          if (blob != null) {
-            _audioChunks.add(blob);
-          } else {
-            print("No data in blobEvent");
-          }
-          dataAvailableCompleter.complete();
-        });
-
-        await dataAvailableCompleter.future;
-
-        final audioBlob = html.Blob(_audioChunks);
-
-        final reader = html.FileReader();
-        final Completer<void> readerCompleter = Completer<void>();
-        reader.readAsArrayBuffer(audioBlob);
-
-        reader.onLoadEnd.listen((event) async {
-          final audioBytes = reader.result as List<int>;
-          // print("audiobytes: $audioBytes");
-          final base64Audio = base64Encode(audioBytes);
-          // print('base64Audio: $base64Audio');
-
-          html.window.localStorage['recorded-audio'] = base64Audio;
-
-          setState(() {
-            _isRecording = false;
-            _isLoading = true;
-          });
-
-          await sendAudioToBackendQnaWeb(base64Audio: base64Audio);
-    
-          setState(() {
-            _isLoading = false;
-          });
-          readerCompleter.complete();
-        });
-
-        await readerCompleter.future;
-        _audioChunks.clear();
-
-        _mediaStream?.getTracks().forEach((track) => track.stop());
-        _mediaStream = null;
-
-      }else {
-        if (_audioPath != null && _audioPath!.isNotEmpty) {
-          // print('Audio path: $_audioPath');
-          setState(() {
-            _isRecording = false;
-            _isLoading = true;
-          });
-          _sendAudioToBackend(File(_audioPath!));
-          setState(() {
-            _isLoading = false;
-          });
-        } else {
-          print('Audio path is null or empty');
-        }
+      if (_audioPath != null && _audioPath!.isNotEmpty) {
+        print('Audio path: $_audioPath');
+        _sendAudioToBackend(File(_audioPath!));
+      } else {
+        print('Audio path is null or empty');
       }
-
-      
     } else {
-      // print("Starting recording....");
-      if (_audioPlayer!.isPlaying) {
-        await _audioPlayer!.pausePlayer();
-      }
+      final tempDir = await getTemporaryDirectory();
+      _audioPath = '${tempDir.path}/audio_record.wav';
+
+      await _audioRecorder!.startRecorder(
+        toFile: _audioPath,
+        codec: Codec.pcm16WAV,
+      );
+
       setState(() {
         _isRecording = true;
       });
 
-      if (kIsWeb) {
-        // print("recording on web");
-        _mediaStream = await html.window.navigator.mediaDevices!
-          .getUserMedia({'audio': true});
-
-        _mediaRecorder = html.MediaRecorder(_mediaStream!);
-        _mediaRecorder!.addEventListener('dataavailable', (event) {
-          final blob = (event as html.BlobEvent).data;
-          if (blob != null) {
-            // print("recording time, blob size: ${blob.size}");
-            _audioChunks.add(blob);
-          } else {
-            print("No data in blobEvent");
-          }
-        });
-        _mediaRecorder!.start();
-        print("Started MediaRecorder on web.");
-      } else {
-        final tempDir = await getTemporaryDirectory();
-        _audioPath = '${tempDir.path}/audio_record.wav';
-
-        await _audioRecorder!.startRecorder(
-          toFile: _audioPath,
-          codec: Codec.pcm16WAV,
-        );
-
-        setState(() {
-          _isRecording = true;
-        });
-
-        print('Recording started. File will be saved to: $_audioPath');
-        }
+      print('Recording started. File will be saved to: $_audioPath');
     }
   }
 
-  Future<void>  _sendAudioToBackend(File audioFile) async {
+  Future<void> _sendAudioToBackend(File audioFile) async {
     setState(() {
       _isLoading = true; // Show loader when sending audio
     });
@@ -398,102 +298,16 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     }
   }
 
-  Future<void> sendAudioToBackendQnaWeb({
-    required String base64Audio,
-  }) async {
-
-    final currentQuestion = chapterQuestions!['questions'][currentQuestionIndex];
-    final questionId = currentQuestion['id'];
-    String questionText = currentQuestion['question'];
-    String answer = currentQuestion['answer'] ?? '';
-    String uniqueKey = questionId;
-
-    if (currentQuestion['subQuestion'] != null &&
-        currentQuestion['subQuestions'].isNotEmpty && 
-        currentQuestionIndex < currentQuestion['subQuestion'].length) {
-      final subQuestion = currentQuestion['subQuestions'][currentSubQuestionIndex];
-      final subQuestionId = subQuestion['id'];
-      uniqueKey = '${questionId}_$subQuestionId';
-      questionText += subQuestion['question'];
-      answer = subQuestion['answer'];
-    }
-    final chapterQuestionsId = chapterQuestions!['id'];
-    final questionNumber = currentQuestionIndex;
-    final subQuestionNumber = currentSubQuestionIndex;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try{
-      final responseJson = await askAnyQuestionQnaWeb(
-        chapterQuestionsId: chapterQuestionsId, 
-        questionNumber: questionNumber, 
-        subQuestionNumber: subQuestionNumber, 
-        base64Audio: base64Audio
-      );
-
-      if (responseJson.isNotEmpty) {
-
-        final evaluationMessage = responseJson['evaluationResponse']['message'];
-        final evaluationStatus = responseJson['evaluationResponse']['evaluationResult'];
-        final base64AudioResult = responseJson['evaluationResponse']['audioMessage'];
-
-        // print("Evaluataion Result: $evaluationStatus");
-        // print("Evaluation Message: $evaluationMessage");
-        // print("Unique key : $uniqueKey");
-
-        setState(() {
-          feedbackText = evaluationMessage;
-          _showFeedback = true;
-          _questionAnswered = true;
-        });
-
-        _controller.forward();
-
-        if (base64AudioResult != null && base64AudioResult.isNotEmpty) {
-          await _playBase64Audio(base64AudioResult, uniqueKey);
-          questionResults[uniqueKey] = QuestionResult(
-            feedbackText: feedbackText, 
-            audioFeedbackPath: audioFeedbackPath, 
-            evaluation: evaluationStatus, 
-            answer: answer);
-
-        } else {
-          print("No audio feedback provided");
-        }
-      } else {
-        print("Empty or invalid response received");
-      } 
-    } catch(e) {
-      print("Error occured during evaluation: $e");
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   Future<void> _playBase64Audio(String base64Audio, String uniqueKey) async {
     try {
       final audioBytes = base64Decode(base64Audio);
-      if (kIsWeb) {
-        audioFeedbackPath = base64Audio;
-        await _audioPlayer!.openPlayer();
-        await _audioPlayer!.startPlayer(
-          fromDataBuffer: audioBytes,
-        );
-      } else {
-        final tempDir = await getTemporaryDirectory();
-        final audioFile = File('${tempDir.path}/${uniqueKey}_response_audio.wav');
-        await audioFile.writeAsBytes(audioBytes);
-        audioFeedbackPath = audioFile.path;
+      final tempDir = await getTemporaryDirectory();
+      final audioFile = File('${tempDir.path}/${uniqueKey}_response_audio.wav');
+      await audioFile.writeAsBytes(audioBytes);
+      audioFeedbackPath = audioFile.path;
 
-        await _audioPlayer!.openPlayer();
-        await _audioPlayer!.startPlayer(
-          fromURI: audioFile.path
-        );
-      } 
+      await _audioPlayer!.openPlayer();
+      await _audioPlayer!.startPlayer(fromURI: audioFile.path);
     } catch (e) {
       print('Error playing base64 audio: $e');
     }
@@ -1105,16 +919,9 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
                   audioFeedbackPath = result.audioFeedbackPath ?? '';
                 });
                 _flipCardForReview();
-                if (kIsWeb) {
-                  await _audioPlayer!.openPlayer();
-                  await _audioPlayer!.startPlayer(
-                    fromDataBuffer: base64Decode(audioFeedbackPath)
-                  );
-                } else {
-                  await _audioPlayer!.openPlayer();
-                  await _audioPlayer!
+                await _audioPlayer!.openPlayer();
+                await _audioPlayer!
                     .startPlayer(fromURI: result.audioFeedbackPath);
-                } 
               }
             },
             child: const Text('Replay Feedback'),
@@ -1232,16 +1039,8 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
               ElevatedButton(
                 onPressed: () async {
                   if (audioFeedbackPath.isNotEmpty) {
-                    if (kIsWeb) {
-                      await _audioPlayer!.openPlayer();
-                      await _audioPlayer!.startPlayer(
-                        fromDataBuffer: base64Decode(audioFeedbackPath)
-                      );
-                    } else {
-                      await _audioPlayer!.openPlayer();
-                      await _audioPlayer!.startPlayer(fromURI: audioFeedbackPath);
-                    }
-                    
+                    await _audioPlayer!.openPlayer();
+                    await _audioPlayer!.startPlayer(fromURI: audioFeedbackPath);
                   }
                 },
                 child: const Text('Replay Feedback'),

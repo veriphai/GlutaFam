@@ -4,24 +4,20 @@ import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
-import 'package:eureka_app/utils/glutaClassHelper.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'package:pdfx/pdfx.dart'; // Import pdfx package
 import 'package:http/http.dart' as http;
 import 'package:flutter_sound/flutter_sound.dart' as flutter_sound;
-// import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:audio_session/audio_session.dart' as audioSession;
 import 'dart:async'; // Import for Timer
 import 'package:provider/provider.dart';
 import 'package:just_audio/just_audio.dart';
-import 'dart:html' as html;
-import 'package:eureka_app/apis/askAnyQuestionWeb.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -96,10 +92,6 @@ class _PodcastScreenState extends State<PodcastScreen> {
   Map<String, List<String?>> userAnswers = {};
   Set<String> visitedCheckpoints = {};
   bool _showBestPractices = true;
-
-  html.MediaRecorder? _mediaRecorder;
-  List<html.Blob> _audioChunks = [];
-  html.MediaStream? _mediaStream;
 
   void _prepareSubsections() {
     transformedSubsections = [];
@@ -1222,90 +1214,21 @@ class _PodcastScreenState extends State<PodcastScreen> {
       print('Stopping recorder...');
       await _audioRecorder!.stopRecorder();
 
-      
-      if (kIsWeb) {
-        _mediaRecorder?.stop();
-        print("Stopped MediaRecorder.");
+      // Update UI immediately to reflect stopped recording
+      modalSetState(() {
+        _isRecording = false;
+        _isLoading = true;
+      });
 
-        // Completer to wait for all data chunks to be collected
-        final Completer<void>  dataAvailableCompleter = Completer<void>();
-
-        //Stop MediaRecorder and wait for all data chunks
-        _mediaRecorder?.addEventListener('dataavailable', (event) {
-          final blob = (event as html.BlobEvent).data;
-          if (blob != null) {
-            // print("Data available: Blob size = ${blob.size}");
-            _audioChunks.add(blob);
-          } else {
-            print("No data in blobEvent");
-          }
-          dataAvailableCompleter.complete();
-        });
-
-        await dataAvailableCompleter.future;
-
-        //Combine audio chunks into a single blob
-        final audioBlob = html.Blob(_audioChunks);
-
-
-        //Use FileReader to read blob and get base64-encoded audio
-        final reader = html.FileReader();
-        final Completer<void> readerCompleter = Completer<void>();
-        reader.readAsArrayBuffer(audioBlob);
-
-        reader.onLoadEnd.listen((event) async {
-          final audioBytes = reader.result as List<int>;
-          final base64Audio = base64Encode(audioBytes);
-
-          // print('audio bytes: $audioBytes');
-          // print('base 64 audio: $base64Audio');
-
-          html.window.localStorage['recored-audio'] = base64Audio;
-          // print('Audio sotred in localStorage: $base64Audio');
-          modalSetState(() {
-            _isRecording = false;
-            _isLoading = true;
-          });
-          final audioResponse = await sendAudioToBackendWeb(base64Audio: base64Audio, chapterId: widget.chapterId, sectionNumber: widget.sectionNumber);
-          _playBase64Audio(audioResponse);
-          modalSetState(() {
-           _isLoading = false;
-          });
-          readerCompleter.complete();
-        });
-
-        await readerCompleter.future;
-        _audioChunks.clear();
-
-        _mediaStream?.getTracks().forEach((track) => track.stop());
-        _mediaStream = null;
-
-      } else {
-        if (_audioPath != null && _audioPath!.isNotEmpty) {
-          print('Audio path: $_audioPath');
-          modalSetState(() {
-            _isRecording = false;
-            _isLoading = true;
-          });
-          await _sendAudioToBackend(File(_audioPath!));
-          modalSetState(() {
-            _isLoading = false;
-          });
-        } else {
-          print("Audio path is null or empty");
-        }
+      if (_audioPath != null && _audioPath!.isNotEmpty) {
+        print('Audio path: $_audioPath');
+        await _sendAudioToBackend(File(_audioPath!));
       }
 
-      // Update UI immediately to reflect stopped recording
-      
-
-      // if (_audioPath != null && _audioPath!.isNotEmpty) {
-      //   print('Audio path: $_audioPath');
-      //   await _sendAudioToBackend(File(_audioPath!));
-      // }
-
       // Reset loading state after backend call finishes
-      
+      modalSetState(() {
+        _isLoading = false;
+      });
     } else {
       print('Starting recorder...');
       await _audioPlayer.pause();
@@ -1318,36 +1241,15 @@ class _PodcastScreenState extends State<PodcastScreen> {
         _isRecording = true;
       });
 
-      if (kIsWeb) {
-        //Start MediaRecorder for web
-        print("recording on web");
-        _mediaStream = await html.window.navigator.mediaDevices!
-            .getUserMedia({'audio': true});
-        
-        _mediaRecorder = html.MediaRecorder(_mediaStream!);
-        _mediaRecorder!.addEventListener('dataavailable', (event) {
-          final blob = (event as html.BlobEvent).data;
-          if (blob != null) {
-            // print("Data available: Blob size = ${blob.size}");
-            _audioChunks.add(blob);
-          } else {
-            print('No data in blobEvent');
-          }
-        });
-        _mediaRecorder!.start();
-        print('Started MediaRecorder on web.');
-      } else {
-        // for native platforms
-        final tempDir = await getTemporaryDirectory();
-        _audioPath = '${tempDir.path}/podcast_audio_record.wav';
+      final tempDir = await getTemporaryDirectory();
+      _audioPath = '${tempDir.path}/podcast_audio_record.wav';
 
-        await _audioRecorder!.startRecorder(
-          toFile: _audioPath,
-          codec: flutter_sound.Codec.pcm16WAV,
-          bitRate: 16000,
-          sampleRate: 44100,
-        );
-      }
+      await _audioRecorder!.startRecorder(
+        toFile: _audioPath,
+        codec: flutter_sound.Codec.pcm16WAV,
+        bitRate: 16000,
+        sampleRate: 44100,
+      );
     }
   }
 
@@ -1411,21 +1313,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
   Future<void> _playBase64Audio(String base64Audio) async {
     try {
       final audioBytes = base64Decode(base64Audio);
-      if (kIsWeb) {
-        await _audioPlayerV2!.openPlayer();
-        await _audioPlayerV2!.startPlayer(
-          fromDataBuffer: audioBytes
-        );
-      } else {
-        final tempDir = await getTemporaryDirectory();
-        final audioFile = File('${tempDir.path}/response_audio.wav');
-        await audioFile.writeAsBytes(audioBytes);
-        audioFeedbackPath = audioFile.path;
+      final tempDir = await getTemporaryDirectory();
+      final audioFile = File('${tempDir.path}/response_audio.wav');
+      await audioFile.writeAsBytes(audioBytes);
+      audioFeedbackPath = audioFile.path;
 
-        await _audioPlayerV2!.openPlayer();
-        await _audioPlayerV2!.startPlayer(fromURI: audioFile.path);
-      }
-      
+      await _audioPlayerV2!.openPlayer();
+      await _audioPlayerV2!.startPlayer(fromURI: audioFile.path);
     } catch (e) {
       print('Error playing base64 audio: $e');
     }
@@ -1859,7 +1753,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
           children: [
             // Podcast image
             Container(
-              width: checkIsWebOnDesktop(context) ? 450 : double.infinity,
+              width: double.infinity,
               padding:
                   EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 20),
               child: Image.network(

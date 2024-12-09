@@ -8,14 +8,14 @@ class ResultScreen extends StatelessWidget {
   final int partiallyCorrect;
   final int totalQuestions;
   final String chapterId;
-  final Map<String, QuestionResult> questionResults;
+  final Map<String, QuestionResult>? questionResults;
 
   ResultScreen(
       {required this.correctAnswers,
       required this.partiallyCorrect,
       required this.totalQuestions,
       required this.chapterId,
-      required this.questionResults});
+      this.questionResults});
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +114,7 @@ class ResultScreen extends StatelessWidget {
                                 sectionEndQuestions:
                                     null, // Pass questions here
                                 isReviewMode: true, // Enable review mode
-                                questionResults: questionResults),
+                                questionResults: {}),
                           ),
                         );
                       },
