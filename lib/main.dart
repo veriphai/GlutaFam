@@ -9,6 +9,7 @@ import 'package:eureka_app/screens/signupScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/myAudioHandler.dart';
 import 'package:eureka_app/services/notificationService.dart';
+import 'package:eureka_app/utils/glutaClassHelper.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 import 'package:flutter/foundation.dart';
@@ -122,15 +123,15 @@ class MyAppState extends ChangeNotifier {
   }
 }
 
-bool checkIsWebOnDesktop(BuildContext context) {
-  if (!kIsWeb) {
-    return false; // Not running on web
-  }
+// bool checkIsWebOnDesktop(BuildContext context) {
+//   if (!kIsWeb) {
+//     return false; // Not running on web
+//   }
 
-  // Check if the screen width exceeds a typical mobile width threshold
-  final double screenWidth = MediaQuery.of(context).size.width;
-  return screenWidth >= 600; // Adjust this breakpoint for your needs
-}
+//   // Check if the screen width exceeds a typical mobile width threshold
+//   final double screenWidth = MediaQuery.of(context).size.width;
+//   return screenWidth >= 600; // Adjust this breakpoint for your needs
+// }
 
 Future<bool> checkIfRealDevice() async {
   if (kIsWeb) {
