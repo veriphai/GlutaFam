@@ -3,8 +3,6 @@ import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class FeedbackScreen extends StatefulWidget {

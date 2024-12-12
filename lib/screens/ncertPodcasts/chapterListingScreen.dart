@@ -1,7 +1,5 @@
-import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/events/chapterListingEvents.dart';
 import 'package:eureka_app/events/genericEvents.dart';
-import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/miniPlayer.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
@@ -16,10 +14,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'package:just_audio/just_audio.dart';
 import 'dart:math';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class Chapterscreen extends StatefulWidget {
   final int standard = 8;
@@ -425,8 +422,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
                       children: [
                         // Circular container for the image
                         ClipOval(
-                          child: Image.network(
-                            item['image'],
+                          child: CachedNetworkImage(
+                            imageUrl: item['image'],
                             width: 80,
                             height: 80,
                             fit: BoxFit.cover,
@@ -592,8 +589,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          episode['image'], // Replace with your image URL field
+                        child: CachedNetworkImage(
+                          imageUrl: episode[
+                              'image'], // Replace with your image URL field
                           width: 60,
                           height: 60,
                           fit: BoxFit.cover,
@@ -686,39 +684,6 @@ class _ChapterscreenState extends State<Chapterscreen> {
                           },
                         ),
                         const Spacer(flex: 1),
-
-                        // "Go to Case" Button (if CER data exists)
-                        if (episode['cer'] != null && episode['cer'].isNotEmpty)
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              backgroundColor:
-                                  const Color.fromRGBO(255, 217, 0, 1),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              minimumSize: const Size(20, 20),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CERPage(
-                                    data: episode['cer'],
-                                    chapterId: episode['chapterId'],
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              'Go to Case',
-                              style: GoogleFonts.raleway(
-                                color: Colors.black,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
 
                         // Play Button
                         IconButton(
@@ -988,8 +953,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
               ),
               Center(
                   child: Container(
-                width: 40, // Adjust inner circle size
-                height: 40,
+                width: 35, // Adjust inner circle size
+                height: 35,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Color.fromRGBO(255, 217, 0, 1),
@@ -1006,8 +971,9 @@ class _ChapterscreenState extends State<Chapterscreen> {
                         );
                       },
                       icon: Icon(
-                        Icons.card_giftcard,
+                        Icons.person_add_alt_1_sharp,
                         color: Colors.black,
+                        size: 20,
                         // Icon color
                       )),
                 ),
@@ -1031,8 +997,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                chapter['image'],
+              child: CachedNetworkImage(
+                imageUrl: chapter['image'],
                 fit: BoxFit.cover,
                 width: 60,
                 height: 60,
@@ -1101,8 +1067,8 @@ class _ChapterscreenState extends State<Chapterscreen> {
               ListTile(
                 leading: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    chapter['image'],
+                  child: CachedNetworkImage(
+                    imageUrl: chapter['image'],
                     width: 50,
                     height: 50,
                     fit: BoxFit.cover,

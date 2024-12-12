@@ -27,12 +27,21 @@ void logBestPracticesClosed(String topicId) {
   );
 }
 
-void logBestPracticesStartLessonClick(String topicId) {
+void logBestPracticesStartLessonClick(String topicId, String language) {
   logEvent(
     eventName: "audio_player_best_practices_start_lesson_click",
     screenName: "AudioPlayerScreen",
     eventType: "button_click",
-    eventDetails: {"topicId": topicId},
+    eventDetails: {"topicId": topicId, "language": language},
+  );
+}
+
+void logBestPracticesToggleLanguage(String topicId, String language) {
+  logEvent(
+    eventName: "audio_player_best_practices_toggle_language",
+    screenName: "AudioPlayerScreen",
+    eventType: "button_click",
+    eventDetails: {"topicId": topicId, "language": language},
   );
 }
 

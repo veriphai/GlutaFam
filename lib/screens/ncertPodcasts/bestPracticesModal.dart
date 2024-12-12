@@ -4,10 +4,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 class BestPracticesModal extends StatefulWidget {
   final VoidCallback onDismiss;
+  final VoidCallback listenInHindi;
   final String topicId;
 
   const BestPracticesModal(
-      {Key? key, required this.onDismiss, required this.topicId})
+      {Key? key,
+      required this.onDismiss,
+      required this.listenInHindi,
+      required this.topicId})
       : super(key: key);
 
   @override
@@ -19,6 +23,14 @@ class _BestPracticesModalState extends State<BestPracticesModal>
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _opacityAnimation;
+
+  String currentLanguage = 'En';
+
+  void toggleLanguage() {
+    setState(() {
+      currentLanguage = currentLanguage == 'En' ? 'Hn' : 'En';
+    });
+  }
 
   @override
   void initState() {
@@ -170,32 +182,86 @@ class _BestPracticesModalState extends State<BestPracticesModal>
                           ],
                         ),
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          logBestPracticesStartLessonClick(widget.topicId);
-
-                          widget.onDismiss();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              logBestPracticesStartLessonClick(
+                                  widget.topicId, currentLanguage);
+                              if (currentLanguage == "En") {
+                                widget.onDismiss();
+                              } else {
+                                widget.listenInHindi();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 16), // Adjust padding
+                            ),
+                            icon: Icon(
+                              Icons
+                                  .play_circle_fill, // Choose an appropriate icon
+                              color: Colors.black,
+                            ),
+                            label: Text(
+                              "Start Lesson",
+                              style: GoogleFonts.raleway(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
-                          padding: EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 16), // Adjust padding
-                        ),
-                        icon: Icon(
-                          Icons.play_circle_fill, // Choose an appropriate icon
-                          color: Colors.black,
-                        ),
-                        label: Text(
-                          "Start Lesson",
-                          style: GoogleFonts.raleway(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                          SizedBox(
+                            width: 10,
                           ),
-                        ),
+                          SizedBox(
+                            width: 90, // Set your desired fixed width here
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                toggleLanguage();
+                                logBestPracticesToggleLanguage(
+                                    widget.topicId, currentLanguage);
+                                // widget.listenInHindi();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: BorderSide(
+                                    color: Color.fromRGBO(255, 217, 0, 1),
+                                    width: 2,
+                                  ),
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 12,
+                                    horizontal: 16), // Adjust padding
+                              ),
+                              icon: Icon(
+                                Icons.language,
+                                color: Color.fromRGBO(255, 217, 0, 1),
+                              ),
+                              label: FittedBox(
+                                // Ensures the text adjusts within the fixed width
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  currentLanguage,
+                                  style: GoogleFonts.raleway(
+                                    color: Color.fromRGBO(255, 217, 0, 1),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       SizedBox(height: 20),
                     ],

@@ -1,11 +1,11 @@
 import 'dart:math';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/apis/saveCheckpointResultApi.dart';
 import 'package:eureka_app/apis/submitFeedbackApi.dart';
 import 'package:eureka_app/events/audioPlayerScreenEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/bestPracticesModal.dart';
-import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/earlyExitFeedbackModal.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
@@ -18,7 +18,6 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_sound/flutter_sound.dart' as flutter_sound;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:audio_session/audio_session.dart' as audioSession;
 import 'dart:async'; // Import for Timer
@@ -101,11 +100,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
   late String currentAudioUrl;
   late List<dynamic>? currentSubsections;
-  String currentLanguage = 'EN';
+  String currentLanguage = 'En';
 
   void toggleLanguage() {
     setState(() {
-      currentLanguage = currentLanguage == 'EN' ? 'HI' : 'EN';
+      currentLanguage = currentLanguage == 'En' ? 'Hn' : 'En';
     });
   }
 
@@ -310,7 +309,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
       currentSubsectionIndex = index;
     }
     final subsection = transformedSubsections[currentSubsectionIndex];
-    int attemptedQuestions = subsection['mcqs'].length;
+    int attemptedQuestions =
+        (subsection['mcqs'] != null && subsection['mcqs'] is List)
+            ? subsection['mcqs'].length
+            : 0;
 
     final subsectionId = subsection['id'];
     visitedCheckpoints.add(subsectionId);
@@ -320,14 +322,19 @@ class _PodcastScreenState extends State<PodcastScreen> {
       null,
     );
 
-    currentKeyPoints = subsection['keypoints'];
+    currentKeyPoints =
+        subsection.containsKey('keypoints') && subsection['keypoints'] != null
+            ? subsection['keypoints']
+            : [];
 
     logCheckpointAppeared(
         widget.sectionId ?? '',
         _audioPlayer.playing,
         _audioPlayer.position.inSeconds,
         subsectionId,
-        transformedSubsections[currentSubsectionIndex]['id']);
+        transformedSubsections.isNotEmpty
+            ? transformedSubsections[currentSubsectionIndex]['id']
+            : "");
 
     showModalBottomSheet(
       context: context,
@@ -370,8 +377,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                 _audioPlayer.playing,
                                 _audioPlayer.position.inSeconds,
                                 subsectionId,
-                                transformedSubsections[currentSubsectionIndex]
-                                    ['id']);
+                                transformedSubsections.isNotEmpty
+                                    ? transformedSubsections[
+                                        currentSubsectionIndex]['id']
+                                    : "");
                           }
                           Navigator.pop(context);
                         },
@@ -542,13 +551,21 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                             _audioPlayer.playing,
                                             _audioPlayer.position.inSeconds,
                                             subsectionId,
-                                            transformedSubsections[
-                                                currentSubsectionIndex]['id'],
+                                            transformedSubsections.isNotEmpty
+                                                ? transformedSubsections[
+                                                        currentSubsectionIndex]
+                                                    ['id']
+                                                : "",
                                             inReviewMode
                                                 ? "review"
                                                 : "attempt");
                                         if (currentSubsectionIndex >=
                                             transformedSubsections.length - 3) {
+                                          if (mounted) {
+                                            context
+                                                .read<AudioProvider>()
+                                                .resetAudioPosition();
+                                          }
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
@@ -615,8 +632,11 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                             _audioPlayer.playing,
                                             _audioPlayer.position.inSeconds,
                                             subsectionId,
-                                            transformedSubsections[
-                                                currentSubsectionIndex]['id'],
+                                            transformedSubsections.isNotEmpty
+                                                ? transformedSubsections[
+                                                        currentSubsectionIndex]
+                                                    ['id']
+                                                : "",
                                             inReviewMode
                                                 ? "review"
                                                 : "attempt");
@@ -675,8 +695,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                     _audioPlayer.playing,
                                     _audioPlayer.position.inSeconds,
                                     subsectionId,
-                                    transformedSubsections[
-                                        currentSubsectionIndex]['id']);
+                                    transformedSubsections.isNotEmpty
+                                        ? transformedSubsections[
+                                            currentSubsectionIndex]['id']
+                                        : "");
                               },
                               child: Text(
                                 "Continue",
@@ -708,8 +730,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                     _audioPlayer.playing,
                                     _audioPlayer.position.inSeconds,
                                     subsectionId,
-                                    transformedSubsections[
-                                        currentSubsectionIndex]['id'],
+                                    transformedSubsections.isNotEmpty
+                                        ? transformedSubsections[
+                                            currentSubsectionIndex]['id']
+                                        : "",
                                     subsection['mcqs'][currentQuestionIndex]
                                         ['id'],
                                     selectedOption ?? '',
@@ -814,8 +838,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                           _audioPlayer.playing,
                                           _audioPlayer.position.inSeconds,
                                           subsectionId,
-                                          transformedSubsections[
-                                              currentSubsectionIndex]['id'],
+                                          transformedSubsections.isNotEmpty
+                                              ? transformedSubsections[
+                                                  currentSubsectionIndex]['id']
+                                              : "",
                                           inReviewMode ? "review" : "attempt");
                                       // Add functionality for the microphone button here
                                     },
@@ -845,8 +871,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                     _audioPlayer.playing,
                                     _audioPlayer.position.inSeconds,
                                     subsectionId,
-                                    transformedSubsections[
-                                        currentSubsectionIndex]['id'],
+                                    transformedSubsections.isNotEmpty
+                                        ? transformedSubsections[
+                                            currentSubsectionIndex]['id']
+                                        : "",
                                     subsection['mcqs'][currentQuestionIndex]
                                         ['id'],
                                     userAnswers[subsectionId]
@@ -909,10 +937,16 @@ class _PodcastScreenState extends State<PodcastScreen> {
         widget.sectionId ?? '',
         _audioPlayer.playing,
         _audioPlayer.position.inSeconds,
-        transformedSubsections[currentSubsectionIndex]['id'],
-        transformedSubsections[currentSubsectionIndex]['id'],
-        transformedSubsections[currentSubsectionIndex]['mcqs']
-            [currentQuestionIndex]['id'],
+        transformedSubsections.isNotEmpty
+            ? transformedSubsections[currentSubsectionIndex]['id']
+            : "",
+        transformedSubsections.isNotEmpty
+            ? transformedSubsections[currentSubsectionIndex]['id']
+            : "",
+        transformedSubsections.isNotEmpty
+            ? transformedSubsections[currentSubsectionIndex]['mcqs']
+                [currentQuestionIndex]['id']
+            : "",
         "attempt");
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
@@ -962,10 +996,18 @@ class _PodcastScreenState extends State<PodcastScreen> {
                         widget.sectionId ?? '',
                         _audioPlayer.playing,
                         _audioPlayer.position.inSeconds,
-                        transformedSubsections[currentSubsectionIndex]['id'],
-                        transformedSubsections[currentSubsectionIndex]['id'],
-                        transformedSubsections[currentSubsectionIndex]['mcqs']
-                            [currentQuestionIndex]['id'],
+                        transformedSubsections.isNotEmpty
+                            ? transformedSubsections[currentSubsectionIndex]
+                                ['id']
+                            : "",
+                        transformedSubsections.isNotEmpty
+                            ? transformedSubsections[currentSubsectionIndex]
+                                ['id']
+                            : "",
+                        transformedSubsections.isNotEmpty
+                            ? transformedSubsections[currentSubsectionIndex]
+                                ['mcqs'][currentQuestionIndex]['id']
+                            : "",
                         option['id']);
                     modalSetState(() {
                       onOptionSelected(option['id']);
@@ -1043,7 +1085,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
         _audioPlayer.playing,
         _audioPlayer.position.inSeconds,
         subSectionId,
-        transformedSubsections[currentSubsectionIndex]['id'],
+        transformedSubsections.isNotEmpty
+            ? transformedSubsections[currentSubsectionIndex]['id']
+            : "",
         question['id'],
         "review");
     return Container(
@@ -1146,11 +1190,18 @@ class _PodcastScreenState extends State<PodcastScreen> {
     for (var subsection in transformedSubsections) {
       if (currentPosition.inMilliseconds >= subsection['endTime'] - 300 &&
           currentPosition.inMilliseconds < subsection['endTime'] + 500) {
-        setState(() {
-          currentKeyPoints = subsection['keypoints'];
-          isPlaying = false;
-        });
-        _showKeyPointsOverlay(false);
+        final listOfSubsection = subsection.containsKey('keypoints') &&
+                subsection['keypoints'] != null
+            ? subsection['keypoints']
+            : [];
+        if (listOfSubsection.length > 0) {
+          setState(() {
+            currentKeyPoints = listOfSubsection;
+            isPlaying = false;
+          });
+          _showKeyPointsOverlay(false);
+        }
+
         break;
       }
     }
@@ -1163,6 +1214,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
     currentSubsections = widget.subsections;
     _audioRecorder = flutter_sound.FlutterSoundRecorder();
     _audioPlayerV2 = flutter_sound.FlutterSoundPlayer();
+
+    if (widget.pdfUrl != null && widget.pdfUrl!.isNotEmpty) {
+      _loadPdfFromNetwork(widget.pdfUrl!);
+    }
 
     logPodcastScreenView(widget.chapterId, widget.sectionId ?? '');
 
@@ -1215,7 +1270,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
         setState(() {
           currentPosition = position;
           _updateActiveSubsectionName();
-          _checkEndOfSubsection();
+          if (currentSubsectionIndex < transformedSubsections.length - 1) {
+            _checkEndOfSubsection();
+          }
         });
       }
     });
@@ -1228,23 +1285,21 @@ class _PodcastScreenState extends State<PodcastScreen> {
           isPlaying = !isComplete;
           if (isComplete) {
             currentPosition = Duration.zero;
+            context.read<AudioProvider>().resetAudioPosition();
           }
         });
-      }
-      if (widget.cerData.isNotEmpty) {
-        Map<String, dynamic> eventDetails = {
-          "chapterId": widget.chapterId,
-          "section": widget.title,
-          "description": "Moved to CER after audio Completion"
-        };
-        logEvents(eventDetails, "autoRedirection");
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                CERPage(data: widget.cerData, chapterId: widget.chapterId),
-          ),
-        );
+        if (isComplete) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FeedbackScreen(
+                chapterId: widget.chapterId,
+                sectionEndQuestions: widget.sectionEndQuestions,
+                sectionId: widget.sectionId,
+              ),
+            ),
+          );
+        }
       }
     });
 
@@ -1258,14 +1313,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
     });
     _initializeRecorder();
     _initializeAudioSession();
-
-    if (widget.pdfUrl != null && widget.pdfUrl!.isNotEmpty) {
-      _loadPdfFromNetwork(widget.pdfUrl!);
-    }
   }
 
   Future<void> _fetchLanguageSpecificDataAndUpdate() async {
-    String languageSuffix = currentLanguage == 'HI' ? '_hindi' : '';
+    String languageSuffix = currentLanguage == 'Hn' ? '_hindi' : '';
 
     String url =
         'https://glutaclass.com:8080/gluta/fam/podcast?episodeId=${widget.sectionId}$languageSuffix';
@@ -1304,7 +1355,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
               sectionEndQuestions: widget.sectionEndQuestions,
             );
 
-        Navigator.pop(context);
+        // Navigator.pop(context);
       } else {
         throw Exception("Failed to fetch Hinglish data: ${response.body}");
       }
@@ -1342,11 +1393,24 @@ class _PodcastScreenState extends State<PodcastScreen> {
                 logPodcastStart(widget.sectionId ?? '');
               }
             },
+            listenInHindi: () {
+              setState(() {
+                _showBestPractices = false;
+                currentLanguage = "Hn";
+              });
+              Navigator.pop(context);
+              fetchHindiLangData();
+            },
             topicId: widget.sectionId ?? '',
           ),
         );
       },
     );
+  }
+
+  void fetchHindiLangData() async {
+    await _fetchLanguageSpecificDataAndUpdate();
+    _audioPlayer.play();
   }
 
   Future<void> _initializeRecorder() async {
@@ -1392,33 +1456,6 @@ class _PodcastScreenState extends State<PodcastScreen> {
         eventDetails: eventDetails);
   }
 
-  void stopAudioAndJumpToCER() async {
-    await _audioPlayer.pause(); // Stop the audio playback
-    int currentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    Map<String, dynamic> eventDetails = {
-      "chapterId": widget.chapterId,
-      "section": widget.title,
-      "description": "CER button Clicked before Audio Completion"
-    };
-
-    await logEvent(
-      eventType: "buttonClick",
-      screenName: screenName,
-      eventDetails: eventDetails,
-    );
-    setState(() {
-      isPlaying = false;
-    });
-    // Navigate to CER
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            CERPage(data: widget.cerData, chapterId: widget.chapterId),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     // _audioPlayer.dispose();
@@ -1445,7 +1482,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
           widget.sectionId ?? '',
           _audioPlayer.playing,
           _audioPlayer.position.inSeconds,
-          transformedSubsections[currentSubsectionIndex]['id']);
+          transformedSubsections.isNotEmpty
+              ? transformedSubsections[currentSubsectionIndex]['id']
+              : "");
 
       if (_audioPath != null && _audioPath!.isNotEmpty) {
         print('Audio path: $_audioPath');
@@ -1481,7 +1520,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
           widget.sectionId ?? '',
           _audioPlayer.playing,
           _audioPlayer.position.inSeconds,
-          transformedSubsections[currentSubsectionIndex]['id']);
+          transformedSubsections.isNotEmpty
+              ? transformedSubsections[currentSubsectionIndex]['id']
+              : "");
     }
   }
 
@@ -1502,6 +1543,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
       ));
       request.fields['chapterId'] = widget.chapterId;
       request.fields['sectionNumber'] = widget.sectionNumber.toString();
+      request.fields['language'] = currentLanguage;
       if (transformedSubsections.isNotEmpty &&
           currentSubsectionIndex < transformedSubsections.length) {
         request.fields['subsectionId'] =
@@ -1557,7 +1599,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
             widget.sectionId ?? '',
             _audioPlayer.playing,
             _audioPlayer.position.inSeconds,
-            transformedSubsections[currentSubsectionIndex]['id']);
+            transformedSubsections.isNotEmpty
+                ? transformedSubsections[currentSubsectionIndex]['id']
+                : "");
       }
     } catch (e) {
       print('Error playing base64 audio: $e');
@@ -1570,7 +1614,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
           widget.sectionId ?? '',
           _audioPlayer.playing,
           _audioPlayer.position.inSeconds,
-          transformedSubsections[currentSubsectionIndex]['id']);
+          transformedSubsections.isNotEmpty
+              ? transformedSubsections[currentSubsectionIndex]['id']
+              : "");
       await _audioPlayer.pause();
       setState(() {
         isPlaying = false;
@@ -1581,7 +1627,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
           widget.sectionId ?? '',
           _audioPlayer.playing,
           _audioPlayer.position.inSeconds,
-          transformedSubsections[currentSubsectionIndex]['id']);
+          transformedSubsections.isNotEmpty
+              ? transformedSubsections[currentSubsectionIndex]['id']
+              : "");
       await _audioPlayer.play(); // Start playback
       if (mounted) {
         setState(() {
@@ -1624,8 +1672,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                             widget.sectionId ?? '',
                             _audioPlayer.playing,
                             _audioPlayer.position.inSeconds,
-                            transformedSubsections[currentSubsectionIndex]
-                                ['id']);
+                            transformedSubsections.isNotEmpty
+                                ? transformedSubsections[currentSubsectionIndex]
+                                    ['id']
+                                : "");
                         Navigator.pop(context); // Close the modal
                       },
                     ),
@@ -1654,8 +1704,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                             widget.sectionId ?? '',
                             _audioPlayer.playing,
                             _audioPlayer.position.inSeconds,
-                            transformedSubsections[currentSubsectionIndex]
-                                ['id'],
+                            transformedSubsections.isNotEmpty
+                                ? transformedSubsections[currentSubsectionIndex]
+                                    ['id']
+                                : "",
                             false);
                         return Center(
                           child: Text(
@@ -1669,8 +1721,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                             widget.sectionId ?? '',
                             _audioPlayer.playing,
                             _audioPlayer.position.inSeconds,
-                            transformedSubsections[currentSubsectionIndex]
-                                ['id'],
+                            transformedSubsections.isNotEmpty
+                                ? transformedSubsections[currentSubsectionIndex]
+                                    ['id']
+                                : "",
                             true);
                         return PdfView(
                           controller: _pdfController!,
@@ -1689,12 +1743,21 @@ class _PodcastScreenState extends State<PodcastScreen> {
   }
 
   Future<void> _loadPdf() async {
+    const int maxRetries = 10;
+    const Duration delay = Duration(seconds: 2);
+
+    int retries = 0;
+
+    while (!isPdfLoaded && retries < maxRetries) {
+      await Future.delayed(delay);
+      retries++;
+      if (isPdfLoaded) {
+        break;
+      }
+    }
+
     if (!isPdfLoaded) {
-      // Simulate loading time
-      await Future.delayed(Duration(milliseconds: 2500));
-      setState(() {
-        isPdfLoaded = true;
-      });
+      print("PDF loading timed out.");
     }
   }
 
@@ -1739,8 +1802,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                 widget.sectionId ?? '',
                                 _audioPlayer.playing,
                                 _audioPlayer.position.inSeconds,
-                                transformedSubsections[currentSubsectionIndex]
-                                    ['id']);
+                                transformedSubsections.isNotEmpty
+                                    ? transformedSubsections[
+                                        currentSubsectionIndex]['id']
+                                    : "");
                             Navigator.pop(context);
                           },
                         ),
@@ -1829,7 +1894,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
         widget.sectionId ?? '',
         _audioPlayer.playing,
         _audioPlayer.position.inSeconds,
-        transformedSubsections[currentSubsectionIndex]['id']);
+        transformedSubsections.isNotEmpty
+            ? transformedSubsections[currentSubsectionIndex]['id']
+            : "");
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black,
@@ -1902,8 +1969,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                 widget.sectionId ?? '',
                                 _audioPlayer.playing,
                                 _audioPlayer.position.inSeconds,
-                                transformedSubsections[currentSubsectionIndex]
-                                    ['id'],
+                                transformedSubsections.isNotEmpty
+                                    ? transformedSubsections[
+                                        currentSubsectionIndex]['id']
+                                    : "",
                                 subsection['id']);
                             if (subsection['type'] == 'checkpoint') {
                               renderCheckpoint(index);
@@ -1962,7 +2031,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
         widget.sectionId ?? '',
         _audioPlayer.playing,
         _audioPlayer.position.inSeconds,
-        transformedSubsections[currentSubsectionIndex]['id'],
+        transformedSubsections.isNotEmpty
+            ? transformedSubsections[currentSubsectionIndex]['id']
+            : "",
         'forward');
     final remainingDuration = totalDuration - currentPosition;
     if (remainingDuration.inSeconds <= 10) {
@@ -1979,7 +2050,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
         widget.sectionId ?? '',
         _audioPlayer.playing,
         _audioPlayer.position.inSeconds,
-        transformedSubsections[currentSubsectionIndex]['id'],
+        transformedSubsections.isNotEmpty
+            ? transformedSubsections[currentSubsectionIndex]['id']
+            : "",
         'backward');
     final newPosition = currentPosition - Duration(seconds: 10);
     if (newPosition > Duration.zero) {
@@ -2003,8 +2076,14 @@ class _PodcastScreenState extends State<PodcastScreen> {
           widget.sectionId ?? '',
           _audioPlayer.playing,
           _audioPlayer.position.inSeconds,
-          transformedSubsections[currentSubsectionIndex]['id'],
+          transformedSubsections.isNotEmpty
+              ? transformedSubsections[currentSubsectionIndex]['id']
+              : "",
           "End Lesson");
+      if (mounted) {
+        context.read<AudioProvider>().resetAudioPosition();
+      }
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -2020,8 +2099,12 @@ class _PodcastScreenState extends State<PodcastScreen> {
           widget.sectionId ?? '',
           _audioPlayer.playing,
           _audioPlayer.position.inSeconds,
-          transformedSubsections[currentSubsectionIndex]['id'],
-          transformedSubsections[currentSubsectionIndex]['type']);
+          transformedSubsections.isNotEmpty
+              ? transformedSubsections[currentSubsectionIndex]['id']
+              : "",
+          transformedSubsections.isNotEmpty
+              ? transformedSubsections[currentSubsectionIndex]['type']
+              : "");
       final nextSubsection = transformedSubsections[currentSubsectionIndex + 1];
 
       if (nextSubsection['type'] == 'checkpoint') {
@@ -2058,7 +2141,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
     int randomNumber =
         Random().nextInt(10) + 1; // Generate a number between 1 and 10
     bool shouldShowModal = randomNumber % 3 == 0 && !_audioPlayer.playing;
-    return shouldShowModal;
+    return !shouldShowModal;
   }
 
   @override
@@ -2081,8 +2164,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   width: double.infinity,
                   padding:
                       EdgeInsets.only(left: 20, right: 20, top: 15, bottom: 20),
-                  child: Image.network(
-                    widget.imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.imageUrl,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -2093,26 +2176,30 @@ class _PodcastScreenState extends State<PodcastScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.title,
-                          style: GoogleFonts.raleway(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.left,
-                        ),
+                        Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              widget.title,
+                              style: GoogleFonts.raleway(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.left,
+                            )),
                         SizedBox(height: 5),
-                        Text(
-                          "Chapter ${widget.chapterNo} • ${widget.chapterName}",
-                          style: GoogleFonts.arOneSans(
-                              fontSize: 14, color: Colors.grey),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.left,
-                        ),
+                        Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              "Chapter ${widget.chapterNo} • ${widget.chapterName}",
+                              style: GoogleFonts.arOneSans(
+                                  fontSize: 14, color: Colors.grey),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.left,
+                            )),
                         if (currentSubsections != null &&
                             currentSubsections!.isNotEmpty)
                           Padding(
@@ -2234,8 +2321,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                   widget.sectionId ?? '',
                                   _audioPlayer.playing,
                                   _audioPlayer.position.inSeconds,
-                                  transformedSubsections[currentSubsectionIndex]
-                                      ['id']);
+                                  transformedSubsections.isNotEmpty
+                                      ? transformedSubsections[
+                                          currentSubsectionIndex]['id']
+                                      : "");
                             },
                             activeColor: Color.fromRGBO(255, 217, 0, 1),
                             inactiveColor: Colors.grey[700],
@@ -2331,8 +2420,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                         widget.sectionId ?? '',
                                         _audioPlayer.playing,
                                         _audioPlayer.position.inSeconds,
-                                        transformedSubsections[
-                                            currentSubsectionIndex]['id']);
+                                        transformedSubsections.isNotEmpty
+                                            ? transformedSubsections[
+                                                currentSubsectionIndex]['id']
+                                            : "");
                                     _openAskQuestionModel(context);
 
                                     // Add functionality for the microphone button here
@@ -2374,8 +2465,10 @@ class _PodcastScreenState extends State<PodcastScreen> {
                                         widget.sectionId ?? '',
                                         _audioPlayer.playing,
                                         _audioPlayer.position.inSeconds,
-                                        transformedSubsections[
-                                            currentSubsectionIndex]['id']);
+                                        transformedSubsections.isNotEmpty
+                                            ? transformedSubsections[
+                                                currentSubsectionIndex]['id']
+                                            : "");
                                     _openPdfInModal(context);
                                   },
                                 ),
@@ -2409,24 +2502,24 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   ListTile(
                     leading: Icon(
                       Icons.language,
-                      color: currentLanguage == 'EN'
+                      color: currentLanguage == 'En'
                           ? Color.fromRGBO(255, 217, 0, 1)
                           : Colors.white,
                     ),
                     title: Text(
                       "Listen in English",
                       style: GoogleFonts.raleway(
-                        color: currentLanguage == 'EN'
+                        color: currentLanguage == 'En'
                             ? Color.fromRGBO(255, 217, 0, 1)
                             : Colors.white,
                       ),
                     ),
                     onTap: () async {
-                      if (currentLanguage == 'EN') {
+                      if (currentLanguage == 'En') {
                         Navigator.pop(context); // Just close the sheet
                       } else {
                         modalSetState(() {
-                          currentLanguage = 'EN';
+                          currentLanguage = 'En';
                         });
                         logLanguageSelected(
                             widget.sectionId ?? '',
@@ -2446,6 +2539,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
                         try {
                           await _fetchLanguageSpecificDataAndUpdate();
+                          Navigator.pop(context);
                         } finally {
                           Navigator.pop(context); // Close the loading dialog
                           await _audioPlayer.play(); // Start playback
@@ -2459,24 +2553,24 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   ListTile(
                     leading: Icon(
                       Icons.language,
-                      color: currentLanguage == 'HI'
+                      color: currentLanguage == 'Hn'
                           ? Color.fromRGBO(255, 217, 0, 1)
                           : Colors.white,
                     ),
                     title: Text(
                       "Listen in Hindi",
                       style: GoogleFonts.raleway(
-                        color: currentLanguage == 'HI'
+                        color: currentLanguage == 'Hn'
                             ? Color.fromRGBO(255, 217, 0, 1)
                             : Colors.white,
                       ),
                     ),
                     onTap: () async {
-                      if (currentLanguage == 'HI') {
+                      if (currentLanguage == 'Hn') {
                         Navigator.pop(context);
                       } else {
                         modalSetState(() {
-                          currentLanguage = 'HI';
+                          currentLanguage = 'Hn';
                         });
                         logLanguageSelected(
                             widget.sectionId ?? '',
@@ -2496,6 +2590,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
 
                         try {
                           await _fetchLanguageSpecificDataAndUpdate();
+                          Navigator.pop(context);
                         } finally {
                           Navigator.pop(context); // Close the loading dialog
                           await _audioPlayer.play(); // Start playback
@@ -2601,9 +2696,9 @@ class _PodcastScreenState extends State<PodcastScreen> {
                   color: Color.fromRGBO(255, 217, 0, 1),
                 ),
                 label: Text(
-                  currentLanguage == 'EN'
-                      ? 'EN'
-                      : 'HI', // Update based on selected language
+                  currentLanguage == 'En'
+                      ? 'En'
+                      : 'Hn', // Update based on selected language
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,

@@ -21,6 +21,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final secureStorage = FlutterSecureStorage();
   final AuthTokenService authTokenService = AuthTokenService();
   bool _isLoading = false; // Loading state
+  String deviceId = "";
+  String platform = "";
+  String userIP = "";
 
   @override
   void initState() {
@@ -30,18 +33,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void logLoginScreenOpen() async {
     Map<String, String> deviceDetails = await getDeviceDetails();
-    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
-    String platform = deviceDetails['platform'] ?? "Unknown";
-    String userIP = await getUserIP();
+    deviceId = deviceDetails['deviceId'] ?? "Unknown";
+    platform = deviceDetails['platform'] ?? "Unknown";
+    userIP = await getUserIP();
 
     logLoginScreenView(deviceId, platform, userIP);
   }
 
   Future<UserCredential> signInWithGoogle() async {
-    Map<String, String> deviceDetails = await getDeviceDetails();
-    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
-    String platform = deviceDetails['platform'] ?? "Unknown";
-    String userIP = await getUserIP();
     logGoogleAuthButtonClick(deviceId, platform, userIP);
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
@@ -127,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 30),
                 // Description Text
                 Text(
-                  "Interest-led Audio Lessons",
+                  "Personalised Audio Tutor",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.raleway(
                     fontSize: 28,
@@ -136,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 Text(
-                  "for Your Curriculum",
+                  "for Your NCERT Books",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.raleway(
                     fontSize: 28,
@@ -149,7 +148,8 @@ class _LoginScreenState extends State<LoginScreen> {
           )),
           if (_isLoading)
             CircularProgressIndicator(
-              color: Colors.orange, // Optional: color of the spinner
+              color: Color.fromRGBO(
+                  255, 217, 0, 1), // Optional: color of the spinner
             ),
           Padding(
               padding:
@@ -159,13 +159,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (!kIsWeb)
                     OutlinedButton(
                       onPressed: () async {
-                        Map<String, String> deviceDetails =
-                            await getDeviceDetails();
-                        String deviceId =
-                            deviceDetails['deviceId'] ?? "Unknown";
-                        String platform =
-                            deviceDetails['platform'] ?? "Unknown";
-                        String userIP = await getUserIP();
                         logPhoneAuthButtonClick(deviceId, platform, userIP);
                         Navigator.push(
                           context,
@@ -222,13 +215,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           String? email = user.email;
                           String? photoURL = user.photoURL;
                           String? uid = user.uid;
-                          Map<String, String> deviceDetails =
-                              await getDeviceDetails();
-                          String deviceId =
-                              deviceDetails['deviceId'] ?? "Unknown";
-                          String platform =
-                              deviceDetails['platform'] ?? "Unknown";
-                          String userIP = await getUserIP();
                           logGoogleAuthSuccess(uid, deviceId, platform, userIP);
                           saveProfile(displayName, email, uid, photoURL);
                         }
@@ -236,7 +222,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => ClassSelectionPage()));
+                                builder: (context) => ClassSelectionPage(
+                                    deviceId: deviceId,
+                                    platform: platform,
+                                    userIP: userIP)));
                       } catch (error) {
                         print("Google Sign-In Failed: $error");
                       }

@@ -93,5 +93,21 @@ void logBackButtonClick(String topicId, bool isAudioPlaying, int audioDuration,
       });
 }
 
+void logNoInternetNodalViewEvent() {
+  logEvent(
+      eventName: "no_internet_sv",
+      screenName: "NoInternetScreen",
+      eventType: "screen_view",
+      eventDetails: {});
+}
+
+void logNoInternetNodalRetryEvent(bool internetActive) {
+  logEvent(
+      eventName: "no_internet_retry",
+      screenName: "NoInternetScreen",
+      eventType: "button_click",
+      eventDetails: {"internetActive": internetActive});
+}
+
 
 //add event for joined by referral

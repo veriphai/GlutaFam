@@ -1,6 +1,7 @@
 import 'package:eureka_app/apis/getProfile.dart';
 import 'package:eureka_app/events/referralScreenEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/giftScreen.dart';
+import 'package:eureka_app/utils/checkInternetConnectivity.dart';
 import 'package:eureka_app/utils/generateReferralLink.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,12 +19,18 @@ class _ReferralScreenState extends State<ReferralScreen> {
   int joinedReferrals = 0;
   String referralCode = "";
   String redeemedGiftId = "";
+  String referralLink = "";
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfileAndReferralCode();
     logReferralScreenView(joinedReferrals);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _fetchUserProfileAndReferralCode() async {
@@ -36,6 +43,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
         totalReferrals = profile['totalReferralCount'] ?? 0; // Example field
         joinedReferrals = profile['referralConverted'] ?? 0; // Example field
         redeemedGiftId = profile['redeemedGiftId'] ?? "";
+        referralLink = profile["referralLink"] ?? "";
       });
     } catch (e) {
       print("Error fetching user profile: $e");
@@ -44,11 +52,18 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   void shareReferralLink() async {
     if (referralCode.isNotEmpty) {
-      String referralLink = await generateReferralLink(referralCode);
+      if (referralLink.isEmpty) {
+        referralLink = await generateReferralLink(referralCode);
+      }
 
       Share.share(
-        'Join me on GlutaClass! Use my referral link: $referralLink',
-        subject: 'Your GlutaClass Referral Link',
+        'I’ve been using GlutaClass for my NCERT reading, and it’s seriously helpful! 📚🤖\n\n'
+        'It reads with me, explains everything, quizzes me, and clears my doubts on the spot. No extra study time, just smarter studying! 🤯🔥\n\n'
+        'Check it out and let’s ace this together! 💪💡\n\n'
+        'Here’s the link — try it out! 👇\n'
+        '$referralLink\n\n'
+        'Future you will high-five present you! 🚀😂',
+        subject: 'Share your GlutaClass referral link!',
       );
       logInviteButtonClick(joinedReferrals);
     } else {
@@ -80,14 +95,15 @@ class _ReferralScreenState extends State<ReferralScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.asset(
-                "lib/assets/glutaclassLogo.png",
+                "lib/assets/referralGifts.png",
                 fit: BoxFit.cover,
+                width: 250,
               ),
             ),
             const SizedBox(height: 20),
 
             Text(
-              "Earn exciting rewards by getting your friends on GlutaClass!",
+              "Earn exciting gift cards by getting your friends on GlutaClass!",
               style: GoogleFonts.raleway(
                 color: Colors.white,
                 fontSize: 20,

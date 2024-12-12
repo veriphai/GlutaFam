@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:eureka_app/events/referralScreenEvents.dart';
+import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -223,7 +225,12 @@ class _GiftScreenState extends State<GiftScreen> {
               onPressed: () {
                 logGiftSucessfullyRedeemedContinueButtonClick(
                     widget.joinedReferrals, giftId);
-                Navigator.of(context).pop();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => Chapterscreen()),
+                  (Route<dynamic> route) =>
+                      false, // Removes all previous routes
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
@@ -345,8 +352,8 @@ class _GiftScreenState extends State<GiftScreen> {
                         // Gift Image
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            gift["imageUrl"],
+                          child: CachedNetworkImage(
+                            imageUrl: gift["imageUrl"],
                             width: 60,
                             height: 60,
                             fit: BoxFit.cover,
@@ -366,7 +373,7 @@ class _GiftScreenState extends State<GiftScreen> {
                         const SizedBox(width: 10),
                         // Redeem Button
                         ElevatedButton(
-                          onPressed: redeemedGiftId != null
+                          onPressed: redeemedGiftId != ""
                               ? null
                               : widget.joinedReferrals >=
                                       gift["referralRequired"]

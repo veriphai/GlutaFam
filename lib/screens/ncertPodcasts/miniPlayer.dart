@@ -8,7 +8,6 @@ import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

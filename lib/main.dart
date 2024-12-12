@@ -1,14 +1,10 @@
 import 'package:eureka_app/events/genericEvents.dart';
-import 'package:eureka_app/screens/communityScreen.dart';
-import 'package:eureka_app/screens/landingScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
+import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
-import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
-import 'package:eureka_app/screens/profileScreen.dart';
-import 'package:eureka_app/screens/signupScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
+import 'package:eureka_app/screens/onboardingScreenV3.dart';
 import 'package:eureka_app/services/audioProvider.dart';
-import 'package:eureka_app/services/myAudioHandler.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
@@ -22,20 +18,13 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import './utils/navigation_utils.dart'; // Import the navigatorKey
+
 // import 'package:miniplayer/miniplayer.dart'; // Add miniplayer import
 import 'dart:io' show Platform;
-import 'package:audio_service/audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await JustAudioBackground.init(
-      androidNotificationChannelId: 'com.gluta.glutafam.audio',
-      androidNotificationChannelName: 'Audio Playback',
-      androidNotificationOngoing: true,
-      androidNotificationIcon: 'mipmap/notification_icon'
-
-      // Keeps the notification active
-      );
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -46,26 +35,37 @@ void main() async {
   // Initialize notifications
 
   final notificationService = NotificationService();
-  if (!kIsWeb) {
-    await notificationService.initNotifications();
+  Future.microtask(() async {
+    await JustAudioBackground.init(
+        androidNotificationChannelId: 'com.gluta.glutafam.audio',
+        androidNotificationChannelName: 'Audio Playback',
+        androidNotificationOngoing: true,
+        androidNotificationIcon: 'mipmap/notification_icon'
 
-    bool isRealDevice = await checkIfRealDevice();
-    if (isRealDevice) {
-      String? token = await notificationService.getDeviceToken();
-      print("FCM Device Token: $token");
-      await notificationService.subscribeToTopic("all_users");
+        // Keeps the notification active
+        );
+    if (!kIsWeb) {
+      await notificationService.initNotifications();
+
+      bool isRealDevice = await checkIfRealDevice();
+      if (isRealDevice) {
+        String? token = await notificationService.getDeviceToken();
+        prefs.setString("fcmToken", token ?? "");
+        // print("FCM Device Token: $token");
+        await notificationService.subscribeToTopic("all_users");
+      }
     }
-  }
-  print("First Launch: $firstLaunch");
-  Map<String, String> deviceDetails = await getDeviceDetails();
-  String deviceId = deviceDetails['deviceId'] ?? "Unknown";
-  String platform = deviceDetails['platform'] ?? "Unknown";
-  String userIP = await getUserIP();
-  logAppLaunchEvent(deviceId, platform, userIP, firstLaunch);
-  if (!kIsWeb) {
-    initDynamicLinkListener(prefs);
-    await handleInitialDynamicLink(prefs);
-  }
+    print("First Launch: $firstLaunch");
+    Map<String, String> deviceDetails = await getDeviceDetails();
+    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
+    String platform = deviceDetails['platform'] ?? "Unknown";
+    String userIP = await getUserIP();
+    logAppLaunchEvent(deviceId, platform, userIP, firstLaunch);
+    if (!kIsWeb) {
+      initDynamicLinkListener(prefs);
+      await handleInitialDynamicLink(prefs);
+    }
+  });
 
   runApp(MyApp(
     firstLaunch: firstLaunch,
@@ -101,6 +101,7 @@ class MyApp extends StatelessWidget {
 
           return MaterialApp(
             title: 'GlutaClass: AI Tutor for NCERT',
+            navigatorKey: navigatorKey,
             theme: ThemeData(
               useMaterial3: true,
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
@@ -115,13 +116,13 @@ class MyApp extends StatelessWidget {
             home: firstLaunch
                 ? (checkIsWebOnDesktop(context)
                     ? LandingScreenWeb()
-                    : LandingScreen())
+                    : LoginScreen())
                 : Chapterscreen(),
             routes: {
               '/home': (context) => Chapterscreen(),
-              '/explore': (context) => CommunityPage(),
-              '/community': (context) => Signupscreen(),
-              '/profile': (context) => ProfileScreen(),
+              '/chapterDetails': (context) => Sectionscreen(
+                    chapterId: "",
+                  ),
             },
           );
         },
@@ -172,7 +173,7 @@ void initDynamicLinkListener(SharedPreferences prefs) {
     if (deepLink != null &&
         deepLink.queryParameters.containsKey('referralCode')) {
       String referralCode = deepLink.queryParameters['referralCode']!;
-      print('Referral Code: $referralCode');
+      print('Referee Code: $referralCode');
       prefs.setString("referralCode", referralCode);
       // Store referral code or send it to your backend for further processing
     }

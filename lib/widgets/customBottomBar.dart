@@ -14,20 +14,7 @@ class CustomBottomNavBar extends StatefulWidget {
 class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   void _onItemTapped(int index) {
     // Here, you can manage navigation based on the index
-    switch (index) {
-      case 0:
-        Provider.of<MyAppState>(context, listen: false).setIndex(0);
-        Navigator.pushNamed(context, '/home');
-      case 1:
-        Provider.of<MyAppState>(context, listen: false).setIndex(1);
-        Navigator.pushNamed(context, '/explore');
-      case 2:
-        Provider.of<MyAppState>(context, listen: false).setIndex(2);
-        Navigator.pushNamed(context, '/community');
-      case 3:
-        Provider.of<MyAppState>(context, listen: false).setIndex(3);
-        Navigator.pushNamed(context, '/profile');
-    }
+    switch (index) {}
   }
 
   @override

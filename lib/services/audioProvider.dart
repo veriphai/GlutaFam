@@ -145,6 +145,15 @@ class AudioProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> resetAudioPosition() async {
+    if (audioPlayer != null) {
+      await audioPlayer!.seek(Duration.zero);
+      audioPlayer!.pause();
+      currentPosition = Duration.zero;
+      notifyListeners();
+    }
+  }
+
   /// Disposes the audio player if necessary.
   void disposeAudioPlayer() {
     audioPlayer?.dispose();

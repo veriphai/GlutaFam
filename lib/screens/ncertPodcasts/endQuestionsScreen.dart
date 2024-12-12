@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'dart:convert';
@@ -13,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:math';
 import 'package:audio_session/audio_session.dart' as audioSession;
 import 'package:http_parser/http_parser.dart';
+import 'dart:async';
 
 class QuestionResult {
   final String? feedbackText;
@@ -71,6 +71,8 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
   // Animation controller for the flipping effect
   late AnimationController _controller;
   late Animation<double> _flipAnimation;
+  Timer? _loadingTimer;
+  bool _showLoadingMessage = false;
 
   final List<LinearGradient> gradients = [
     LinearGradient(
@@ -127,6 +129,13 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     );
 
     _flipAnimation = Tween<double>(begin: 0, end: 1).animate(_controller);
+    _loadingTimer = Timer(Duration(seconds: 3), () {
+      if (mounted && chapterQuestions == null) {
+        setState(() {
+          _showLoadingMessage = true;
+        });
+      }
+    });
     _chooseNewGradient();
   }
 
@@ -142,6 +151,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
         chapterQuestions = {
           'questions': widget.sectionEndQuestions,
         };
+        _loadingTimer?.cancel();
       });
     } else {
       // Fallback to fetch from API if `sectionEndQuestions` is not provided
@@ -149,6 +159,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
       if (data != null) {
         setState(() {
           chapterQuestions = data;
+          _loadingTimer?.cancel();
         });
       } else {
         print('Failed to load chapter questions.');
@@ -189,6 +200,8 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     _audioRecorder!.closeRecorder();
     _audioPlayer!.closePlayer();
     _controller.dispose();
+    _loadingTimer?.cancel();
+
     super.dispose();
   }
 
@@ -608,22 +621,86 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
     String subQuestionText = "";
     Map<String, dynamic>? currentSubQuestion;
     if (chapterQuestions == null) {
-      return SizedBox(
-        width: 50, // Set the desired width
-        height: 50, // Set the desired height
-        child: Center(
-          child: Transform.scale(
-            scale: 1, // Adjust this scale to make it bigger or smaller
-            child: CircularProgressIndicator(
-              color: Color.fromRGBO(
-                  255, 217, 0, 1), // Adjust the color to your preference
-              strokeWidth:
-                  4.0, // Adjust the thickness of the progress indicator
-            ),
-          ),
-        ),
-      );
+      return _showLoadingMessage
+          ? Scaffold(
+              backgroundColor: Colors.black,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                automaticallyImplyLeading: true,
+                centerTitle: false,
+                title: Text(
+                  'Book Q&A',
+                  style: GoogleFonts.raleway(
+                    fontSize: 24,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                iconTheme: const IconThemeData(
+                  color: Colors.white,
+                ),
+              ),
+              body: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Container(
+                    width: double
+                        .infinity, // Ensure the container can take full width if possible
+                    constraints: BoxConstraints(
+                        maxWidth: 300), // Add constraints for width
+                    child: Text(
+                      'We are preparing the questions. They will be available soon.',
+                      style: GoogleFonts.raleway(
+                        color: Colors.white,
+                        fontSize: 18,
+                        decoration: TextDecoration.none,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ))
+          : Scaffold(
+              backgroundColor: Colors.black,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                automaticallyImplyLeading: true,
+                centerTitle: false,
+                title: Text(
+                  'Book Q&A',
+                  style: GoogleFonts.raleway(
+                    fontSize: 24,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                iconTheme: const IconThemeData(
+                  color: Colors.white,
+                ),
+              ),
+              body: Center(
+                child: CircularProgressIndicator(
+                  color: Color.fromRGBO(255, 217, 0, 1),
+                ),
+              ));
     }
+    // if (chapterQuestions == null) {
+    //   return SizedBox(
+    //     width: 50, // Set the desired width
+    //     height: 50, // Set the desired height
+    //     child: Center(
+    //       child: Transform.scale(
+    //         scale: 1, // Adjust this scale to make it bigger or smaller
+    //         child: CircularProgressIndicator(
+    //           color: Color.fromRGBO(
+    //               255, 217, 0, 1), // Adjust the color to your preference
+    //           strokeWidth:
+    //               4.0, // Adjust the thickness of the progress indicator
+    //         ),
+    //       ),
+    //     ),
+    //   );
+    // }
     if (chapterQuestions != null && chapterQuestions!['questions'] != null) {
       final questions = chapterQuestions!['questions'];
       if (questions.isNotEmpty && currentQuestionIndex < questions.length) {

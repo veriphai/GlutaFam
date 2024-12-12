@@ -1,7 +1,5 @@
-import 'package:eureka_app/apis/logEventsApi.dart';
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
-import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
-import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:eureka_app/screens/onboardingScreenV3.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +9,18 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ClassSelectionPage extends StatefulWidget {
+  final String? deviceId;
+  final String? platform;
+  final String? userIP;
+
+  // Constructor with optional named parameters
+  const ClassSelectionPage({
+    Key? key,
+    this.deviceId,
+    this.platform,
+    this.userIP,
+  }) : super(key: key);
+
   @override
   _ClassSelection createState() => _ClassSelection();
 }
@@ -210,14 +220,11 @@ class _ClassSelection extends State<ClassSelectionPage> {
       const url = 'https://glutaclass.com:8080/gluta/fam/profile';
 
       try {
-        Map<String, String> deviceDetails = await getDeviceDetails();
-        String deviceId = deviceDetails['deviceId'] ?? "Unknown";
-        String platform = deviceDetails['platform'] ?? "Unknown";
-        String userIP = await getUserIP();
         String refereeCode = prefs.getString("referralCode") ?? '';
+        String fcmToken = prefs.getString("fcmToken") ?? '';
 
-        logClassSelecletedOnOnboarding(
-            deviceId, platform, selectedClass, refereeCode);
+        logClassSelecletedOnOnboarding(widget.deviceId ?? "",
+            widget.platform ?? "", selectedClass, refereeCode);
 
         final response = await http.post(
           Uri.parse(url),
@@ -227,10 +234,11 @@ class _ClassSelection extends State<ClassSelectionPage> {
           },
           body: jsonEncode({
             "standard": selectedClass,
-            "deviceId": deviceId,
+            "deviceId": widget.deviceId,
             "refereeCode": refereeCode,
-            "devicePlatform": platform,
-            "userIp": userIP
+            "devicePlatform": widget.platform,
+            "userIp": widget.userIP,
+            "fcmDeviceToken": fcmToken
           }),
         );
 
@@ -240,7 +248,7 @@ class _ClassSelection extends State<ClassSelectionPage> {
           await prefs.setBool('firstLaunch', false);
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => Chapterscreen()),
+            MaterialPageRoute(builder: (context) => OnboardingScreenV3()),
             (Route<dynamic> route) => false, // Removes all previous routes
           );
         } else {

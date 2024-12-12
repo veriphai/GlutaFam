@@ -1,11 +1,9 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
-import 'package:eureka_app/screens/loginScreen.dart';
-import 'package:eureka_app/screens/signupScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreenV2 extends StatefulWidget {
   @override
@@ -16,34 +14,6 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
   final PageController _controller = PageController();
   int currentPageIndex = 0;
   int selectedClass = -1;
-
-  // Define your onboarding data
-  // final List<Map<String, String>> onboardingData = [
-  //   {
-  //     "topText": "Learn & revise anytime,",
-  //     "secondTopText": "anywhere",
-  //     "imagePath": "lib/assets/on-1.png",
-  //     "bottomText": "Replace boring books with",
-  //     "bottomMidText": "engaging Interest-Led",
-  //     "bottomBoldText": "audio lessons"
-  //   },
-  //   {
-  //     "topText": "Get hands-on understanding ",
-  //     "secondTopText": "of complex concepts",
-  //     "imagePath": "lib/assets/on-2.png",
-  //     "bottomText": "Perform experiments &",
-  //     "bottomMidText": "activities with",
-  //     "bottomBoldText": "AI tutor-led simulations"
-  //   },
-  //   {
-  //     "topText": "No more rote memorization ",
-  //     "secondTopText": "of Q&As",
-  //     "imagePath": "lib/assets/on-3.png",
-  //     "bottomText": "Improve critical reasoning ",
-  //     "bottomMidText": "and build cases using our",
-  //     "bottomBoldText": "CER framework"
-  //   }
-  // ];
 
   @override
   void initState() {
@@ -248,7 +218,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
               if (currentPageIndex == onboardingData.length - 1) {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  MaterialPageRoute(builder: (context) => Chapterscreen()),
                 );
                 // Go to next action or final action when class selection is done
               } else {
@@ -281,31 +251,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
                 ),
               ],
             ),
-          ),
-          // ElevatedButton(
-          //   onPressed: () {
-          //     if (currentPageIndex == onboardingData.length - 1) {
-          //       Navigator.push(
-          //         context,
-          //         MaterialPageRoute(builder: (context) => Signupscreen()),
-          //       );
-          //     } else {
-          //       _controller.nextPage(
-          //         duration: const Duration(milliseconds: 300),
-          //         curve: Curves.easeInOut,
-          //       );
-          //     }
-          //   },
-          //   style: ElevatedButton.styleFrom(
-          //     backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-          //     shape: const CircleBorder(),
-          //     padding: const EdgeInsets.all(16),
-          //   ),
-          //   child: const Icon(
-          //     Icons.arrow_forward,
-          //     color: Colors.black,
-          //   ),
-          // ),
+          )
         ],
       ),
     );

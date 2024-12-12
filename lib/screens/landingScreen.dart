@@ -1,4 +1,5 @@
 import 'package:eureka_app/screens/onboardingScreenV2.dart';
+import 'package:eureka_app/screens/onboardingScreenV3.dart';
 import 'package:eureka_app/screens/signupscreen.dart'; // Import the signup screen
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -57,7 +58,7 @@ class _LandingScreenState extends State<LandingScreen> {
                     ),
                     SizedBox(height: 30),
                     Text(
-                      "Interest-led Audio Lessons",
+                      "Personalised Audio Tutor",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.raleway(
                         fontSize: 24,
@@ -66,7 +67,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       ),
                     ),
                     Text(
-                      "for Your Curriculum",
+                      "for Your NCERT Books",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.raleway(
                         fontSize: 24,
@@ -85,7 +86,7 @@ class _LandingScreenState extends State<LandingScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => OnboardingScreenV2()),
+                  MaterialPageRoute(builder: (context) => OnboardingScreenV3()),
                 );
               },
               style: ElevatedButton.styleFrom(

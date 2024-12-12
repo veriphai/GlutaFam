@@ -15,6 +15,51 @@ void logOnboardingScreenView(
   );
 }
 
+void logAudioOnboardingView() {
+  logEvent(
+    eventName: "audio_onboarding_sv",
+    screenName: "AudioOnboardingScreen",
+    eventType: "screen_view",
+    eventDetails: {},
+  );
+}
+
+void logAudioOnboardingAudioStarted() {
+  logEvent(
+    eventName: "audio_onboarding_audio_start",
+    screenName: "AudioOnboardingScreen",
+    eventType: "audio_play",
+    eventDetails: {},
+  );
+}
+
+void logAudioOnboardingAudioCompleted() {
+  logEvent(
+    eventName: "audio_onboarding_audio_completed",
+    screenName: "AudioOnboardingScreen",
+    eventType: "audio_complete",
+    eventDetails: {},
+  );
+}
+
+void logAudioOnboardingVideoStarted() {
+  logEvent(
+    eventName: "audio_onboarding_video_start",
+    screenName: "AudioOnboardingScreen",
+    eventType: "video_play",
+    eventDetails: {},
+  );
+}
+
+void logAudioOnboardingSkipped(int audioDuration) {
+  logEvent(
+    eventName: "audio_onboarding_skip",
+    screenName: "AudioOnboardingScreen",
+    eventType: "button_click",
+    eventDetails: {"audioDuration": audioDuration},
+  );
+}
+
 void logNextButtonClick(
     String deviceId, String devicePlatform, String userIp, int screenNumber) {
   logEvent(
@@ -75,7 +120,7 @@ void logGoogleAuthSuccess(
 void logPhoneAuthButtonClick(
     String deviceId, String devicePlatform, String userIp) {
   logEvent(
-    eventName: "login_phone_auth",
+    eventName: "login_phone_auth_button_click",
     screenName: "LoginScreen",
     eventType: "button_click",
     eventDetails: {

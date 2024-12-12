@@ -1,7 +1,6 @@
-import 'package:eureka_app/apis/logEventsApi.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/events/sectionListingEvents.dart';
-import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/miniPlayer.dart';
@@ -16,7 +15,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
-import 'package:just_audio/just_audio.dart';
 
 class Sectionscreen extends StatefulWidget {
   final String chapterId;
@@ -241,7 +239,8 @@ class _SectionscreenState extends State<Sectionscreen>
   }
 
   void shareSimulation(simulationId) {
-    final String deepLink = "https://glutaclass.com/simulation/${simulationId}";
+    final String deepLink =
+        "https://simulations.glutaclass.com/simulation/${simulationId}";
 
     Share.share('Check out this simulation: $deepLink');
   }
@@ -250,38 +249,21 @@ class _SectionscreenState extends State<Sectionscreen>
   Widget build(BuildContext context) {
     return WillPopScope(
         onWillPop: () async {
-          // On back button press, navigate to the Chapterscreen
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    Chapterscreen()), // Replace with your Chapterscreen widget
-            (route) =>
-                false, // Remove all routes and replace with Chapterscreen
+            MaterialPageRoute(builder: (context) => Chapterscreen()),
+            (route) => false,
           );
-          return false; // Prevent the default back button behavior
+          return false;
         },
         child: Scaffold(
             backgroundColor: Colors.black,
             appBar: AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              // title: Text(
-              //   widget.chapterName,
-              //   style: const GoogleFonts.raleway(
-              //     fontSize: 24,
-              //     color: Colors.white,
-              //     fontWeight: FontWeight.bold,
-              //   ),
-              // ),
               iconTheme: const IconThemeData(
                 color: Colors.white,
               ),
-              // automaticallyImplyLeading: true,
-              // leading: IconButton(
-              //   icon: Icon(Icons.arrow_back),
-              //   onPressed: _exitAndShowMiniPlayer,
-              // ),
             ),
             body: isLoading
                 ? Center(
@@ -302,8 +284,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                         ClipRRect(
                                           borderRadius:
                                               BorderRadius.circular(8),
-                                          child: Image.network(
-                                            chapterImage,
+                                          child: CachedNetworkImage(
+                                            imageUrl: chapterImage,
                                             height: 100,
                                             width: 100,
                                             fit: BoxFit.cover,
@@ -561,8 +543,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                       .circular(
                                                                           8),
                                                               child:
-                                                                  Image.network(
-                                                                sections[index][
+                                                                  CachedNetworkImage(
+                                                                imageUrl:sections[index][
                                                                     'imageUrl'],
                                                                 width: 60,
                                                                 height: 60,
@@ -695,67 +677,6 @@ class _SectionscreenState extends State<Sectionscreen>
                                                               },
                                                             ),
                                                             const Spacer(),
-                                                            if (sections[index][
-                                                                        'cerList'] !=
-                                                                    null &&
-                                                                sections[index][
-                                                                        'cerList']
-                                                                    .isNotEmpty)
-                                                              TextButton(
-                                                                style: TextButton
-                                                                    .styleFrom(
-                                                                  backgroundColor:
-                                                                      Color.fromRGBO(
-                                                                          255,
-                                                                          217,
-                                                                          0,
-                                                                          1),
-                                                                  padding: const EdgeInsets
-                                                                      .symmetric(
-                                                                      horizontal:
-                                                                          16,
-                                                                      vertical:
-                                                                          8),
-                                                                  minimumSize:
-                                                                      Size(20,
-                                                                          20),
-                                                                  shape:
-                                                                      RoundedRectangleBorder(
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(4),
-                                                                  ),
-                                                                ),
-                                                                onPressed: () {
-                                                                  Navigator
-                                                                      .push(
-                                                                    context,
-                                                                    MaterialPageRoute(
-                                                                      builder:
-                                                                          (context) =>
-                                                                              CERPage(
-                                                                        data: sections[index]
-                                                                            [
-                                                                            'cerList'][0],
-                                                                        chapterId:
-                                                                            widget.chapterId,
-                                                                      ),
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                child: Text(
-                                                                  'Go to Case',
-                                                                  style: GoogleFonts
-                                                                      .raleway(
-                                                                    color: Colors
-                                                                        .black,
-                                                                    fontSize:
-                                                                        12,
-                                                                    // decoration: TextDecoration.underline,
-                                                                    // decorationColor: Colors.white,
-                                                                  ),
-                                                                ),
-                                                              ),
                                                             IconButton(
                                                               icon: const Icon(
                                                                 Icons
@@ -879,7 +800,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                   builder: (context) =>
                                                       SimulationScreen(
                                                           simulationUrl:
-                                                              "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
+                                                              "https://simulations.glutaclass.com/app-simulation/${simulationList[index]['id']}"),
                                                 ),
                                               );
                                             },
@@ -1069,7 +990,7 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                     MaterialPageRoute(
                                                                       builder: (context) =>
                                                                           SimulationScreen(
-                                                                              simulationUrl: "https://glutaclass.com/app-simulation/${simulationList[index]['id']}"),
+                                                                              simulationUrl: "https://simulations.glutaclass.com/app-simulation/${simulationList[index]['id']}"),
                                                                     ),
                                                                   );
                                                                 },

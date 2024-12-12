@@ -26,7 +26,13 @@ Future<String> getDeviceId() async {
 Future<Map<String, String>> getDeviceDetails() async {
   final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
   try {
-    if (Platform.isAndroid) {
+    if (kIsWeb) {
+      // For web
+      return {
+        'deviceId': "Website",
+        'platform': 'web',
+      };
+    } else if (Platform.isAndroid) {
       // For Android
       final androidInfo = await deviceInfo.androidInfo;
       return {
@@ -39,12 +45,6 @@ Future<Map<String, String>> getDeviceDetails() async {
       return {
         'deviceId': iosInfo.identifierForVendor ?? "Unknown Device ID",
         'platform': 'iOS',
-      };
-    } else if (kIsWeb) {
-      // For web
-      return {
-        'deviceId': "Website",
-        'platform': 'web',
       };
     } else {
       return {

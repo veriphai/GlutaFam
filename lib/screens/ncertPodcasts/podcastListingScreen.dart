@@ -1,8 +1,6 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
-import 'package:eureka_app/screens/ncertPodcasts/cerScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/simulationScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -479,65 +477,7 @@ class _PodcastListingScreenState extends State<PodcastListingScreen>
                                                           },
                                                         ),
                                                         const Spacer(),
-                                                        if (podcasts[index]
-                                                                ['cer'] !=
-                                                            null)
-                                                          TextButton(
-                                                            style: TextButton
-                                                                .styleFrom(
-                                                              backgroundColor:
-                                                                  Color
-                                                                      .fromRGBO(
-                                                                          255,
-                                                                          217,
-                                                                          0,
-                                                                          1),
-                                                              padding: const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal:
-                                                                      16,
-                                                                  vertical:
-                                                                      8), // Reduced padding
-                                                              minimumSize: Size(
-                                                                  20,
-                                                                  20), // Minimum size for a smaller button
-                                                              shape:
-                                                                  RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            4),
-                                                              ),
-                                                            ),
-                                                            onPressed: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                  builder:
-                                                                      (context) =>
-                                                                          CERPage(
-                                                                    data: podcasts[
-                                                                            index]
-                                                                        ['cer'],
-                                                                    chapterId: podcasts[
-                                                                            index]
-                                                                        [
-                                                                        'chapterId'],
-                                                                  ),
-                                                                ),
-                                                              );
-                                                            },
-                                                            child: const Text(
-                                                              'Go to Case',
-                                                              style: TextStyle(
-                                                                color: Colors
-                                                                    .black,
-                                                                fontSize: 12,
-                                                                // decoration: TextDecoration.underline,
-                                                                // decorationColor: Colors.white,
-                                                              ),
-                                                            ),
-                                                          ),
+
                                                         IconButton(
                                                           icon: const Icon(
                                                             Icons
