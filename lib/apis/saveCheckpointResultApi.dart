@@ -42,7 +42,7 @@ Future<String> saveCheckpointResultApi({
       return "FAILURE";
     }
   } catch (e) {
-    print('Error fetching questions: $e');
+    print('Error fetching checkpoint result: $e');
     return "FAILURE";
   }
 }

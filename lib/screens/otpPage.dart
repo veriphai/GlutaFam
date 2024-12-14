@@ -1,6 +1,7 @@
 import "dart:async";
 import "package:eureka_app/apis/authApi.dart";
 import "package:eureka_app/screens/ncertPodcasts/classSelection.dart";
+import "package:firebase_analytics/firebase_analytics.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -10,10 +11,21 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import "package:shared_preferences/shared_preferences.dart";
+
 class OtpPage extends StatefulWidget {
   String verificationId;
   String phoneNumber;
-  OtpPage({super.key, required this.verificationId, required this.phoneNumber});
+  final String? deviceId;
+  final String? platform;
+  final String? userIP;
+  OtpPage(
+      {super.key,
+      required this.verificationId,
+      required this.phoneNumber,
+      this.deviceId,
+      this.platform,
+      this.userIP});
 
   @override
   State<OtpPage> createState() => _OtpPageState();
@@ -66,8 +78,13 @@ class _OtpPageState extends State<OtpPage> {
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
       await getIdTokenAndSendToBackend();
-      Navigator.push(context,
-          MaterialPageRoute(builder: (context) => ClassSelectionPage()));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => ClassSelectionPage(
+                  deviceId: widget.deviceId,
+                  platform: widget.platform,
+                  userIP: widget.userIP)));
     } catch (ex) {
       setState(() {
         _isLoading = false; // Stop loading if there's an error
@@ -101,7 +118,17 @@ class _OtpPageState extends State<OtpPage> {
         if (idToken != null) {
           await secureStorage.write(key: "IdToken", value: idToken);
           // Send token to the backend...
-          await sendIdTokenToBackend();
+          final data = await sendIdTokenToBackend();
+          String userTrackingId = data['userTrackingId'];
+          bool newUser = data['newUser'];
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          prefs.setString('userTrackingId', userTrackingId);
+          await FirebaseAnalytics.instance.setUserId(id: userTrackingId);
+          if (newUser) {
+            FirebaseAnalytics.instance.logSignUp(signUpMethod: "phoneAuth");
+          } else {
+            FirebaseAnalytics.instance.logLogin(loginMethod: "phoneAuth");
+          }
         }
       } catch (e) {
         print("Failed to get ID token: $e");
@@ -192,7 +219,16 @@ class _OtpPageState extends State<OtpPage> {
         final secureStorage = FlutterSecureStorage();
 
         print("Auth api:$data");
-
+        String userTrackingId = data['userTrackingId'];
+        bool newUser = data['newUser'];
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString('userTrackingId', userTrackingId);
+        await FirebaseAnalytics.instance.setUserId(id: userTrackingId);
+        if (newUser) {
+          FirebaseAnalytics.instance.logSignUp(signUpMethod: "gmail");
+        } else {
+          FirebaseAnalytics.instance.logLogin(loginMethod: "gmail");
+        }
         await secureStorage.write(key: "authKey", value: data['token']);
       } else {
         // Handle API errors
@@ -237,7 +273,7 @@ class _OtpPageState extends State<OtpPage> {
                 const SizedBox(height: 8),
                 Text(
                   "We have sent the verification code to ${widget.phoneNumber}",
-                  style: GoogleFonts.raleway(
+                  style: GoogleFonts.arOneSans(
                     fontSize: 18,
                     color: Colors.grey[500],
                     fontWeight: FontWeight.w400,
@@ -254,7 +290,7 @@ class _OtpPageState extends State<OtpPage> {
                         inputFormatters: [LengthLimitingTextInputFormatter(6)],
                         decoration: InputDecoration(
                           labelText: "Enter OTP",
-                          labelStyle: GoogleFonts.raleway(
+                          labelStyle: GoogleFonts.arOneSans(
                             color: Colors.orange,
                             fontWeight: FontWeight.w700,
                           ),
@@ -276,7 +312,7 @@ class _OtpPageState extends State<OtpPage> {
                           ),
                           floatingLabelBehavior: FloatingLabelBehavior.always,
                         ),
-                        style: GoogleFonts.raleway(
+                        style: GoogleFonts.arOneSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -378,7 +414,10 @@ class _OtpPageState extends State<OtpPage> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => ClassSelectionPage()));
+                                builder: (context) => ClassSelectionPage(
+                                    deviceId: widget.deviceId,
+                                    platform: widget.platform,
+                                    userIP: widget.userIP)));
                       } catch (error) {
                         print("Google Sign-In Failed: $error");
                       }

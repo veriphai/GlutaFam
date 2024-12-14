@@ -1,4 +1,5 @@
 import 'package:eureka_app/events/audioPlayerScreenEvents.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -35,6 +36,7 @@ class _BestPracticesModalState extends State<BestPracticesModal>
   @override
   void initState() {
     super.initState();
+    _setCurrentScreen();
     logBestPracticesModalView(widget.topicId);
 
     _animationController = AnimationController(
@@ -63,6 +65,13 @@ class _BestPracticesModalState extends State<BestPracticesModal>
     );
 
     _animationController.forward();
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'BestPracticesModal',
+        screenName: "Best Practices Modal",
+        parameters: {"topicId": widget.topicId});
   }
 
   @override

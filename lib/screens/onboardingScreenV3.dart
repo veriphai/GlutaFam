@@ -1,6 +1,7 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/onboardingScreenV2.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -227,8 +228,15 @@ class _OnboardingScreenV3State extends State<OnboardingScreenV3> {
   void initState() {
     super.initState();
     logAudioOnboardingView();
+    _setCurrentScreen();
     _initializeVideo();
     _initializeAudio();
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'AudioOnboardingScreen',
+        screenName: "Audio Onboarding Screen");
   }
 
   @override

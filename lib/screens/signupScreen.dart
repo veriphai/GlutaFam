@@ -1,5 +1,5 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
-import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import "package:flutter/material.dart";
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -10,7 +10,10 @@ import 'package:flutter/services.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart'; // Import the package
 
 class Signupscreen extends StatefulWidget {
-  const Signupscreen({super.key});
+  final String? deviceId;
+  final String? platform;
+  final String? userIP;
+  const Signupscreen({super.key, this.deviceId, this.platform, this.userIP});
 
   @override
   State<Signupscreen> createState() => _SignupscreenState();
@@ -28,17 +31,20 @@ class _SignupscreenState extends State<Signupscreen> {
   void initState() {
     super.initState();
     _initializeFirebase();
-
+    _setCurrentScreen();
     logPhoneAuthScreenEvents();
   }
 
-  void logPhoneAuthScreenEvents() async {
-    Map<String, String> deviceDetails = await getDeviceDetails();
-    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
-    String platform = deviceDetails['platform'] ?? "Unknown";
-    String userIP = await getUserIP();
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+      screenClass: 'PhoneLoginScreen',
+      screenName: "Phone Login Screen",
+    );
+  }
 
-    logPhoneLoginScreenView(deviceId, platform, userIP);
+  void logPhoneAuthScreenEvents() async {
+    logPhoneLoginScreenView(
+        widget.deviceId ?? "", widget.platform ?? "", widget.userIP ?? "");
   }
 
   Future<void> _initializeFirebase() async {
@@ -63,10 +69,8 @@ class _SignupscreenState extends State<Signupscreen> {
       _isLoading = true; // Start loading when OTP is being sent
     });
 
-    Map<String, String> deviceDetails = await getDeviceDetails();
-    String deviceId = deviceDetails['deviceId'] ?? "Unknown";
-    String platform = deviceDetails['platform'] ?? "Unknown";
-    logContinueButtonClickForOtp(deviceId, platform, _phoneNumber);
+    logContinueButtonClickForOtp(
+        widget.deviceId ?? "", widget.platform ?? "", _phoneNumber);
 
     await FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: _phoneNumber, // Now includes country code
@@ -90,9 +94,11 @@ class _SignupscreenState extends State<Signupscreen> {
           context,
           MaterialPageRoute(
               builder: (context) => OtpPage(
-                    verificationId: verificationId,
-                    phoneNumber: _phoneNumber,
-                  )),
+                  verificationId: verificationId,
+                  phoneNumber: _phoneNumber,
+                  deviceId: widget.deviceId,
+                  platform: widget.platform,
+                  userIP: widget.userIP)),
         );
       },
       codeAutoRetrievalTimeout: (String verificationId) {
@@ -142,7 +148,7 @@ class _SignupscreenState extends State<Signupscreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "Enter phone number to send one-time password",
-                  style: GoogleFonts.raleway(
+                  style: GoogleFonts.arOneSans(
                     fontSize: 22,
                     color: Colors.grey[500],
                     fontWeight: FontWeight.w400,
@@ -178,7 +184,7 @@ class _SignupscreenState extends State<Signupscreen> {
                     textFieldController: _controller,
                     inputDecoration: InputDecoration(
                       labelText: "Phone Number",
-                      labelStyle: GoogleFonts.raleway(
+                      labelStyle: GoogleFonts.arOneSans(
                         color: Colors.orange,
                         fontWeight: FontWeight.w700,
                       ),
@@ -206,7 +212,7 @@ class _SignupscreenState extends State<Signupscreen> {
                     maxLength: 15,
                     keyboardType: TextInputType.numberWithOptions(
                         signed: true, decimal: true),
-                    textStyle: GoogleFonts.raleway(
+                    textStyle: GoogleFonts.arOneSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,

@@ -206,17 +206,18 @@ class _SectionscreenState extends State<Sectionscreen>
   void initState() {
     super.initState();
     _setupTabController();
+    _setCurrentScreen();
     logSectionListingScreenView(widget.chapterId);
     // fetchInterestLedDetails();
 
     fetchChapterDetails().then((_) => fetchSimulations());
-    Future<void> _setCurrentScreen() async {
-      await FirebaseAnalytics.instance
-          .logEvent(name: 'screen_view', parameters: {
-        'firebase_screen': "Section Listing Screen",
-        'firebase_screen_class': "Sectionscreen",
-      });
-    }
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'Sectionscreen',
+        screenName: "Section Listing Screen",
+        parameters: {"chapterId": widget.chapterId});
   }
 
   @override
@@ -544,7 +545,8 @@ class _SectionscreenState extends State<Sectionscreen>
                                                                           8),
                                                               child:
                                                                   CachedNetworkImage(
-                                                                imageUrl:sections[index][
+                                                                imageUrl: sections[
+                                                                        index][
                                                                     'imageUrl'],
                                                                 width: 60,
                                                                 height: 60,

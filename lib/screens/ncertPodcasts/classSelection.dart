@@ -1,6 +1,7 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:eureka_app/screens/onboardingScreenV3.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -48,6 +49,13 @@ class _ClassSelection extends State<ClassSelectionPage> {
     super.initState();
     // Log the event when this page is opened using the generic function
     logClassSelectionScreenView();
+    _setCurrentScreen();
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'ClassSelectionScreen',
+        screenName: "Class Selection Screen");
   }
 
   @override

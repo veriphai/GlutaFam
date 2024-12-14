@@ -14,18 +14,18 @@ import UserNotifications
 
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self
-      let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
-      UNUserNotificationCenter.current().requestAuthorization(
-        options: authOptions,
-        completionHandler: { granted, error in
-          if let error = error {
-            print("Error requesting notification authorization: \(error)")
-          }
-        })
+      // let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+      // UNUserNotificationCenter.current().requestAuthorization(
+      //   options: authOptions,
+      //   completionHandler: { granted, error in
+      //     if let error = error {
+      //       print("Error requesting notification authorization: \(error)")
+      //     }
+      //   })
     } else {
-      let settings: UIUserNotificationSettings =
-      UIUserNotificationSettings(types: [.alert, .badge, .sound], categories: nil)
-      application.registerUserNotificationSettings(settings)
+      // let settings: UIUserNotificationSettings =
+      // UIUserNotificationSettings(types: [.alert, .badge, .sound], categories: nil)
+      // application.registerUserNotificationSettings(settings)
     }
 
     // Register for remote notifications

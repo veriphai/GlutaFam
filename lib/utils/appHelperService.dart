@@ -36,7 +36,7 @@ Future<Map<String, String>> getDeviceDetails() async {
       // For Android
       final androidInfo = await deviceInfo.androidInfo;
       return {
-        'deviceId': androidInfo.id,
+        'deviceId': androidInfo.fingerprint,
         'platform': 'Android',
       };
     } else if (Platform.isIOS) {

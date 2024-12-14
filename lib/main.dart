@@ -32,8 +32,9 @@ void main() async {
   bool? firstLaunchBool = prefs.getBool('firstLaunch');
   bool firstLaunch = firstLaunchBool ?? true; // Default to true if null
 
-  // Initialize notifications
+  await setFirebaseTrackingId(prefs);
 
+  // Initialize notifications
   final notificationService = NotificationService();
   Future.microtask(() async {
     await JustAudioBackground.init(
@@ -44,6 +45,7 @@ void main() async {
 
         // Keeps the notification active
         );
+
     if (!kIsWeb) {
       await notificationService.initNotifications();
 
@@ -195,5 +197,16 @@ Future<void> handleInitialDynamicLink(SharedPreferences prefs) async {
       prefs.setString("referralCode", referralCode);
       // Handle referral code logic
     }
+  }
+}
+
+Future<void> setFirebaseTrackingId(SharedPreferences prefs) async {
+  try {
+    String? userTrackingId = prefs.getString('userTrackingId');
+    if (userTrackingId != null && userTrackingId.isNotEmpty) {
+      await FirebaseAnalytics.instance.setUserId(id: userTrackingId);
+    }
+  } catch (e) {
+    print("Error setting Firebase user ID: $e");
   }
 }

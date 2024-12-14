@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:eureka_app/events/referralScreenEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -32,8 +33,19 @@ class _GiftScreenState extends State<GiftScreen> {
       redeemedGiftId = widget.redeemedGiftId;
     });
     _fetchGifts();
+    _setCurrentScreen();
     logRedeemGiftScreenView(
         widget.joinedReferrals, redeemedGiftId != '' ? true : false);
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'RedeemGiftScreen',
+        screenName: "Redeem Gift Screen",
+        parameters: {
+          "convertedReferral": widget.joinedReferrals,
+          "giftRedeemed": redeemedGiftId != '' ? true : false
+        });
   }
 
   Future<void> _fetchGifts() async {

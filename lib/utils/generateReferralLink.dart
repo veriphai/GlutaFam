@@ -14,9 +14,8 @@ Future<String> generateReferralLink(String referralCode) async {
       forcedRedirectEnabled: true, // Force bypassing the app preview page
     ),
     socialMetaTagParameters: SocialMetaTagParameters(
-      title: 'Invite Your Friends to GlutaClass',
-      description:
-          'Use this referral link to join GlutaClass and earn rewards!',
+      title: 'GlutaClass: AI Tutor for NCERT',
+      description: 'Read NCERT in a new and engaging manner!',
       imageUrl:
           Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/logo_1.png'),
     ),

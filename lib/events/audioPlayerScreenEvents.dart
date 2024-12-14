@@ -154,6 +154,20 @@ void logForwardBackwardClick(String topicId, bool audioPlaying,
       });
 }
 
+void logSubsectionsChanged(String topicId, bool audioPlaying, int audioDuration,
+    String activeSubsectionId) {
+  logEvent(
+      eventName: "audio_player_subsections_change",
+      screenName: "AudioPlayerScreen",
+      eventType: "auto",
+      eventDetails: {
+        "topicId": topicId,
+        "audioPlaying": audioPlaying,
+        "audioDuration": audioDuration,
+        "activeSubsectionId": activeSubsectionId
+      });
+}
+
 void logSubsectionsBottomSheetOpened(String topicId, bool audioPlaying,
     int audioDuration, String activeSubsectionId) {
   logEvent(

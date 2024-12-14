@@ -1,4 +1,5 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -27,10 +28,19 @@ class _SimulationScreenState extends State<SimulationScreen> {
       },
     );
 
+    _setCurrentScreen();
+
     // Ensure that WebView is initialized for the platform
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..loadRequest(Uri.parse(widget.simulationUrl));
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'SimulationScreen',
+        screenName: "Simulation Screen",
+        parameters: {"simulationUrl": widget.simulationUrl});
   }
 
   @override

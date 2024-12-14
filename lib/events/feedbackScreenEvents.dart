@@ -18,12 +18,17 @@ void logStarSelection(String topicId, int starRating) {
   );
 }
 
-void logFeedbackCheckboxClick(String topicId, String checkboxOption) {
+void logFeedbackCheckboxClick(
+    String topicId, String checkboxOption, String action) {
   logEvent(
     eventName: "feedback_checkbox",
     screenName: "FeedbackScreen",
     eventType: "button_click",
-    eventDetails: {"topicId": topicId, "feedbackOption": checkboxOption},
+    eventDetails: {
+      "topicId": topicId,
+      "feedbackOption": checkboxOption,
+      "action": action
+    },
   );
 }
 
@@ -40,6 +45,47 @@ void logFeedbackEndLessonClick(String topicId) {
   logEvent(
     eventName: "feedback_end_lesson",
     screenName: "FeedbackScreen",
+    eventType: "button_click",
+    eventDetails: {"topicId": topicId},
+  );
+}
+
+void logEarlyExitFeedbackScreenView(String topicId) {
+  logEvent(
+    eventName: "early_exit_feedback_sv",
+    screenName: "EarlyExitFeedbackModal",
+    eventType: "screen_view",
+    eventDetails: {"topicId": topicId},
+  );
+}
+
+void logEarlyExitFeedbackCheckboxClick(
+    String topicId, String checkboxOption, String action) {
+  logEvent(
+    eventName: "early_exit_feedback_checkbox",
+    screenName: "EarlyExitFeedbackModal",
+    eventType: "button_click",
+    eventDetails: {
+      "topicId": topicId,
+      "feedbackOption": checkboxOption,
+      "action": action
+    },
+  );
+}
+
+void logEarlyExitFeedbackClose(String topicId) {
+  logEvent(
+    eventName: "early_exit_feedback_close",
+    screenName: "EarlyExitFeedbackModal",
+    eventType: "button_click",
+    eventDetails: {"topicId": topicId},
+  );
+}
+
+void logEarlyExitFeedbackSubmit(String topicId) {
+  logEvent(
+    eventName: "early_exit_feedback_submit",
+    screenName: "EarlyExitFeedbackModal",
     eventType: "button_click",
     eventDetails: {"topicId": topicId},
   );

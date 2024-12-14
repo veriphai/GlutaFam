@@ -3,6 +3,7 @@ import 'package:eureka_app/events/referralScreenEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/giftScreen.dart';
 import 'package:eureka_app/utils/checkInternetConnectivity.dart';
 import 'package:eureka_app/utils/generateReferralLink.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
@@ -25,7 +26,17 @@ class _ReferralScreenState extends State<ReferralScreen> {
   void initState() {
     super.initState();
     _fetchUserProfileAndReferralCode();
+    _setCurrentScreen();
     logReferralScreenView(joinedReferrals);
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'ReferralScreen',
+        screenName: "Referral Screen",
+        parameters: {
+          "convertedReferral": joinedReferrals,
+        });
   }
 
   @override

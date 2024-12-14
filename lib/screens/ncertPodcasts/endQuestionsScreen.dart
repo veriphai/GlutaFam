@@ -1,6 +1,7 @@
 import 'package:eureka_app/apis/fetchChapterQuestionsApi.dart';
 import 'package:eureka_app/events/bookEndQnaEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/resultsScreen.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -113,6 +114,7 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
   void initState() {
     super.initState();
     logBookEndQnAScreenView(widget.chapterId, widget.sourceScreen);
+    _setCurrentScreen();
     questionResults = widget.questionResults ?? {};
     _pageController = PageController();
 
@@ -137,6 +139,16 @@ class _EndQuestionScreenState extends State<EndQuestionScreen>
       }
     });
     _chooseNewGradient();
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'BookEndQnAScreen',
+        screenName: "Book End QnA Screen",
+        parameters: {
+          "chapterId": widget.chapterId,
+          "sourceScreen": widget.sourceScreen
+        });
   }
 
   void _chooseNewGradient() {

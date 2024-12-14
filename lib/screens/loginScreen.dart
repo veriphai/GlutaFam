@@ -3,6 +3,7 @@ import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
 import 'package:eureka_app/screens/signupscreen.dart'; // Import the signup screen
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +12,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -89,6 +91,16 @@ class _LoginScreenState extends State<LoginScreen> {
         Map<String, dynamic> data = json.decode(response.body);
         print("Auth api:$data");
         String authToken = data['token'];
+        String userTrackingId = data['userTrackingId'];
+        bool newUser = data['newUser'];
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString('userTrackingId', userTrackingId);
+        await FirebaseAnalytics.instance.setUserId(id: userTrackingId);
+        if (newUser) {
+          FirebaseAnalytics.instance.logSignUp(signUpMethod: "gmail");
+        } else {
+          FirebaseAnalytics.instance.logLogin(loginMethod: "gmail");
+        }
         await authTokenService.setAuthToken(authToken);
 
         // await secureStorage.write(key: "authKey", value: data['token']);
@@ -163,7 +175,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => Signupscreen()),
+                              builder: (context) => Signupscreen(
+                                  deviceId: deviceId,
+                                  platform: platform,
+                                  userIP: userIP)),
                         );
                       },
                       style: OutlinedButton.styleFrom(
@@ -216,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           String? photoURL = user.photoURL;
                           String? uid = user.uid;
                           logGoogleAuthSuccess(uid, deviceId, platform, userIP);
-                          saveProfile(displayName, email, uid, photoURL);
+                          await saveProfile(displayName, email, uid, photoURL);
                         }
 
                         Navigator.push(

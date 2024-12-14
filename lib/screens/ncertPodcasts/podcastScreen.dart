@@ -10,6 +10,7 @@ import 'package:eureka_app/screens/ncertPodcasts/earlyExitFeedbackModal.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/feedbackScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 // import 'package:audioplayers/audioplayers.dart';
@@ -126,6 +127,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
             Navigator.of(context).pop(); // Close the modal
             Navigator.of(context).pop(); // Navigate back
           },
+          topicId: widget.sectionId ?? "",
           onclose: () {
             Navigator.of(context).pop(); // Close the modal
             Navigator.of(context).pop();
@@ -207,7 +209,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
               (subsection['order'] != null && subsection['order'] > 0)
                   ? subsection['order'] - 1
                   : 0;
-          print("current subsection: ${currentSubsectionIndex}");
+          // print("current subsection: ${currentSubsectionIndex}");
+
           context
               .read<AudioProvider>()
               .updateAudioParams(currentSubsectionIndex);
@@ -1190,6 +1193,8 @@ class _PodcastScreenState extends State<PodcastScreen> {
     for (var subsection in transformedSubsections) {
       if (currentPosition.inMilliseconds >= subsection['endTime'] - 300 &&
           currentPosition.inMilliseconds < subsection['endTime'] + 500) {
+        logSubsectionsChanged(widget.sectionId ?? "", _audioPlayer.playing,
+            _audioPlayer.position.inSeconds, subsection["id"]);
         final listOfSubsection = subsection.containsKey('keypoints') &&
                 subsection['keypoints'] != null
             ? subsection['keypoints']
@@ -1210,6 +1215,7 @@ class _PodcastScreenState extends State<PodcastScreen> {
   @override
   void initState() {
     super.initState();
+    _setCurrentScreen();
     currentAudioUrl = widget.audioUrl;
     currentSubsections = widget.subsections;
     _audioRecorder = flutter_sound.FlutterSoundRecorder();
@@ -1313,6 +1319,13 @@ class _PodcastScreenState extends State<PodcastScreen> {
     });
     _initializeRecorder();
     _initializeAudioSession();
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'AudioPlayerScreen',
+        screenName: "Audio Player Screen",
+        parameters: {"topicId": widget.sectionId ?? ""});
   }
 
   Future<void> _fetchLanguageSpecificDataAndUpdate() async {

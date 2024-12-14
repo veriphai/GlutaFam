@@ -1,3 +1,5 @@
+import 'package:eureka_app/apis/getProfile.dart';
+import 'package:eureka_app/apis/saveReferralLink.dart';
 import 'package:eureka_app/events/chapterListingEvents.dart';
 import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/miniPlayer.dart';
@@ -34,6 +36,7 @@ class _ChapterscreenState extends State<Chapterscreen> {
   final String screenName = "HomePage-ChapterListingScreen";
   final int cacheExpiryDurationInHours = 24;
   late SharedPreferences prefs;
+  String userUid = "";
 
   String getChaptersCacheKey() => 'cached_chapters_standard_$standard';
   String getCacheTimestampKey() =>
@@ -65,15 +68,44 @@ class _ChapterscreenState extends State<Chapterscreen> {
   @override
   void initState() {
     super.initState();
+    _setCurrentScreen();
+    _fetchUserProfile();
+    _loadSelectedClass();
+  }
 
-    _loadSelectedClass(); // Fetch the selected class before fetching chapters
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'Chapterscreen',
+        screenName: "HomeScreen - Chapter Listing");
+  }
 
-    Future<void> _setCurrentScreen() async {
-      await FirebaseAnalytics.instance
-          .logEvent(name: 'screen_view', parameters: {
-        'firebase_screen': "HomeScreen - Chapter Listing",
-        'firebase_screen_class': "Chapterscreen",
-      });
+  Future<void> _fetchUserProfile() async {
+    try {
+      // Fetch the user profile
+
+      print("User profile fetched...");
+
+      Map<String, dynamic> profile = await fetchUserProfile();
+
+      String referralCode = profile['referralCode'] ?? "";
+      String referralLink = profile["referralLink"] ?? "";
+
+      // Check if referral code exists and referral link is missing
+      if (referralCode.isNotEmpty && referralLink.isEmpty) {
+        print("Generating referral link...");
+
+        // Generate the referral link
+        referralLink = await generateReferralLink(referralCode);
+
+        // Optionally, update the profile with the newly generated referral link
+        await saveReferralLink(referralLink: referralLink);
+
+        print("Referral link generated: $referralLink");
+      } else {
+        print("Referral link already exists or referral code is missing.");
+      }
+    } catch (e) {
+      print("Error fetching user profile: $e");
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:eureka_app/events/bookEndQnaEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -18,6 +19,15 @@ class ResultScreen extends StatelessWidget {
       required this.chapterId,
       required this.questionResults});
 
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'ResultScreen',
+        screenName: "Result Screen",
+        parameters: {
+          "chapterId": chapterId,
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     final percentage =
@@ -25,6 +35,8 @@ class ResultScreen extends StatelessWidget {
 
     logResultScreenView(
         chapterId, correctAnswers, partiallyCorrect, totalQuestions);
+
+    _setCurrentScreen();
 
     return Scaffold(
       backgroundColor: Colors.black,

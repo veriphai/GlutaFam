@@ -2,10 +2,12 @@
 import 'dart:math';
 
 import 'package:eureka_app/apis/submitFeedbackApi.dart';
+import 'package:eureka_app/events/audioPlayerScreenEvents.dart';
 import 'package:eureka_app/events/miniPlayerEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/earlyExitFeedbackModal.dart';
 import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -29,11 +31,22 @@ class _MiniPlayerState extends State<MiniPlayer> {
     });
   }
 
+  Future<void> _setCurrentScreen(
+      String topicId, bool audioPlaying, int audioDuration) async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'MiniPlayer',
+        screenName: "Mini Player",
+        parameters: {
+          "topicId": topicId,
+          "audioPlaying": audioPlaying.toString(),
+          "audioDuration": audioDuration
+        });
+  }
+
   @override
   void initState() {
     super.initState();
     final audioProvider = Provider.of<AudioProvider>(context, listen: false);
-
     // Listen to duration changes
     audioProvider.audioPlayer?.durationStream.listen((Duration? duration) {
       if (mounted && duration != null) {
@@ -43,12 +56,17 @@ class _MiniPlayerState extends State<MiniPlayer> {
       }
     });
 
+    _setCurrentScreen(
+        audioProvider.sectionId,
+        audioProvider.audioPlayer!.playing,
+        audioProvider.audioPlayer!.position.inSeconds);
     // Listen to position changes
     audioProvider.audioPlayer?.positionStream.listen((Duration position) {
       if (mounted) {
         setState(() {
           currentPosition = position;
         });
+        _checkEndOfSubsection();
       }
     });
 
@@ -63,6 +81,27 @@ class _MiniPlayerState extends State<MiniPlayer> {
 
     // Set initial play/pause icon state
     audioProvider.isPlaying = audioProvider.audioPlayer?.playing ?? false;
+  }
+
+  void _checkEndOfSubsection() {
+    final audioProvider = Provider.of<AudioProvider>(context, listen: false);
+
+    // Check if subsections is not null before iterating
+    if (audioProvider.subsections != null) {
+      for (var subsection in audioProvider.subsections!) {
+        if (currentPosition.inMilliseconds >= subsection['endTime'] - 100 &&
+            currentPosition.inMilliseconds < subsection['endTime'] + 100) {
+          logSubsectionsChanged(
+            subsection['id'] ?? "",
+            audioProvider.audioPlayer?.playing ?? false,
+            audioProvider.audioPlayer?.position.inSeconds ?? 0,
+            subsection["id"],
+          );
+
+          break;
+        }
+      }
+    }
   }
 
   bool earlyExitModalToShow() {
@@ -97,21 +136,24 @@ class _MiniPlayerState extends State<MiniPlayer> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return EarlyExitFeedbackModal(onSubmit: (selectedOptions) {
-          // Handle feedback submission here
-          print("User feedback: $selectedOptions");
-          submitFeedback(
-            chapterId: audioProvider.chapterId,
-            sectionId: audioProvider.sectionId,
-            feedbackOptions: selectedOptions.toList(),
-            type: 'earlyExit',
-          );
-          Navigator.of(context).pop(); // Close the modal
-          onClose(); // Close the MiniPlayer after feedback
-        }, onclose: () {
-          Navigator.of(context).pop();
-          onClose();
-        });
+        return EarlyExitFeedbackModal(
+            onSubmit: (selectedOptions) {
+              // Handle feedback submission here
+              print("User feedback: $selectedOptions");
+              submitFeedback(
+                chapterId: audioProvider.chapterId,
+                sectionId: audioProvider.sectionId,
+                feedbackOptions: selectedOptions.toList(),
+                type: 'earlyExit',
+              );
+              Navigator.of(context).pop(); // Close the modal
+              onClose(); // Close the MiniPlayer after feedback
+            },
+            onclose: () {
+              Navigator.of(context).pop();
+              onClose();
+            },
+            topicId: audioProvider.sectionId);
       },
     );
   }

@@ -1,6 +1,8 @@
 import 'package:eureka_app/apis/submitFeedbackApi.dart';
+import 'package:eureka_app/events/feedbackScreenEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -26,6 +28,20 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   Set<String> selectedFeedbackOptions = {}; // Store only user-selected options
 
   final secureStorage = const FlutterSecureStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    _setCurrentScreen();
+    logFeedbackScreenView(widget.sectionId ?? "");
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'FeedbackScreen',
+        screenName: "Feedback Screen",
+        parameters: {"topicId": widget.sectionId ?? ""});
+  }
 
   // Define feedback options based on the rating given
   List<String> getFeedbackOptions(int rating) {
@@ -58,8 +74,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     setState(() {
       if (selectedFeedbackOptions.contains(option)) {
         selectedFeedbackOptions.remove(option);
+        logFeedbackCheckboxClick(widget.sectionId ?? "", option, "selected");
       } else {
         selectedFeedbackOptions.add(option);
+        logFeedbackCheckboxClick(widget.sectionId ?? "", option, "unselected");
       }
     });
   }
@@ -110,6 +128,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       selectedFeedbackOptions
                           .clear(); // Clear previous selections
                     });
+                    logStarSelection(widget.sectionId ?? "", selectedRating);
                   },
                 );
               }),
@@ -166,6 +185,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           feedbackOptions: selectedFeedbackOptions.toList(),
                           type: 'endLesson',
                           rating: selectedRating);
+                      logFeedbackContinueWithQna(widget.sectionId ?? "");
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -201,6 +222,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           feedbackOptions: selectedFeedbackOptions.toList(),
                           type: 'endLesson',
                           rating: selectedRating);
+                      logFeedbackEndLessonClick(widget.sectionId ?? "");
+
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(

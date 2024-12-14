@@ -1,3 +1,5 @@
+import 'package:eureka_app/events/feedbackScreenEvents.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,9 +7,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 class EarlyExitFeedbackModal extends StatefulWidget {
   final Function(List<String>) onSubmit;
   final Function() onclose;
+  final String topicId;
 
   const EarlyExitFeedbackModal(
-      {Key? key, required this.onSubmit, required this.onclose})
+      {Key? key,
+      required this.onSubmit,
+      required this.onclose,
+      required this.topicId})
       : super(key: key);
 
   @override
@@ -24,14 +30,32 @@ class _EarlyExitFeedbackModalState extends State<EarlyExitFeedbackModal> {
     'Other'
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _setCurrentScreen();
+    logEarlyExitFeedbackScreenView(widget.topicId);
+  }
+
   void toggleOption(String option) {
     setState(() {
       if (selectedOptions.contains(option)) {
         selectedOptions.remove(option);
+        logEarlyExitFeedbackCheckboxClick(widget.topicId, option, "selected");
       } else {
         selectedOptions.add(option);
+        logEarlyExitFeedbackCheckboxClick(widget.topicId, option, "unselected");
       }
     });
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'EarlyExitFeedbackModal',
+        screenName: "Early Exit Feedback Modal",
+        parameters: {
+          "topicId": widget.topicId,
+        });
   }
 
   void recordTimeForLastAppearance() async {
@@ -71,6 +95,7 @@ class _EarlyExitFeedbackModalState extends State<EarlyExitFeedbackModal> {
       actions: [
         TextButton(
           onPressed: () {
+            logEarlyExitFeedbackClose(widget.topicId);
             widget.onclose();
           },
           child: Text('Cancel', style: GoogleFonts.raleway(color: Colors.grey)),
@@ -79,6 +104,7 @@ class _EarlyExitFeedbackModalState extends State<EarlyExitFeedbackModal> {
           style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromRGBO(255, 217, 0, 1)),
           onPressed: () {
+            logEarlyExitFeedbackSubmit(widget.topicId);
             widget.onSubmit(selectedOptions.toList());
           },
           child: Text('Submit',

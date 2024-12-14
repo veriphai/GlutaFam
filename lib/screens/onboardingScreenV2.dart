@@ -1,6 +1,7 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -19,6 +20,12 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
   void initState() {
     super.initState();
     logOnboardingEvents(false);
+    _setCurrentScreen();
+  }
+
+  Future<void> _setCurrentScreen() async {
+    await FirebaseAnalytics.instance.logScreenView(
+        screenClass: 'OnboardingScreen', screenName: "Onboarding Screen");
   }
 
   void logOnboardingEvents(bool buttonClick) async {
@@ -216,9 +223,10 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
           ElevatedButton(
             onPressed: () {
               if (currentPageIndex == onboardingData.length - 1) {
-                Navigator.push(
+                Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => Chapterscreen()),
+                  (Route<dynamic> route) => false,
                 );
                 // Go to next action or final action when class selection is done
               } else {
