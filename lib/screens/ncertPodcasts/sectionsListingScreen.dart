@@ -2,9 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/events/sectionListingEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreen.dart'
+  if (dart.library.html) 'package:eureka_app/screens/ncertPodcasts/endQuestionsScreenWeb.dart';
 import 'package:eureka_app/screens/ncertPodcasts/miniPlayer.dart';
-import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/podcastScreen.dart'
+  if (dart.library.html) 'package:eureka_app/screens/ncertPodcasts/podcastScreenWeb.dart';
 import 'package:eureka_app/screens/ncertPodcasts/simulationScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
+// import 'package:eureka_app/utils/conditionalImports.dart';
 
 class Sectionscreen extends StatefulWidget {
   final String chapterId;

@@ -10,14 +10,14 @@ class ResultScreen extends StatelessWidget {
   final int partiallyCorrect;
   final int totalQuestions;
   final String chapterId;
-  final Map<String, QuestionResult> questionResults;
+  final Map<String, QuestionResult>? questionResults;
 
   ResultScreen(
       {required this.correctAnswers,
       required this.partiallyCorrect,
       required this.totalQuestions,
       required this.chapterId,
-      required this.questionResults});
+      this.questionResults});
 
   Future<void> _setCurrentScreen() async {
     await FirebaseAnalytics.instance.logScreenView(
