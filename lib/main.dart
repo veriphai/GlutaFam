@@ -1,4 +1,6 @@
 import 'package:eureka_app/events/genericEvents.dart';
+import 'package:eureka_app/screens/conceptLearningScreen.dart';
+import 'package:eureka_app/screens/homeScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
@@ -8,6 +10,9 @@ import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
+import 'package:eureka_app/widgets/customBottomBar.dart';
+import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
+import 'package:eureka_app/widgets/questsScreen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
@@ -118,8 +123,8 @@ class MyApp extends StatelessWidget {
             home: firstLaunch
                 ? (checkIsWebOnDesktop(context)
                     ? LandingScreenWeb()
-                    : LoginScreen())
-                : Chapterscreen(),
+                    : MainPage())
+                : MainPage(),
             routes: {
               '/home': (context) => Chapterscreen(),
               '/chapterDetails': (context) => Sectionscreen(
@@ -127,6 +132,32 @@ class MyApp extends StatelessWidget {
                   ),
             },
           );
+        },
+      ),
+    );
+  }
+}
+
+class MainPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    int currentIndex = context.watch<MyAppState>().currentIndex;
+
+    // Define your screens
+    final screens = [
+      HomeScreen(),
+      // Replace these with your actual screens
+      Chapterscreen(),
+      Quests(),
+      MCQQuestions(),
+    ];
+
+    return Scaffold(
+      body: screens[currentIndex],
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: currentIndex,
+        onTap: (index) {
+          context.read<MyAppState>().setIndex(index);
         },
       ),
     );

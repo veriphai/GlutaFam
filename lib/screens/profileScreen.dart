@@ -14,7 +14,7 @@ class ProfileScreen extends StatelessWidget {
               color: Colors.white,
             )),
       ),
-      bottomNavigationBar: CustomBottomNavBar(currentIndex: 3),
+      // bottomNavigationBar: CustomBottomNavBar(currentIndex: 3),
     );
   }
 
