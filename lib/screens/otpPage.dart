@@ -1,6 +1,7 @@
 import "dart:async";
 import "package:eureka_app/apis/authApi.dart";
 import "package:eureka_app/screens/ncertPodcasts/classSelection.dart";
+import "package:eureka_app/screens/onboardingScreenV4.dart";
 import "package:firebase_analytics/firebase_analytics.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
@@ -81,7 +82,7 @@ class _OtpPageState extends State<OtpPage> {
       Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => ClassSelectionPage(
+              builder: (context) => OnboardingScreenV4(
                   deviceId: widget.deviceId,
                   platform: widget.platform,
                   userIP: widget.userIP)));

@@ -1,23 +1,37 @@
 import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
+import 'package:eureka_app/screens/feedsScreen.dart';
+import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
+import 'package:eureka_app/screens/landingScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
+import 'package:eureka_app/screens/leaderboardScreen.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
+import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:eureka_app/screens/onboardingScreenV3.dart';
+import 'package:eureka_app/screens/onboardingScreenV4.dart';
+import 'package:eureka_app/screens/profileScreen.dart';
+import 'package:eureka_app/screens/progressReportScreen.dart';
+import 'package:eureka_app/screens/quizzesScreen.dart';
+import 'package:eureka_app/screens/socraticTutorScreen.dart';
+import 'package:eureka_app/screens/socraticTutorScreenV2.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
+import 'package:eureka_app/widgets/conversationScreen.dart';
 import 'package:eureka_app/widgets/customBottomBar.dart';
 import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
 import 'package:eureka_app/widgets/questsScreen.dart';
+import 'package:eureka_app/widgets/weeklyLeaderboardContent.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,7 +48,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool? firstLaunchBool = prefs.getBool('firstLaunch');
+  bool? firstLaunchBool = prefs.getBool('appFirstLaunch');
   bool firstLaunch = firstLaunchBool ?? true; // Default to true if null
 
   await setFirebaseTrackingId(prefs);
@@ -123,7 +137,7 @@ class MyApp extends StatelessWidget {
             home: firstLaunch
                 ? (checkIsWebOnDesktop(context)
                     ? LandingScreenWeb()
-                    : MainPage())
+                    : LoginScreen())
                 : MainPage(),
             routes: {
               '/home': (context) => Chapterscreen(),
@@ -146,10 +160,18 @@ class MainPage extends StatelessWidget {
     // Define your screens
     final screens = [
       HomeScreen(),
-      // Replace these with your actual screens
-      Chapterscreen(),
-      Quests(),
-      MCQQuestions(),
+      WeeklyLeaderboardContent(),
+      // ClassSelectionPage(),
+      // QuizzesScreen(),
+      ProgressReportScreen(),
+      // ConversationScreen(),
+      // Chapterscreen(),
+      ProfileScreen(),
+      QuestsScreen(),
+      // SocraticTutorScreen()
+      // SocraticTutorScreenV2()
+      // OnboardingScreenV4()
+      FeedScreen()
     ];
 
     return Scaffold(
@@ -158,6 +180,7 @@ class MainPage extends StatelessWidget {
         currentIndex: currentIndex,
         onTap: (index) {
           context.read<MyAppState>().setIndex(index);
+          HapticFeedback.lightImpact();
         },
       ),
     );
@@ -203,32 +226,70 @@ void initDynamicLinkListener(SharedPreferences prefs) {
   FirebaseDynamicLinks.instance.onLink.listen((PendingDynamicLinkData? data) {
     final Uri? deepLink = data?.link;
 
-    if (deepLink != null &&
-        deepLink.queryParameters.containsKey('referralCode')) {
-      String referralCode = deepLink.queryParameters['referralCode']!;
-      print('Referee Code: $referralCode');
-      prefs.setString("referralCode", referralCode);
-      // Store referral code or send it to your backend for further processing
+    if (deepLink != null) {
+      // Check if the link contains a referral code
+      if (deepLink.queryParameters.containsKey('referralCode')) {
+        String referralCode = deepLink.queryParameters['referralCode']!;
+        print('Referee Code: $referralCode');
+        prefs.setString("referralCode", referralCode);
+        // Store referral code or send it to your backend for further processing
+      }
+
+      // Check if the link is for a profile
+      if (deepLink.path == '/profile' &&
+          deepLink.queryParameters.containsKey('userId')) {
+        String userId = deepLink.queryParameters['userId']!;
+        print('Profile User ID: $userId');
+
+        // Navigate to the ProfileScreen
+        navigateToProfileScreen(userId);
+      }
     }
   }).onError((error) {
     print('Dynamic Link Error: $error');
   });
 }
 
-// Retrieve initial link (for when the app is opened via a referral link)
+// Retrieve initial link (for when the app is opened via a dynamic link)
 Future<void> handleInitialDynamicLink(SharedPreferences prefs) async {
   final PendingDynamicLinkData? initialLink =
       await FirebaseDynamicLinks.instance.getInitialLink();
 
   if (initialLink?.link != null) {
     final Uri deepLink = initialLink!.link;
-    String? referralCode = deepLink.queryParameters['referralCode'];
-    if (referralCode != null) {
+
+    // Check if the link contains a referral code
+    if (deepLink.queryParameters.containsKey('referralCode')) {
+      String referralCode = deepLink.queryParameters['referralCode']!;
       print('Referral Code from Initial Link: $referralCode');
       prefs.setString("referralCode", referralCode);
       // Handle referral code logic
     }
+
+    // Check if the link is for a profile
+    if (deepLink.path == '/profile' &&
+        deepLink.queryParameters.containsKey('userId')) {
+      String userId = deepLink.queryParameters['userId']!;
+      print('Profile User ID from Initial Link: $userId');
+
+      // Navigate to the ProfileScreen
+      navigateToProfileScreen(userId);
+    }
   }
+}
+
+// Function to navigate to ProfileScreen
+void navigateToProfileScreen(String userId) {
+  // Use Navigator to push the ProfileScreen with the userId
+  Navigator.push(
+    navigatorKey.currentContext!,
+    MaterialPageRoute(
+      builder: (context) => FriendsProfileScreen(
+        friendId: userId,
+        following: false,
+      ),
+    ),
+  );
 }
 
 Future<void> setFirebaseTrackingId(SharedPreferences prefs) async {

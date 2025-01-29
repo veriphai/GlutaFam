@@ -1,8 +1,12 @@
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:eureka_app/apis/fetchQuests.dart';
+import 'package:eureka_app/apis/getProfile.dart';
+import 'package:eureka_app/apis/updateCredits.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<String> getDeviceId() async {
   final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
@@ -74,4 +78,101 @@ Future<String> getUserIP() async {
   } catch (e) {
     return "Error fetching IP address: $e";
   }
+}
+
+Future<Map<String, dynamic>> getProfile() async {
+  const String profileKey = "userProfile";
+
+  final prefs = await SharedPreferences.getInstance();
+
+  // Check if profile exists in SharedPreferences
+  if (prefs.containsKey(profileKey)) {
+    final profileString = prefs.getString(profileKey);
+    if (profileString != null) {
+      // Return profile from SharedPreferences
+      return json.decode(profileString);
+    }
+  }
+
+  final profileData = await fetchUserProfile();
+
+  await prefs.setString(profileKey, json.encode(profileData));
+  updateLifelines(prefs, profileData["lifelines"]);
+  updateCredits(profileData["credits"]);
+
+  return profileData;
+}
+
+void updateLifelines(SharedPreferences prefs, int lifelines) async {
+  const String lifelinesKey = "lifelines";
+  await prefs.setInt(lifelinesKey, lifelines);
+}
+
+void toggleUnlimitedLifelines(SharedPreferences prefs, bool enabled) async {
+  const String lifelinesKey = "unlimitedLifelines";
+  await prefs.setBool(lifelinesKey, enabled);
+}
+
+void updateCredits(int credits) async {
+  final prefs = await SharedPreferences.getInstance();
+  const String creditsKey = "credits";
+  await prefs.setInt(creditsKey, credits);
+  updateCreditsAPI(credits: credits);
+}
+
+Future<int> getCredits() async {
+  final prefs = await SharedPreferences.getInstance();
+  const String creditsKey = "credits";
+  return prefs.getInt(creditsKey) ?? 0;
+}
+
+Future<Map<String, dynamic>> refreshProfile() async {
+  const String profileKey = "userProfile";
+
+  final profileData = await fetchUserProfile();
+
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(profileKey, json.encode(profileData));
+  updateLifelines(prefs, profileData["lifelines"]);
+  updateCredits(profileData["credits"]);
+
+  return profileData;
+}
+
+String fetchLeague(int league) {
+  switch (league) {
+    case 1:
+      return "Bronze";
+    case 2:
+      return "Silver";
+    case 3:
+      return "Gold";
+    case 4:
+      return "Platinum";
+    case 5:
+      return "Diamond";
+    default:
+      return "Unknown";
+  }
+}
+
+Future<Map<String, dynamic>> getQuests() async {
+  const String questsKey = "quests";
+
+  final prefs = await SharedPreferences.getInstance();
+
+  // Check if profile exists in SharedPreferences
+  if (prefs.containsKey(questsKey)) {
+    final questsString = prefs.getString(questsKey);
+    if (questsString != null) {
+      // Return profile from SharedPreferences
+      return json.decode(questsString);
+    }
+  }
+
+  final quests = await fetchQuests();
+
+  await prefs.setString(questsKey, json.encode(quests));
+
+  return quests;
 }

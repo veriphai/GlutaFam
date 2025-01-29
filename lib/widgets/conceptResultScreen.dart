@@ -1,4 +1,13 @@
+import 'dart:convert';
+
+import 'package:eureka_app/main.dart';
+import 'package:eureka_app/popups/genericPopupWidget.dart';
+import 'package:eureka_app/popups/popUpManager.dart';
+import 'package:eureka_app/screens/mistakesCorrectionScreen.dart';
+import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:eureka_app/widgets/questProgressScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:chiclet/chiclet.dart';
 
@@ -7,121 +16,217 @@ class ConceptResultScreen extends StatelessWidget {
   final int totalXp; // XP learned
   final String timeTaken; // Time taken
   final double accuracy; // Accuracy percentage
+  final Map<String, dynamic> lessonCompletionResponse;
 
-  const ConceptResultScreen({
-    Key? key,
-    required this.conceptName,
-    required this.totalXp,
-    required this.timeTaken,
-    required this.accuracy,
-  }) : super(key: key);
+  const ConceptResultScreen(
+      {Key? key,
+      required this.conceptName,
+      required this.totalXp,
+      required this.timeTaken,
+      required this.accuracy,
+      required this.lessonCompletionResponse})
+      : super(key: key);
+
+  void handleClaimXPClick(int xpEarned, BuildContext context) async {
+    if (lessonCompletionResponse["streakExtended"]) {
+      showEventPopup(
+          context,
+          {
+            "streakIncreased": true,
+            "newStreak": lessonCompletionResponse["streakActiveDays"]
+          },
+          xpEarned);
+    } else {
+      _navigateToQuestUpdateScreen(context, xpEarned);
+    }
+  }
+
+  void showEventPopup(
+      BuildContext context, Map<String, dynamic> event, int xpEarned) {
+    final popupData = PopupManager.getPopupForEvent(event);
+    if (popupData != null) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return GenericPopup(popupData: popupData);
+        },
+      ).whenComplete(() {
+        _navigateToQuestUpdateScreen(context, xpEarned);
+      });
+    }
+  }
+
+  void _navigateToQuestUpdateScreen(BuildContext context, int xpEarned) async {
+    Map<String, dynamic> quests = await getQuests();
+    if (quests.containsKey("dailyQuests")) {
+      List<Map<String, dynamic>> dailyQuests =
+          List<Map<String, dynamic>>.from(quests["dailyQuests"]);
+
+      List<Map<String, dynamic>> updatedQuests = [];
+
+      for (var quest in dailyQuests) {
+        int progress = quest["progress"];
+        int completionCriteria = quest["completionCriteria"];
+        String questType = quest["questType"];
+
+        int newProgress = progress;
+        if (progress < completionCriteria) {
+          switch (questType) {
+            case "XP_COLLECT":
+              newProgress = progress + xpEarned;
+              break;
+            case "LESSON_COMPLETE":
+              newProgress = progress + 1;
+              break;
+            case "ACCURACY":
+              newProgress = progress + 1;
+              break;
+            default:
+              print("Unknown quest type: $questType");
+          }
+
+          if (newProgress > progress) {
+            updatedQuests.add({
+              "quest": quest,
+              "oldProgress": progress,
+              "newProgress": newProgress,
+            });
+          }
+        }
+      }
+
+      // If there are updated quests, navigate to the QuestProgressScreen
+      if (updatedQuests.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => QuestProgressScreen(
+              updatedQuests: updatedQuests,
+            ),
+          ),
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => MainPage()),
+          (route) => false,
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        title: Text(
-          conceptName,
-          style: GoogleFonts.raleway(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      backgroundColor: Colors.black,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Main Content
-          Expanded(
-              child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // GIF
-              SizedBox(
-                height: 200,
-                width: 200,
-                child: Image.network(
-                  'https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif', // Example GIF
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              // Lesson Completed Text
-              const SizedBox(height: 30),
-              Text(
-                'Lesson Complete!',
-                style: GoogleFonts.raleway(
-                  color: Color.fromRGBO(255, 217, 0, 1),
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-
-              // Tiles Row
-              const SizedBox(height: 40),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildStatTile(
-                      context: context,
-                      title: 'Total XP',
-                      value: '$totalXp XP',
-                      icon: Icons.star,
-                      color: Colors.green,
-                    ),
-                    _buildStatTile(
-                      context: context,
-                      title: 'Time Taken',
-                      value: timeTaken,
-                      icon: Icons.timer,
-                      color: Color.fromRGBO(255, 217, 0, 1),
-                    ),
-                    _buildStatTile(
-                      context: context,
-                      title: 'Accuracy',
-                      value: '${accuracy.toStringAsFixed(1)}%',
-                      icon: Icons.check_circle,
-                      color: Colors.orange,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          )),
-
-          // Button at the Bottom
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ChicletAnimatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Go back to the chapter
-              },
-              buttonType: ChicletButtonTypes.roundedRectangle,
-              height: 50,
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              buttonColor: const Color.fromRGBO(187, 160, 2, 1),
-              backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
-              child: Text(
-                'Back to Chapter',
-                style: GoogleFonts.raleway(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+    return WillPopScope(
+        onWillPop: () async => false,
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+            automaticallyImplyLeading: false,
+            elevation: 0,
+            title: Text(
+              conceptName,
+              style: GoogleFonts.raleway(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-        ],
-      ),
-    );
+          backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+          body: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Main Content
+              Expanded(
+                  child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // GIF
+                  SizedBox(
+                    height: 200,
+                    width: 200,
+                    child: Image.network(
+                      'https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif', // Example GIF
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+
+                  // Lesson Completed Text
+                  const SizedBox(height: 30),
+                  Text(
+                    'Lesson Complete!',
+                    style: GoogleFonts.raleway(
+                      color: Color.fromRGBO(255, 217, 0, 1),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+
+                  // Tiles Row
+                  const SizedBox(height: 40),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildStatTile(
+                          context: context,
+                          title: 'Total XP',
+                          value: '$totalXp XP',
+                          icon: Icons.star,
+                          color: Colors.green,
+                        ),
+                        _buildStatTile(
+                          context: context,
+                          title: 'Time Taken',
+                          value: timeTaken,
+                          icon: Icons.timer,
+                          color: Color.fromRGBO(255, 217, 0, 1),
+                        ),
+                        _buildStatTile(
+                          context: context,
+                          title: 'Accuracy',
+                          value: '${accuracy.toStringAsFixed(1)}%',
+                          icon: Icons.check_circle,
+                          color: Colors.orange,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )),
+              // Button at the Bottom
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ChicletAnimatedButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    handleClaimXPClick(totalXp, context);
+                    // Navigator.pop(context); // Go back to the chapter
+                  },
+                  buttonType: ChicletButtonTypes.roundedRectangle,
+                  height: 50,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  buttonColor: const Color.fromRGBO(187, 160, 2, 1),
+                  backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
+                  child: Text(
+                    'CLAIM XP',
+                    style: GoogleFonts.raleway(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ));
   }
 
   Widget _buildStatTile({

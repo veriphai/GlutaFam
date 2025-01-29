@@ -101,6 +101,25 @@ class _ClassSelection extends State<ClassSelectionPage> {
     );
   }
 
+  String getClassText(int classNumber) {
+    if (classNumber == 11) {
+      return "JEE 2025";
+    }
+    if (classNumber == 12) {
+      return "JEE 2026";
+    }
+    if (classNumber == 13) {
+      return "NEET 2025";
+    }
+    if (classNumber == 14) {
+      return "NEET 2026";
+    }
+    if (classNumber == 15) {
+      return "UPSC";
+    }
+    return "Class $classNumber";
+  }
+
   Widget _buildClassSelectionPage() {
     return Column(
       children: [
@@ -123,7 +142,7 @@ class _ClassSelection extends State<ClassSelectionPage> {
           alignment: WrapAlignment.center,
           spacing: 20,
           runSpacing: 20,
-          children: List.generate(5, (index) {
+          children: List.generate(10, (index) {
             int classNumber = index + 6;
             bool isSelected = selectedClass == classNumber;
             return GestureDetector(
@@ -152,7 +171,7 @@ class _ClassSelection extends State<ClassSelectionPage> {
                 ),
                 child: Center(
                   child: Text(
-                    'Class $classNumber',
+                    getClassText(classNumber),
                     style: GoogleFonts.raleway(
                       color: isSelected ? Colors.black : Colors.white,
                       fontSize: 22,
@@ -217,6 +236,25 @@ class _ClassSelection extends State<ClassSelectionPage> {
     );
   }
 
+  String findPreparationType(int classNumber) {
+    if (classNumber == 11) {
+      return "JEE_2025";
+    }
+    if (classNumber == 12) {
+      return "JEE_2026";
+    }
+    if (classNumber == 13) {
+      return "NEET_2025";
+    }
+    if (classNumber == 14) {
+      return "NEET_2026";
+    }
+    if (classNumber == 15) {
+      return "UPSC";
+    }
+    return "K_10";
+  }
+
   Future<void> classSelected() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     int? selectedClass = prefs.getInt('selected_class');
@@ -230,9 +268,14 @@ class _ClassSelection extends State<ClassSelectionPage> {
       try {
         String refereeCode = prefs.getString("referralCode") ?? '';
         String fcmToken = prefs.getString("fcmToken") ?? '';
+        String preparationType = findPreparationType(selectedClass);
 
         logClassSelecletedOnOnboarding(widget.deviceId ?? "",
             widget.platform ?? "", selectedClass, refereeCode);
+
+        if (selectedClass > 10) {
+          selectedClass = 0;
+        }
 
         final response = await http.post(
           Uri.parse(url),
@@ -242,6 +285,7 @@ class _ClassSelection extends State<ClassSelectionPage> {
           },
           body: jsonEncode({
             "standard": selectedClass,
+            "quizType": preparationType,
             "deviceId": widget.deviceId,
             "refereeCode": refereeCode,
             "devicePlatform": widget.platform,

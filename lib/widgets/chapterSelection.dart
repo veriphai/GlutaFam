@@ -68,7 +68,7 @@ class ChapterSelection extends StatelessWidget {
                           ),
                         ),
                         title: Text(
-                          chapter['chapterName'],
+                          chapter['name'],
                           style: GoogleFonts.raleway(
                             color: Colors.white,
                             fontSize: 16,
@@ -76,7 +76,7 @@ class ChapterSelection extends StatelessWidget {
                         ),
                         onTap: () {
                           // Trigger callback with chapter index and name
-                          onChapterSelect(index, chapter['chapterName']);
+                          onChapterSelect(index, chapter['name']);
                           Navigator.pop(context); // Close the bottom sheet
                         },
                       ),

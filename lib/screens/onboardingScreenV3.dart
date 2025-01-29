@@ -1,4 +1,5 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
+import 'package:eureka_app/screens/homeScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/onboardingScreenV2.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -286,7 +287,7 @@ class _OnboardingScreenV3State extends State<OnboardingScreenV3> {
         logAudioOnboardingAudioCompleted();
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => Chapterscreen()),
+          MaterialPageRoute(builder: (context) => HomeScreen()),
           (Route<dynamic> route) => false,
         );
       });
@@ -396,7 +397,7 @@ class _OnboardingScreenV3State extends State<OnboardingScreenV3> {
                                 Navigator.pushAndRemoveUntil(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => Chapterscreen()),
+                                      builder: (context) => HomeScreen()),
                                   (Route<dynamic> route) => false,
                                 );
                               } else {

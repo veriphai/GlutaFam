@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SubjectSelection extends StatefulWidget {
-  final String selectedSubject; // Already selected subject
-  final Function(String) onSubjectSelect; // Callback to pass selected subject
+  final String selectedSubject;
+  final Function(String, String) onSubjectSelect;
+  final List<Map<String, dynamic>> books;
 
-  const SubjectSelection({
-    Key? key,
-    required this.selectedSubject,
-    required this.onSubjectSelect,
-  }) : super(key: key);
+  const SubjectSelection(
+      {Key? key,
+      required this.selectedSubject,
+      required this.onSubjectSelect,
+      required this.books})
+      : super(key: key);
 
   @override
   State<SubjectSelection> createState() => _SubjectSelectionScreenState();
@@ -18,11 +20,6 @@ class SubjectSelection extends StatefulWidget {
 class _SubjectSelectionScreenState extends State<SubjectSelection> {
   late String _selectedSubject; // Local state for selected subject
 
-  final List<Map<String, String>> subjects = [
-    {"name": "Science", "imagePath": "lib/assets/glutaclassLogo.png"},
-    {"name": "English", "imagePath": "lib/assets/glutaclassLogo.png"},
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -30,11 +27,11 @@ class _SubjectSelectionScreenState extends State<SubjectSelection> {
         widget.selectedSubject; // Initialize with already selected subject
   }
 
-  void _selectSubject(String subjectName) {
+  void _selectSubject(String subjectName, String bookId) {
     setState(() {
       _selectedSubject = subjectName;
     });
-    widget.onSubjectSelect(subjectName);
+    widget.onSubjectSelect(subjectName, bookId);
     Navigator.pop(context);
   }
 
@@ -77,11 +74,12 @@ class _SubjectSelectionScreenState extends State<SubjectSelection> {
             Expanded(
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                children: subjects.map((subject) {
+                children: widget.books.map((subject) {
                   return _SubjectTile(
                     subjectName: subject['name']!,
-                    imagePath: subject['imagePath']!,
-                    isSelected: _selectedSubject == subject['name'],
+                    bookId: subject["id"],
+                    imagePath: subject['image']!,
+                    isSelected: _selectedSubject == subject['subject'],
                     onSelect: _selectSubject,
                   );
                 }).toList(),
@@ -96,13 +94,15 @@ class _SubjectSelectionScreenState extends State<SubjectSelection> {
 
 class _SubjectTile extends StatelessWidget {
   final String subjectName;
+  final String bookId;
   final String imagePath;
   final bool isSelected;
-  final Function(String) onSelect;
+  final Function(String, String) onSelect;
 
   const _SubjectTile({
     Key? key,
     required this.subjectName,
+    required this.bookId,
     required this.imagePath,
     required this.isSelected,
     required this.onSelect,
@@ -111,7 +111,7 @@ class _SubjectTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => onSelect(subjectName), // Call the onSelect callback
+      onTap: () => onSelect(subjectName, bookId), // Call the onSelect callback
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: Column(
@@ -133,7 +133,7 @@ class _SubjectTile extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         image: DecorationImage(
-                          image: AssetImage(imagePath),
+                          image: NetworkImage(imagePath),
                           fit: BoxFit.cover,
                         ),
                       ),

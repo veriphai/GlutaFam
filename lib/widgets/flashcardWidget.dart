@@ -1,25 +1,65 @@
 import 'dart:ui';
 import 'package:chiclet/chiclet.dart';
+import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'dart:math';
 
 class FlashcardWidget extends StatefulWidget {
   final List<Map<String, dynamic>> flashcards;
+  final String conceptId;
+  final String conceptName;
 
   const FlashcardWidget({
     Key? key,
     required this.flashcards,
+    required this.conceptId,
+    required this.conceptName,
   }) : super(key: key);
 
   @override
   State<FlashcardWidget> createState() => _FlashcardWidgetState();
 }
 
-class _FlashcardWidgetState extends State<FlashcardWidget> {
+class _FlashcardWidgetState extends State<FlashcardWidget>
+    with SingleTickerProviderStateMixin {
   final CardSwiperController _controller = CardSwiperController();
   int _currentCardIndex = 0;
+  String message = "";
+  bool _isFront = true;
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _flipController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(_flipController);
+  }
+
+  @override
+  void dispose() {
+    _flipController.dispose();
+    super.dispose();
+  }
+
+  void flipCard(String msg) {
+    if (!mounted) return; // Ensure the widget is still part of the tree
+    setState(() {
+      message = msg;
+      if (_isFront) {
+        _flipController.forward();
+      } else {
+        _flipController.reverse();
+      }
+      _isFront = !_isFront;
+    });
+  }
 
   Color getProgressBarColor(double progress) {
     if (progress <= 0.25) {
@@ -31,6 +71,251 @@ class _FlashcardWidgetState extends State<FlashcardWidget> {
     } else {
       return Colors.green; // Above 75%
     }
+  }
+
+  Widget frontCard(Map<String, dynamic> card) {
+    return Stack(
+      children: [
+        // Background Image
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            image: DecorationImage(
+              image: NetworkImage(card['backgroundImage']),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        // Blurred Overlay with Text
+        Padding(
+            padding: EdgeInsets.symmetric(horizontal: 0),
+            child: ClipRRect(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                // borderRadius: BorderRadius.only(
+                //   bottomLeft: Radius.circular(16),
+                //   bottomRight: Radius.circular(16),
+                // ),
+                child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                        color: Colors.black.withOpacity(0.5),
+                        padding: const EdgeInsets.all(16.0),
+                        child:
+                            Column(mainAxisSize: MainAxisSize.max, children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              image: DecorationImage(
+                                image: NetworkImage(card['backgroundImage']),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ]))))),
+        Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                // borderRadius: BorderRadius.only(
+                //   bottomLeft: Radius.circular(16),
+                //   bottomRight: Radius.circular(16),
+                // ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    color: Colors.black.withOpacity(0.2),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Text content
+                        // Spacer(),
+                        Text(
+                          card['heading'],
+                          style: GoogleFonts.raleway(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "Definition: ${card['definition']}",
+                          style: GoogleFonts.raleway(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "Memory Trick: ${card['memoryTrick']}",
+                          style: GoogleFonts.raleway(
+                            color: Color.fromARGB(255, 118, 183, 239),
+                            fontSize: 16,
+                          ),
+                        ),
+                        // Image
+                        SizedBox(height: 40),
+                        Container(
+                            decoration: BoxDecoration(
+                                color: Color.fromRGBO(255, 255, 255, 0.3),
+                                borderRadius: BorderRadius.circular(16)),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(
+                                card['image'],
+                                fit: BoxFit.cover,
+                                height: 150,
+                                width: double.infinity,
+                              ),
+                            )),
+                        Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[850],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[700]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  style: TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    hintText: "Ask something...",
+                                    hintStyle: TextStyle(color: Colors.grey),
+                                    border: InputBorder.none,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  flipCard(message);
+
+                                  // Handle send button action here
+                                },
+                                icon: Icon(Icons.send, color: Colors.green),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )),
+      ],
+    );
+  }
+
+  Widget backCard() {
+    return Stack(
+      children: [
+        // Background Image
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.red,
+          ),
+        ),
+        // Blurred Overlay with Text
+        Padding(
+            padding: EdgeInsets.symmetric(horizontal: 0),
+            child: ClipRRect(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                // borderRadius: BorderRadius.only(
+                //   bottomLeft: Radius.circular(16),
+                //   bottomRight: Radius.circular(16),
+                // ),
+                child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                        color: Colors.black.withOpacity(0.5),
+                        padding: const EdgeInsets.all(16.0),
+                        child:
+                            Column(mainAxisSize: MainAxisSize.max, children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ]))))),
+        Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                // borderRadius: BorderRadius.only(
+                //   bottomLeft: Radius.circular(16),
+                //   bottomRight: Radius.circular(16),
+                // ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    color: Colors.black.withOpacity(0.2),
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Text content
+                        // Spacer(),
+                        Text(
+                          message.isEmpty ? "No message sent!" : message,
+                          style: GoogleFonts.raleway(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+
+                        // Image
+                        Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[850],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[700]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  style: TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    hintText: "Ask something...",
+                                    hintStyle: TextStyle(color: Colors.grey),
+                                    border: InputBorder.none,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  flipCard(message);
+
+                                  // Handle send button action here
+                                },
+                                icon: Icon(Icons.send, color: Colors.green),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )),
+      ],
+    );
   }
 
   @override
@@ -74,150 +359,62 @@ class _FlashcardWidgetState extends State<FlashcardWidget> {
             onSwipe: (currentIndex, targetIndex, direction) {
               if (targetIndex != null) {
                 setState(() {
-                  // Increment or decrement based on swipe direction
-                  if (direction == CardSwiperDirection.left) {
-                    // Swiped to the next card
-                    _currentCardIndex =
-                        (_currentCardIndex + 1) % widget.flashcards.length;
-                  } else if (direction == CardSwiperDirection.right) {
-                    // Swiped to the previous card
-                    _currentCardIndex =
-                        (_currentCardIndex - 1 + widget.flashcards.length) %
-                            widget.flashcards.length;
-                  }
+                  _currentCardIndex = targetIndex;
+                  _isFront = true; // Reset to front when swiping
+                  _flipController.reset();
                 });
+                if (_currentCardIndex >= widget.flashcards.length - 1) {
+                  // Navigate to MCQ Questions screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MCQQuestions(
+                        conceptId: widget.conceptId,
+                        conceptName: widget.conceptName,
+                        maxXP: 45,
+                      ),
+                    ),
+                  );
+                  return false;
+                } else {
+                  setState(() {
+                    // Increment or decrement based on swipe direction
+                    if (direction == CardSwiperDirection.left) {
+                      // Swiped to the next card
+                      _currentCardIndex =
+                          (_currentCardIndex + 1) % widget.flashcards.length;
+                    } else if (direction == CardSwiperDirection.right) {
+                      // Swiped to the previous card
+                      _currentCardIndex =
+                          (_currentCardIndex - 1 + widget.flashcards.length) %
+                              widget.flashcards.length;
+                    }
+                  });
+                  return true;
+                }
               }
-              return true; // Allow the swipe
+              return false;
             },
             cardBuilder: (context, index, direction, progress) {
               final card = widget.flashcards[index];
-              return Card(
-                elevation: 5,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Stack(
-                  children: [
-                    // Background Image
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        image: DecorationImage(
-                          image: NetworkImage(card['background']),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    // Blurred Overlay with Text
-                    Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 0),
-                        child: ClipRRect(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                            // borderRadius: BorderRadius.only(
-                            //   bottomLeft: Radius.circular(16),
-                            //   bottomRight: Radius.circular(16),
-                            // ),
-                            child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                                child: Container(
-                                    color: Colors.black.withOpacity(0.5),
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.max,
-                                        children: [
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              image: DecorationImage(
-                                                image: NetworkImage(
-                                                    card['background']),
-                                                fit: BoxFit.cover,
-                                              ),
-                                            ),
-                                          ),
-                                        ]))))),
-                    Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Center(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                            // borderRadius: BorderRadius.only(
-                            //   bottomLeft: Radius.circular(16),
-                            //   bottomRight: Radius.circular(16),
-                            // ),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                              child: Container(
-                                color: Colors.black.withOpacity(0.2),
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Text content
-                                    // Spacer(),
-                                    Text(
-                                      card['heading'],
-                                      style: GoogleFonts.raleway(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      "Definition: ${card['definition']}",
-                                      style: GoogleFonts.raleway(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      "Pronunciation: ${card['pronunciation']}",
-                                      style: GoogleFonts.raleway(
-                                        color: Colors.yellow,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      "Memory Trick: ${card['memoryTrick']}",
-                                      style: GoogleFonts.raleway(
-                                        color:
-                                            Color.fromARGB(255, 118, 183, 239),
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    // Image
-                                    SizedBox(height: 40),
-                                    Container(
-                                        decoration: BoxDecoration(
-                                            color: Color.fromRGBO(
-                                                255, 255, 255, 0.3),
-                                            borderRadius:
-                                                BorderRadius.circular(16)),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          child: Image.network(
-                                            card['img'],
-                                            fit: BoxFit.cover,
-                                            height: 150,
-                                            width: double.infinity,
-                                          ),
-                                        )),
-                                    // Spacer(),
-                                  ],
-                                ),
-                              ),
-                            ),
+              return AnimatedBuilder(
+                animation: _flipAnimation,
+                builder: (context, child) {
+                  final angle = _flipAnimation.value * pi;
+                  final isFront = angle <= pi / 2;
+
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.rotationY(angle),
+                    child: isFront
+                        ? frontCard(card)
+                        : Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.rotationY(pi),
+                            child: backCard(),
                           ),
-                        )),
-                  ],
-                ),
+                  );
+                },
               );
             },
           ),

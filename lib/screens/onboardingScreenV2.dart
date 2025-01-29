@@ -1,4 +1,6 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
+import 'package:eureka_app/main.dart';
+import 'package:eureka_app/screens/homeScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -225,7 +227,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2> {
               if (currentPageIndex == onboardingData.length - 1) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => Chapterscreen()),
+                  MaterialPageRoute(builder: (context) => MainPage()),
                   (Route<dynamic> route) => false,
                 );
                 // Go to next action or final action when class selection is done

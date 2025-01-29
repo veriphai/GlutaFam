@@ -4,9 +4,11 @@ class CustomBottomNavBar extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTap;
 
-  CustomBottomNavBar(
-      {Key? key, required this.currentIndex, required this.onTap})
-      : super(key: key);
+  CustomBottomNavBar({
+    Key? key,
+    required this.currentIndex,
+    required this.onTap,
+  }) : super(key: key);
 
   @override
   _CustomBottomNavBarState createState() => _CustomBottomNavBarState();
@@ -17,10 +19,10 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: Color.fromRGBO(19, 31, 36, 1),
         border: Border(
           top: BorderSide(
-            color: Colors.grey.shade800,
+            color: Color.fromRGBO(66, 66, 66, 1),
             width: 1.0,
           ),
         ),
@@ -35,43 +37,70 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
           currentIndex: widget.currentIndex,
           onTap: widget.onTap,
           elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined, size: 30),
+          items: [
+            _buildNavItem(
+              imagePath: 'lib/assets/homeIcon.png',
               label: 'Home',
-              activeIcon: Icon(Icons.home, size: 30),
+              isActive: widget.currentIndex == 0,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore_outlined, size: 30),
+            _buildNavItem(
+              imagePath: 'lib/assets/leaderboardIcon.png',
               label: 'Explore',
-              activeIcon: Icon(Icons.explore, size: 30),
+              isActive: widget.currentIndex == 1,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.group_outlined, size: 30),
+            _buildNavItem(
+              imagePath: 'lib/assets/audioLessonsIcon.png',
               label: 'Community',
-              activeIcon: Icon(Icons.group, size: 30),
+              isActive: widget.currentIndex == 2,
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_2_outlined, size: 30),
+            _buildNavItem(
+              imagePath: 'lib/assets/profileIcon.png',
               label: 'Profile',
-              activeIcon: Icon(Icons.person_2, size: 30),
+              isActive: widget.currentIndex == 3,
+            ),
+            _buildNavItem(
+              imagePath: 'lib/assets/questIcon.png',
+              label: 'Ranking',
+              isActive: widget.currentIndex == 4,
+            ),
+            _buildNavItem(
+              imagePath: 'lib/assets/feedIcon.png',
+              label: 'Ranking',
+              isActive: widget.currentIndex == 5,
             ),
           ],
-          selectedItemColor: Colors.yellow, // Active tab color
-          unselectedItemColor: Colors.white, // Inactive tab color
-          selectedLabelStyle: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: Colors.yellow,
-          ),
-          unselectedLabelStyle: TextStyle(
-            fontWeight: FontWeight.normal,
-            fontSize: 12,
-            color: Colors.white,
-          ),
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
           type: BottomNavigationBarType.fixed,
         ),
       ),
+    );
+  }
+
+  BottomNavigationBarItem _buildNavItem({
+    required String imagePath,
+    required String label,
+    required bool isActive,
+  }) {
+    return BottomNavigationBarItem(
+      icon: Container(
+        padding: const EdgeInsets.all(8.0), // Add some padding around the icon
+        decoration: BoxDecoration(
+          color: isActive ? Colors.grey[900] : null,
+          border: isActive
+              ? Border.all(
+                  color: Color.fromRGBO(255, 217, 0, 1),
+                  width: 2) // Yellow border for active
+              : null, // No border for inactive
+          borderRadius: BorderRadius.circular(8), // Rounded corners
+        ),
+        child: Image.asset(
+          imagePath,
+          height: 30,
+          width: 30,
+        ),
+      ),
+      label: label,
     );
   }
 }

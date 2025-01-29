@@ -1,5 +1,5 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
-import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
+import 'package:eureka_app/screens/onboardingScreenV4.dart';
 import 'package:eureka_app/screens/signupscreen.dart'; // Import the signup screen
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Check if authToken and selectedClass are valid
     // Prepare the API URL (replace with your actual backend URL)
-    final url = 'https://glutaclass.com:8080/gluta/fam/add-profile';
+    const url = 'https://glutaclass.com:8080/gluta/fam/add-profile';
 
     try {
       // Make the POST request with the Authorization header
@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "uid": uid,
-          "firstName": name,
+          "nameFromEmail": name,
           "emailId": emailId,
           "profilePic": photoUrl
         }),
@@ -237,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => ClassSelectionPage(
+                                builder: (context) => OnboardingScreenV4(
                                     deviceId: deviceId,
                                     platform: platform,
                                     userIP: userIP)));

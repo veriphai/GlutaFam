@@ -381,7 +381,9 @@ class _HomeScreenState extends State<HomeScreenBKP>
                         streakCount: 5, // Replace with actual data
                         streakStartDate: DateTime.now()
                             .subtract(Duration(days: 4)), // Example
-                        streakGoal: 7, // Example goal
+                        streakGoal: 7,
+                        expiryToday: false,
+                        streakActive: true, // Example goal
                       ),
                     );
                   },
@@ -529,6 +531,7 @@ class _HomeScreenState extends State<HomeScreenBKP>
                                             ConceptLearningScreen(
                                           conceptId: "concept_1",
                                           conceptName: "First Concept",
+                                          maxXP: 45,
                                         ),
                                       ),
                                     );
