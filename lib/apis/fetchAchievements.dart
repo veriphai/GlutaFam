@@ -2,9 +2,15 @@ import 'dart:convert';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:http/http.dart' as http;
 
-Future<List<Map<String, dynamic>>> fetchAchievements() async {
+Future<List<Map<String, dynamic>>> fetchAchievements(
+    {String? friendsId}) async {
   try {
-    const url = 'https://glutaclass.com:8080/gluta/famV2/achievements';
+    String url = 'https://glutaclass.com:8080/gluta/famV2/achievements';
+
+    // Add userId to the query parameters if provided
+    if (friendsId != null && friendsId.isNotEmpty) {
+      url += '?userId=$friendsId';
+    }
 
     final AuthTokenService authTokenService = AuthTokenService();
     final String? authToken = await authTokenService.getAuthToken();

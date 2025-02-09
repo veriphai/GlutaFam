@@ -21,32 +21,9 @@ class ConceptLearningScreen extends StatefulWidget {
 }
 
 class _ConceptLearningScreenState extends State<ConceptLearningScreen> {
-  // Mock Data
-  late List<Map<String, dynamic>> flashcards;
-  bool isLoading = true;
-
-  Future<void> fetchData() async {
-    try {
-      Map<String, dynamic>? lessonFlashcards =
-          await fetchLessonFlashcards(lessonId: widget.conceptId);
-      setState(() {
-        flashcards = (lessonFlashcards!["flashcards"] as List<dynamic>)
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-        isLoading = false;
-      });
-    } catch (error) {
-      setState(() {
-        isLoading = false;
-      });
-      print("Error fetching lesson flashcards: $error");
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    fetchData();
   }
 
   @override
@@ -56,17 +33,13 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return isLoading
-        ? Center(
-            child: CircularProgressIndicator(
-                color: Color.fromRGBO(255, 217, 0, 1)))
-        : Scaffold(
-            backgroundColor: Colors.black,
-            body: ConversationScreen(
-              conceptId: widget.conceptId,
-              conceptName: widget.conceptName,
-              maxXP: widget.maxXP,
-            ));
+    return Scaffold(
+        backgroundColor: Colors.black,
+        body: ConversationScreen(
+          conceptId: widget.conceptId,
+          conceptName: widget.conceptName,
+          maxXP: widget.maxXP,
+        ));
   }
 
   // @override

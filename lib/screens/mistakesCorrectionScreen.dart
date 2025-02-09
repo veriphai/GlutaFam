@@ -332,10 +332,20 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
 
             // Options with User and Correct Answer Indication
             ...currentQuestion["options"].map<Widget>((option) {
-              final bool isSelected =
-                  currentQuestion["userAnswer"] == option["id"];
-              final bool isActualCorrect =
-                  currentQuestion["correctAnswer"] == option["id"];
+              final bool isMCMA = currentQuestion["type"] ==
+                  "Multiple Choice - Multiple Answers";
+
+              final bool isSelected = isMCMA
+                  ? (currentQuestion["userAnswer"] as String)
+                      .split(', ')
+                      .contains(option["id"])
+                  : currentQuestion["userAnswer"] == option["id"];
+
+              final bool isActualCorrect = isMCMA
+                  ? (currentQuestion["correctAnswer"] as String)
+                      .split(', ')
+                      .contains(option["id"])
+                  : currentQuestion["correctAnswer"] == option["id"];
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),

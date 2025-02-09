@@ -1,9 +1,12 @@
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/utils/achievements.dart';
+import 'package:eureka_app/utils/generateReferralLink.dart';
 import 'package:eureka_app/widgets/rewardScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:eureka_app/utils/generateAchievementImageForSharing.dart';
 
 class AchievementDetailsWidget extends StatelessWidget {
   final Map<String, dynamic> achievement;
@@ -11,25 +14,66 @@ class AchievementDetailsWidget extends StatelessWidget {
   const AchievementDetailsWidget({Key? key, required this.achievement})
       : super(key: key);
 
+  void _shareAchievement(BuildContext context, int levelCriteria) async {
+    try {
+      final achievementLink =
+          await generateAchievementLink(achievement["id"], levelCriteria);
+
+      // Generate Image with Achievement Details
+      final imagePath =
+          await generateAchievementImage(context, achievement, levelCriteria);
+
+      // Share both the image and the link
+      if (imagePath != null) {
+        final xFile = XFile(imagePath);
+        Share.shareXFiles(
+          [xFile],
+          text: "Check out my achievement on GlutaClass!\n$achievementLink",
+          subject: "View Achievement on GlutaClass",
+        );
+      } else {
+        // If image generation fails, share only the link
+        Share.share(
+          "Check out my achievement on GlutaClass!\n$achievementLink",
+          subject: "View Achievement on GlutaClass",
+        );
+      }
+    } catch (e) {
+      print("Error sharing achievement: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentLevelIndex = achievement["currentLevel"] ?? 0;
     final levels = achievement["levels"] ?? [];
+    final int adjustedLevelIndex =
+        currentLevelIndex > 0 ? currentLevelIndex - 1 : currentLevelIndex;
+
     final level =
-        currentLevelIndex < levels.length ? levels[currentLevelIndex] : null;
+        adjustedLevelIndex < levels.length ? levels[adjustedLevelIndex] : null;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
       child: Column(
         children: [
           // Close button
-          Align(
-            alignment: Alignment.topLeft,
-            child: IconButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.close, color: Colors.white),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                icon: const Icon(Icons.close, color: Colors.white),
+              ),
+              IconButton(
+                onPressed: () {
+                  _shareAchievement(context, level["criteria"]);
+                },
+                icon: const Icon(Icons.ios_share, color: Colors.white),
+              ),
+            ],
           ),
           Spacer(),
           Stack(

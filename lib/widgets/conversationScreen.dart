@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:bubble_box/bubble_box.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchChatResponse.dart';
+import 'package:eureka_app/apis/fetchLessonStory.dart';
+import 'package:eureka_app/main.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
@@ -12,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:shimmer/shimmer.dart';
 
 class ConversationScreen extends StatefulWidget {
   final String conceptId;
@@ -28,141 +31,142 @@ class ConversationScreen extends StatefulWidget {
 }
 
 class _ConversationScreenState extends State<ConversationScreen> {
-  final List<Map<String, String>> conversations = [
-    {
-      "_id": "conversation_1",
-      "name": "Aarav",
-      "conversation": """
-Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
-\\[ c = \\sqrt{3^2 + 4^2} = \\sqrt{9 + 16} = 5 \\]
-"""
-    },
-    {
-      "_id": "conversation_2",
-      "name": "Meera",
-      "conversation": "Simplify \$(3x^2-5x+3)+(-3x^2+5x-3)\$"
-    },
-    {
-      "_id": "conversation_3",
-      "name": "Sam",
-      "conversation": "Wait, so plants don’t just eat food like us?"
-    },
-    {
-      "_id": "conversation_4",
-      "name": "Meera",
-      "conversation":
-          "Nope! They make their food. It’s kind of like they’re little chefs. They take sunlight as energy, water from the soil, and carbon dioxide from the air to create glucose – their food."
-    },
-    {
-      "_id": "conversation_5",
-      "name": "Tara",
-      "conversation":
-          "And they also give out oxygen as a by-product, which we breathe in!"
-    },
-    {
-      "_id": "conversation_6",
-      "name": "Aarav",
-      "conversation":
-          "Ohhh, that’s cool! But how does sunlight help them make food?"
-    },
-    {
-      "_id": "conversation_7",
-      "name": "Meera",
-      "conversation":
-          "Good question! Plants have this green pigment called chlorophyll, which absorbs sunlight. Chlorophyll is what makes leaves look green."
-    },
-    {
-      "_id": "conversation_8",
-      "name": "Sam",
-      "conversation": "So, chlorophyll is why plants are green?"
-    },
-    {"_id": "conversation_9", "name": "Meera", "conversation": "Exactly!"},
-    {
-      "_id": "conversation_10",
-      "name": "Aarav",
-      "conversation":
-          "Okay, so they use sunlight and chlorophyll. But where do the other things come in – like water and carbon dioxide?"
-    },
-    {
-      "_id": "conversation_11",
-      "name": "Meera",
-      "conversation":
-          "Water is absorbed by the roots from the soil. Carbon dioxide comes from the air and enters the leaves through tiny pores called stomata."
-    },
-    {
-      "_id": "conversation_12",
-      "name": "Aarav",
-      "conversation": "Stomata? What are those?"
-    },
-    {
-      "_id": "conversation_13",
-      "name": "Meera",
-      "conversation":
-          "They’re just tiny pores on the leaves that allow the plant to take in carbon dioxide and release oxygen."
-    },
-    {
-      "_id": "conversation_14",
-      "name": "Sam",
-      "conversation": "What happens next? How does it all come together?"
-    },
-    {
-      "_id": "conversation_15",
-      "name": "Tara",
-      "conversation":
-          "Inside the chloroplasts, sunlight provides energy to combine water and carbon dioxide to make glucose, and oxygen is released as a by-product."
-    },
-    {
-      "_id": "conversation_16",
-      "name": "Aarav",
-      "conversation": "Ohh, so plants are literally like little factories?"
-    },
-    {
-      "_id": "conversation_17",
-      "name": "Meera",
-      "conversation":
-          "Yep! And the whole reaction looks like this in science terms: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2."
-    },
-    {
-      "_id": "conversation_18",
-      "name": "Sam",
-      "conversation": "That’s wild. But why does it matter so much?"
-    },
-    {
-      "_id": "conversation_19",
-      "name": "Tara",
-      "conversation":
-          "Because plants are the base of the food chain. They make food for themselves and for all of us. Plus, they give out oxygen, so we can breathe."
-    },
-    {
-      "_id": "conversation_20",
-      "name": "Aarav",
-      "conversation":
-          "Got it! So let me sum this up: Photosynthesis happens in plants, algae, and some bacteria. It needs sunlight, water, and carbon dioxide. Chlorophyll traps sunlight to power the process. It makes glucose and oxygen."
-    },
-    {
-      "_id": "conversation_21",
-      "name": "Tara",
-      "conversation":
-          "Perfect! And don’t forget, it all happens in the chloroplasts in the cells."
-    },
-    {
-      "_id": "conversation_22",
-      "name": "Sam",
-      "conversation":
-          "You know, I never thought about how important plants are. They’re like the planet’s life-support system."
-    },
-    {
-      "_id": "conversation_23",
-      "name": "Meera",
-      "conversation":
-          "Yeah, they’re literally keeping us alive. No photosynthesis, no oxygen, no us."
-    },
-    {
-      "_id": "conversation_24",
-      "name": "Aarav",
-      "conversation": "Wow, plants are superheroes in disguise! Respect. 🌱"
-    }
-  ];
+//   final List<Map<String, String>> conversations = [
+//     {
+//       "_id": "conversation_1",
+//       "name": "Aarav",
+//       "conversation": """
+// Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
+// \\[ c = \\sqrt{3^2 + 4^2} = \\sqrt{9 + 16} = 5 \\]
+// """
+//     },
+//     {
+//       "_id": "conversation_2",
+//       "name": "Meera",
+//       "conversation": "Simplify \$(3x^2-5x+3)+(-3x^2+5x-3)\$"
+//     },
+//     {
+//       "_id": "conversation_3",
+//       "name": "Sam",
+//       "conversation": "Wait, so plants don’t just eat food like us?"
+//     },
+//     {
+//       "_id": "conversation_4",
+//       "name": "Meera",
+//       "conversation":
+//           "Nope! They make their food. It’s kind of like they’re little chefs. They take sunlight as energy, water from the soil, and carbon dioxide from the air to create glucose – their food."
+//     },
+//     {
+//       "_id": "conversation_5",
+//       "name": "Tara",
+//       "conversation":
+//           "And they also give out oxygen as a by-product, which we breathe in!"
+//     },
+//     {
+//       "_id": "conversation_6",
+//       "name": "Aarav",
+//       "conversation":
+//           "Ohhh, that’s cool! But how does sunlight help them make food?"
+//     },
+//     {
+//       "_id": "conversation_7",
+//       "name": "Meera",
+//       "conversation":
+//           "Good question! Plants have this green pigment called chlorophyll, which absorbs sunlight. Chlorophyll is what makes leaves look green."
+//     },
+//     {
+//       "_id": "conversation_8",
+//       "name": "Sam",
+//       "conversation": "So, chlorophyll is why plants are green?"
+//     },
+//     {"_id": "conversation_9", "name": "Meera", "conversation": "Exactly!"},
+//     {
+//       "_id": "conversation_10",
+//       "name": "Aarav",
+//       "conversation":
+//           "Okay, so they use sunlight and chlorophyll. But where do the other things come in – like water and carbon dioxide?"
+//     },
+//     {
+//       "_id": "conversation_11",
+//       "name": "Meera",
+//       "conversation":
+//           "Water is absorbed by the roots from the soil. Carbon dioxide comes from the air and enters the leaves through tiny pores called stomata."
+//     },
+//     {
+//       "_id": "conversation_12",
+//       "name": "Aarav",
+//       "conversation": "Stomata? What are those?"
+//     },
+//     {
+//       "_id": "conversation_13",
+//       "name": "Meera",
+//       "conversation":
+//           "They’re just tiny pores on the leaves that allow the plant to take in carbon dioxide and release oxygen."
+//     },
+//     {
+//       "_id": "conversation_14",
+//       "name": "Sam",
+//       "conversation": "What happens next? How does it all come together?"
+//     },
+//     {
+//       "_id": "conversation_15",
+//       "name": "Tara",
+//       "conversation":
+//           "Inside the chloroplasts, sunlight provides energy to combine water and carbon dioxide to make glucose, and oxygen is released as a by-product."
+//     },
+//     {
+//       "_id": "conversation_16",
+//       "name": "Aarav",
+//       "conversation": "Ohh, so plants are literally like little factories?"
+//     },
+//     {
+//       "_id": "conversation_17",
+//       "name": "Meera",
+//       "conversation":
+//           "Yep! And the whole reaction looks like this in science terms: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2."
+//     },
+//     {
+//       "_id": "conversation_18",
+//       "name": "Sam",
+//       "conversation": "That’s wild. But why does it matter so much?"
+//     },
+//     {
+//       "_id": "conversation_19",
+//       "name": "Tara",
+//       "conversation":
+//           "Because plants are the base of the food chain. They make food for themselves and for all of us. Plus, they give out oxygen, so we can breathe."
+//     },
+//     {
+//       "_id": "conversation_20",
+//       "name": "Aarav",
+//       "conversation":
+//           "Got it! So let me sum this up: Photosynthesis happens in plants, algae, and some bacteria. It needs sunlight, water, and carbon dioxide. Chlorophyll traps sunlight to power the process. It makes glucose and oxygen."
+//     },
+//     {
+//       "_id": "conversation_21",
+//       "name": "Tara",
+//       "conversation":
+//           "Perfect! And don’t forget, it all happens in the chloroplasts in the cells."
+//     },
+//     {
+//       "_id": "conversation_22",
+//       "name": "Sam",
+//       "conversation":
+//           "You know, I never thought about how important plants are. They’re like the planet’s life-support system."
+//     },
+//     {
+//       "_id": "conversation_23",
+//       "name": "Meera",
+//       "conversation":
+//           "Yeah, they’re literally keeping us alive. No photosynthesis, no oxygen, no us."
+//     },
+//     {
+//       "_id": "conversation_24",
+//       "name": "Aarav",
+//       "conversation": "Wow, plants are superheroes in disguise! Respect. 🌱"
+//     }
+//   ];
+
   List<Map<String, String>> displayedConversations = [];
   int conversationIndex = 0;
   final ScrollController _scrollController = ScrollController();
@@ -172,6 +176,8 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
   Map<String, dynamic> raiseHandConversations = {};
   Map<String, String> characters = {};
   late Map<String, dynamic> userProfile;
+  late List<Map<String, String>> conversations;
+  bool isLoading = true;
 
   Map<String, String> assignSequentialAvatars(
       List<Map<String, String>> conversations) {
@@ -180,7 +186,9 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
 
     for (var conversation in conversations) {
       final name = conversation["name"];
-      if (name != null && !assignedAvatars.containsKey(name)) {
+      if (name != null &&
+          // name != "not_required" &&
+          !assignedAvatars.containsKey(name)) {
         assignedAvatars[name] = getAvatar("avatar-$avatarIndex")["imagePath"]!;
         avatarIndex++;
       }
@@ -200,12 +208,33 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
     }
   }
 
+  Future<void> fetchLessonStoryConversation() async {
+    try {
+      Map<String, dynamic>? lessonQuestionsData =
+          await fetchLessonStory(lessonId: widget.conceptId);
+      // final profileData = await getProfile();
+
+      setState(() {
+        // userProfile = profileData;
+        conversations = (lessonQuestionsData["conversations"] as List)
+            .map((e) => Map<String, String>.from(e))
+            .toList();
+
+        isLoading = false;
+      });
+    } catch (error) {
+      print("Error fetching lesson conversations: $error");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     fetchProfile();
-    characters = assignSequentialAvatars(conversations);
-    _startRenderingConversations();
+    fetchLessonStoryConversation().then((_) {
+      characters = assignSequentialAvatars(conversations);
+      _startRenderingConversations();
+    });
   }
 
   @override
@@ -235,7 +264,7 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
 
         if (i < endIndex - 1) {
           // Calculate the delay based on the length of the current message
-          final currentMessageLength = conversations[i]['conversation']!.length;
+          final currentMessageLength = conversations[i]['text']!.length;
           final delayDuration = Duration(
               milliseconds: 50 * currentMessageLength); // 50ms per character
 
@@ -323,7 +352,7 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: MarkdownBody(
                       selectable: true,
-                      data: conversation["conversation"]!,
+                      data: conversation["text"]!,
                       builders: {
                         'latex': LatexElementBuilder(
                           textStyle: GoogleFonts.raleway(
@@ -355,7 +384,7 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
       decoration: BoxDecoration(
           color: Colors.grey, borderRadius: BorderRadius.circular(8)),
       child: Text(
-        "${conversation['conversation']!}",
+        "${conversation['text']!}",
         style: GoogleFonts.raleway(
           color: Colors.white,
           fontSize: 14, // Small size kept aligned to the left
@@ -387,7 +416,7 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: MarkdownBody(
                       selectable: true,
-                      data: conversation["conversation"]!,
+                      data: conversation["text"]!,
                       builders: {
                         'latex': LatexElementBuilder(
                           textStyle: GoogleFonts.raleway(
@@ -468,9 +497,9 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                 // Add user's message to the chat
                 setState(() {
                   displayedConversations.add({
-                    "_id": DateTime.now().toString(),
+                    "id": DateTime.now().toString(),
                     "name": "You",
-                    "conversation": message,
+                    "text": message,
                   });
                 });
 
@@ -481,8 +510,8 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                 final List<Map<String, dynamic>> aiResponses =
                     await fetchChatResponse(
                   conversations: conversations.sublist(0, conversationIndex),
-                  characters: ["Meera", "Sam", "Tara", "Aarav"],
-                  conceptName: "Photosynthesis",
+                  characters: characters.keys.toList(),
+                  conceptName: widget.conceptName,
                   query: message,
                 );
 
@@ -490,10 +519,9 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                 if (aiResponses.isNotEmpty) {
                   setState(() {
                     displayedConversations.add({
-                      "_id": aiResponses[0]['conversation'],
+                      "id": aiResponses[0]['id'],
                       "name": aiResponses[0]['name'], // AI character name
-                      "conversation": aiResponses[0]
-                          ['conversation'], // AI message
+                      "text": aiResponses[0]['text'], // AI message
                     });
                   });
 
@@ -506,9 +534,9 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                         const Duration(seconds: 2)); // Adjust delay as needed
                     setState(() {
                       displayedConversations.add({
-                        "_id": aiResponses[i]['conversation'],
+                        "id": aiResponses[i]['id'],
                         "name": aiResponses[i]['name'],
-                        "conversation": aiResponses[i]['conversation'],
+                        "text": aiResponses[i]['text'],
                       });
                     });
 
@@ -520,9 +548,9 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                 // Exit the conversation after the last response
                 setState(() {
                   displayedConversations.add({
-                    "_id": DateTime.now().toString(),
+                    "id": DateTime.now().toString(),
                     "name": "You",
-                    "conversation": "You exited the conversation!",
+                    "text": "You exited the conversation!",
                     "entryExit": "True",
                   });
 
@@ -541,9 +569,9 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
               // Handle close action
               setState(() {
                 displayedConversations.add({
-                  "_id": DateTime.now().toString(),
+                  "id": DateTime.now().toString(),
                   "name": "You",
-                  "conversation": "You exited the conversation!",
+                  "text": "You exited the conversation!",
                   "entryExit": "True"
                 });
 
@@ -569,18 +597,34 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
     // Add "You joined the chat" and AI greetings
     setState(() {
       displayedConversations.add({
-        "_id": DateTime.now().toString(),
+        "id": DateTime.now().toString(),
         "name": "You",
-        "conversation": "You joined the chat",
+        "text": "You joined the chat",
         "entryExit": "True"
       });
 
-      // AI Participants Greetings
-      final List<Map<String, String>> greetings = [
-        {"_id": "greeting_1", "name": "Meera", "conversation": "Hi!"},
-        {"_id": "greeting_2", "name": "Sam", "conversation": "Hello!"},
-        {"_id": "greeting_3", "name": "Tara", "conversation": "Welcome!"},
+      final List<String> greetingMessages = [
+        "Hi!",
+        "Hello!",
+        "Welcome!",
+        "Hey there!",
+        "Nice to meet you!",
+        "Good to see you!"
       ];
+
+      // AI Participants Greetings
+      List<Map<String, String>> greetings = [];
+
+      int counter = 1;
+      characters.forEach((name, _) {
+        greetings.add({
+          "id": "greeting_$counter",
+          "name": name,
+          "text": greetingMessages[
+              counter % greetingMessages.length] // Cycle through messages
+        });
+        counter++;
+      });
       displayedConversations.addAll(greetings);
 
       // Scroll to the bottom to show greetings
@@ -602,6 +646,103 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
     } else {
       return Colors.green; // Above 75%
     }
+  }
+
+  void _showExitConfirmation(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 🎯 Image at the top
+              Container(
+                height: 100,
+                width: 100,
+                child: Center(
+                  child: Image.asset(
+                    "lib/assets/streakIcon.png",
+                    height: 50,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 16),
+
+              // ⚠️ Warning Text
+              Text(
+                "Quit and you'll lose all your progress in this lesson!",
+                style: GoogleFonts.raleway(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: 16),
+
+              // ❌ Exit Button
+              ChicletAnimatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                buttonType: ChicletButtonTypes.roundedRectangle,
+                width: double.infinity,
+                height: 50,
+                buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                child: Text(
+                  "KEEP GOING",
+                  style: GoogleFonts.raleway(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 12),
+
+              // 🔄 Cancel Button
+              ChicletOutlinedAnimatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                  // Navigator.pop(context);
+
+                  // Navigator.pushAndRemoveUntil(
+                  //   context,
+                  //   MaterialPageRoute(builder: (context) => MainPage()),
+                  //   (route) => false,
+                  // );
+                },
+                buttonType: ChicletButtonTypes.roundedRectangle,
+                width: double.infinity,
+                height: 50,
+                borderColor: Colors.transparent,
+                // buttonColor: Colors.transparent,
+                backgroundColor: Colors.transparent,
+                child: Text(
+                  "QUIT",
+                  style: GoogleFonts.raleway(
+                    color: Colors.red,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showSkipConfirmationSheet(BuildContext context) {
@@ -649,19 +790,20 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                     buttonHeight: 4,
                     buttonColor: Color.fromRGBO(187, 160, 2, 1),
                     backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                    borderRadius: 12,
                     child: Text(
                       "STAY ON TRACK",
                       style: GoogleFonts.raleway(
                         color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   SizedBox(
                     height: 10,
                   ),
-                  ChicletAnimatedButton(
+                  ChicletOutlinedAnimatedButton(
                       onPressed: () {
                         Navigator.pop(context); // Close the sheet
                         // Navigate to MCQQuestions screen
@@ -680,33 +822,33 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
                       height: 50,
                       width: double.infinity,
                       buttonHeight: 4,
-                      buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                      backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                      borderColor: Colors.transparent,
+                      backgroundColor: Colors.transparent,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             "TAKE THE SHORTCUT",
                             style: GoogleFonts.raleway(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           Text(
                             "  -15",
                             style: GoogleFonts.arOneSans(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           Text(
                             " XP",
                             style: GoogleFonts.raleway(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
@@ -722,169 +864,210 @@ Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: Colors.grey,
-        ),
-        title: Text(
-          widget.conceptName,
-          style: GoogleFonts.raleway(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
+    return WillPopScope(
+        onWillPop: () async {
+          _showExitConfirmation(context);
+          return false; // Prevent immediate back navigation
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+            elevation: 0,
+            iconTheme: IconThemeData(
+              color: Colors.grey,
+            ),
+            title: Text(
+              widget.conceptName,
+              style: GoogleFonts.raleway(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-        ),
-      ),
-      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final availableWidth = constraints.maxWidth;
-                      return Stack(
-                        children: [
-                          // Background Bar
-                          Container(
-                            height: 16.0,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[800],
-                              borderRadius: BorderRadius.circular(16.0),
-                            ),
-                          ),
-                          // Filled Bar
-                          AnimatedContainer(
-                            duration: const Duration(
-                                milliseconds: 300), // Animation duration
-                            curve: Curves.easeInOut, // Animation curve
-                            width: availableWidth *
-                                getProgress(), // Dynamically adjust width
-                            height: 16.0,
-                            decoration: BoxDecoration(
-                              color: getProgressBarColor(getProgress()),
-                              borderRadius: BorderRadius.circular(16.0),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 20),
-                ChicletAnimatedButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    _showSkipConfirmationSheet(context);
-                  },
-                  buttonType: ChicletButtonTypes.roundedRectangle,
-                  height: 20,
-                  buttonHeight: 4,
-                  width: 80,
-                  padding: EdgeInsets.all(0),
-                  buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                  backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                  child: Text(
-                    "SKIP  -15 XP",
-                    style: GoogleFonts.arOneSans(
-                      color: Colors.black,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+          backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+          body: isLoading
+              ? Center(
+                  child: Shimmer.fromColors(
+                    baseColor: Colors.grey[700]!,
+                    highlightColor: Colors.grey[300]!,
+                    child: Text(
+                      'Loading...',
+                      style: TextStyle(fontSize: 24),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          // Chat List
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: displayedConversations.length,
-              itemBuilder: (context, index) {
-                final conversation = displayedConversations[index];
-                final senderColor = getSenderColor(conversation['name']!);
-
-                return Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 8.0, horizontal: 12.0),
-                    child: conversation.containsKey("entryExit")
-                        ? entryExitConversation(conversation)
-                        : conversation['name'] == "You"
-                            ? yourMessage(senderColor, conversation)
-                            : othersMessage(senderColor, conversation));
-              },
-            ),
-          ),
-          isChatMode
-              ? renderMessageBar()
-              : Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    children: [
-                      // Continue Button
-                      Expanded(
-                        child: ChicletAnimatedButton(
-                          onPressed:
-                              isContinueButtonEnabled ? _handleContinue : null,
-                          buttonType: ChicletButtonTypes.roundedRectangle,
-                          height: 40,
-                          buttonHeight: 4,
-                          padding: const EdgeInsets.all(0),
-                          buttonColor: isContinueButtonEnabled
-                              ? Color.fromRGBO(187, 160, 2, 1)
-                              : Colors.grey[600]!,
-                          backgroundColor: isContinueButtonEnabled
-                              ? Color.fromRGBO(255, 217, 0, 1)
-                              : Colors.grey,
-                          child: Text(
-                            "CONTINUE",
-                            style: GoogleFonts.raleway(
-                              color: isContinueButtonEnabled
-                                  ? Colors.black
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                )
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8.0, horizontal: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final availableWidth = constraints.maxWidth;
+                                return Stack(
+                                  children: [
+                                    // Background Bar
+                                    Container(
+                                      height: 16.0,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[800],
+                                        borderRadius:
+                                            BorderRadius.circular(16.0),
+                                      ),
+                                    ),
+                                    // Filled Bar
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                          milliseconds:
+                                              300), // Animation duration
+                                      curve:
+                                          Curves.easeInOut, // Animation curve
+                                      width: availableWidth *
+                                          getProgress(), // Dynamically adjust width
+                                      height: 16.0,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            getProgressBarColor(getProgress()),
+                                        borderRadius:
+                                            BorderRadius.circular(16.0),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 20),
+                          ChicletAnimatedButton(
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                _showSkipConfirmationSheet(context);
+                              },
+                              buttonType: ChicletButtonTypes.roundedRectangle,
+                              height: 20,
+                              buttonHeight: 2,
+                              width: 40,
+                              padding: EdgeInsets.all(0),
+                              borderRadius: 12,
+                              buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                              backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                              child: Center(
+                                  child: Icon(
+                                Icons.fast_forward,
+                                color: Colors.black,
+                              ))
+                              // child: Text(
+                              //   "SKIP  -15 XP",
+                              //   style: GoogleFonts.arOneSans(
+                              //     color: Colors.black,
+                              //     fontSize: 12,
+                              //     fontWeight: FontWeight.w500,
+                              //   ),
+                              // ),
+                              ),
+                        ],
                       ),
-                      const SizedBox(
-                          width: 8), // Small space between the buttons
-                      // Raise Hand Button
-                      SizedBox(
-                        width: 50, // Fixed width for the Raise Hand button
-                        child: ChicletAnimatedButton(
-                          onPressed: isContinueButtonEnabled
-                              ? handleRaiseHandClick
-                              : null,
-                          buttonType: ChicletButtonTypes.roundedRectangle,
-                          height: 40,
-                          buttonHeight: 4,
-                          padding: const EdgeInsets.all(0),
-                          buttonColor: isContinueButtonEnabled
-                              ? Color.fromRGBO(187, 160, 2, 1)
-                              : Colors.grey[600]!,
-                          backgroundColor: isContinueButtonEnabled
-                              ? Color.fromRGBO(255, 217, 0, 1)
-                              : Colors.grey,
-                          child: Icon(
-                            Icons.back_hand_rounded,
-                            color: Colors.black,
-                          ),
-                        ),
+                    ),
+
+                    // Chat List
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        itemCount: displayedConversations.length,
+                        itemBuilder: (context, index) {
+                          final conversation = displayedConversations[index];
+                          final senderColor =
+                              getSenderColor(conversation['name']!);
+
+                          return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0, horizontal: 12.0),
+                              child: conversation.containsKey("entryExit")
+                                  ? entryExitConversation(conversation)
+                                  : conversation['name'] == "You"
+                                      ? yourMessage(senderColor, conversation)
+                                      : othersMessage(
+                                          senderColor, conversation));
+                        },
                       ),
-                    ],
-                  )),
-        ],
-      ),
-    );
+                    ),
+                    isChatMode
+                        ? renderMessageBar()
+                        : Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            child: Row(
+                              children: [
+                                // Continue Button
+                                Expanded(
+                                  child: ChicletAnimatedButton(
+                                    onPressed: isContinueButtonEnabled
+                                        ? _handleContinue
+                                        : null,
+                                    buttonType:
+                                        ChicletButtonTypes.roundedRectangle,
+                                    height: 40,
+                                    buttonHeight: 4,
+                                    borderRadius: 12,
+                                    padding: const EdgeInsets.all(0),
+                                    buttonColor: isContinueButtonEnabled
+                                        ? Color.fromRGBO(187, 160, 2, 1)
+                                        : Colors.grey[600]!,
+                                    backgroundColor: isContinueButtonEnabled
+                                        ? Color.fromRGBO(255, 217, 0, 1)
+                                        : Colors.grey,
+                                    child: Text(
+                                      "CONTINUE",
+                                      style: GoogleFonts.raleway(
+                                        color: isContinueButtonEnabled
+                                            ? Colors.black
+                                            : Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                    width:
+                                        8), // Small space between the buttons
+                                // Raise Hand Button
+                                SizedBox(
+                                  width:
+                                      50, // Fixed width for the Raise Hand button
+                                  child: ChicletAnimatedButton(
+                                    onPressed: isContinueButtonEnabled
+                                        ? handleRaiseHandClick
+                                        : null,
+                                    buttonType:
+                                        ChicletButtonTypes.roundedRectangle,
+                                    height: 40,
+                                    buttonHeight: 4,
+                                    padding: const EdgeInsets.all(0),
+                                    borderRadius: 12,
+                                    buttonColor: isContinueButtonEnabled
+                                        ? Color.fromRGBO(187, 160, 2, 1)
+                                        : Colors.grey[600]!,
+                                    backgroundColor: isContinueButtonEnabled
+                                        ? Color.fromRGBO(255, 217, 0, 1)
+                                        : Colors.grey,
+                                    child: Icon(
+                                      Icons.back_hand_rounded,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )),
+                    SizedBox(
+                      height: 10,
+                    )
+                  ],
+                ),
+        ));
   }
 }

@@ -37,7 +37,7 @@ class _ChapterProgressReportState extends State<ChapterProgressReport> {
         topics.where((topic) => topic['progress']['accuracy'] == 0).toList();
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 0.0),
         child: Column(
@@ -254,7 +254,7 @@ class _ChapterProgressReportState extends State<ChapterProgressReport> {
         ),
         title: Text(
           topic["name"],
-          style: const TextStyle(
+          style: GoogleFonts.raleway(
             fontSize: 16,
             fontWeight: FontWeight.w500,
             color: Colors.white,
@@ -262,8 +262,9 @@ class _ChapterProgressReportState extends State<ChapterProgressReport> {
         ),
         subtitle: Text(
           "${(topic['progress']['accuracy'] as num).toStringAsFixed(0)}% Accuracy  ${topic['progress']['lessonCompleted']} lessons completed",
-          style: const TextStyle(
+          style: GoogleFonts.raleway(
             color: Colors.white,
+            fontWeight: FontWeight.w500,
           ),
         ),
         onTap: () {

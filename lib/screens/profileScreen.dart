@@ -12,6 +12,7 @@ import 'package:eureka_app/screens/friendsScreen.dart';
 import 'package:eureka_app/utils/achievements.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
+import 'package:eureka_app/utils/generateProfileCardForSharing.dart';
 import 'package:eureka_app/utils/generateReferralLink.dart';
 import 'package:eureka_app/widgets/achievementDetailsWidget.dart';
 import 'package:eureka_app/widgets/avatarSelectionScreen.dart';
@@ -114,13 +115,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     getFriendSuggestions();
   }
 
-  void _shareProfileLink() async {
-    final profileLink = await generateProfileLink(profileData["id"]);
+  void _shareProfileLink(BuildContext context) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Prevent dismissing while loading
+        builder: (context) => Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.yellow),
+          ),
+        ),
+      );
+      final profileLink = await generateProfileLink(profileData["id"]);
 
-    Share.share(
-      "Check out ${profileData["firstName"]}'s profile on YourApp!\n$profileLink",
-      subject: "Follow ${profileData["firstName"]} on YourApp",
-    );
+      // Generate Image with Achievement Details
+      final imagePath = await generateProfileCard(context, profileData);
+
+      Navigator.pop(context); // Close the loading dialog
+
+      // Share both the image and the link
+      if (imagePath != null) {
+        final xFile = XFile(imagePath);
+        Share.shareXFiles(
+          [xFile],
+          text:
+              "Check out ${profileData["firstName"]}'s profile on YourApp!\n$profileLink",
+          subject: "Follow ${profileData["firstName"]} on YourApp",
+        );
+      } else {
+        // If image generation fails, share only the link
+        Share.share(
+          "Check out ${profileData["firstName"]}'s profile on YourApp!\n$profileLink",
+          subject: "Follow ${profileData["firstName"]} on YourApp",
+        );
+      }
+    } catch (e) {
+      print("Error sharing achievement: $e");
+    }
   }
 
   void _showAchievementDetails(Map<String, dynamic> achievement) {
@@ -190,7 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     height: 230,
                     color: Colors.orange,
                     alignment: Alignment.center,
-                    padding: EdgeInsets.only(top: 50),
+                    padding: EdgeInsets.only(top: 40),
                     child: Stack(
                       children: [
                         // Avatar Image or Placeholder
@@ -325,13 +356,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     MaterialPageRoute(
                                         builder: (context) =>
                                             FindMyFriendsScreen(
-                                              name: profileData["firstName"],
-                                              username: profileData["userName"],
-                                              userId: profileData["id"],
-                                              avatarUrl: profileData
-                                                      .containsKey("avatar")
-                                                  ? profileData["avatar"]
-                                                  : "",
+                                              profileData: profileData,
                                             )),
                                   );
 
@@ -368,7 +393,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             // Share Button
                             ChicletAnimatedButton(
                               onPressed: () {
-                                _shareProfileLink();
+                                _shareProfileLink(context);
                               },
                               buttonType: ChicletButtonTypes.roundedRectangle,
                               height: 50,
@@ -503,13 +528,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               itemCount: 3,
                               itemBuilder: (context, index) {
                                 final achievement = achievements[index];
-                                final achievementImage =
-                                    getAchievement(achievement["id"]);
                                 final currentLevelIndex =
                                     achievement["currentLevel"] ?? 0;
                                 final levels = achievement["levels"] ?? [];
-                                final level = currentLevelIndex < levels.length
-                                    ? levels[currentLevelIndex]
+                                final int adjustedLevelIndex =
+                                    currentLevelIndex > 0
+                                        ? currentLevelIndex - 1
+                                        : currentLevelIndex;
+
+                                final level = adjustedLevelIndex < levels.length
+                                    ? levels[adjustedLevelIndex]
                                     : null;
                                 return GestureDetector(
                                     onTap: () =>
@@ -715,19 +743,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(50),
                         child: Container(
                             color: Colors.amber,
-                            child: friendSuggestion.containsKey("imgUrl") &&
-                                    friendSuggestion["imgUrl"] != null
-                                ? Image.network(
-                                    friendSuggestion["imgUrl"],
-                                    height: 40,
-                                    width: 40,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Icon(
-                                    Icons.person,
-                                    color: Colors.white,
-                                    size: 40,
-                                  )),
+                            child: Image.asset(
+                              getAvatar(
+                                  friendSuggestion["avatar"])["imagePath"]!,
+                              height: 40,
+                              width: 40,
+                              fit: BoxFit.cover,
+                            )),
                       ),
                       SizedBox(height: 8),
                       // Friend name

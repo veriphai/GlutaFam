@@ -38,6 +38,9 @@ class _AchievementsPageState extends State<AchievementsPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        iconTheme: IconThemeData(
+          color: Colors.grey,
+        ),
         elevation: 0,
       ),
       backgroundColor: Color.fromRGBO(19, 31, 36, 1),
@@ -47,15 +50,15 @@ class _AchievementsPageState extends State<AchievementsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Awards Section
-            Text(
-              "Awards",
-              style: GoogleFonts.raleway(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
+            // Text(
+            //   "Awards",
+            //   style: GoogleFonts.raleway(
+            //     color: Colors.white,
+            //     fontSize: 22,
+            //     fontWeight: FontWeight.bold,
+            //   ),
+            // ),
+            // const SizedBox(height: 16),
             // Achievements Grid
             Expanded(
               child: GridView.builder(
@@ -70,8 +73,12 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   final achievement = widget.achievements[index];
                   final currentLevelIndex = achievement["currentLevel"] ?? 0;
                   final levels = achievement["levels"] ?? [];
-                  final level = currentLevelIndex < levels.length
-                      ? levels[currentLevelIndex]
+                  final int adjustedLevelIndex = currentLevelIndex > 0
+                      ? currentLevelIndex - 1
+                      : currentLevelIndex;
+
+                  final level = adjustedLevelIndex < levels.length
+                      ? levels[adjustedLevelIndex]
                       : null;
                   return GestureDetector(
                     onTap: () => _showAchievementDetails(achievement),

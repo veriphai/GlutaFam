@@ -1,8 +1,11 @@
 import 'dart:convert';
 
+import 'package:eureka_app/apis/fetchLeaderboard.dart';
 import 'package:eureka_app/main.dart';
 import 'package:eureka_app/popups/genericPopupWidget.dart';
+import 'package:eureka_app/popups/leaderboardPopup.dart';
 import 'package:eureka_app/popups/popUpManager.dart';
+import 'package:eureka_app/popups/streakPopup.dart';
 import 'package:eureka_app/screens/mistakesCorrectionScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/widgets/questProgressScreen.dart';
@@ -10,53 +13,99 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:chiclet/chiclet.dart';
+import 'package:lottie/lottie.dart';
 
-class ConceptResultScreen extends StatelessWidget {
+class ConceptResultScreen extends StatefulWidget {
   final String conceptName;
-  final int totalXp; // XP learned
-  final String timeTaken; // Time taken
-  final double accuracy; // Accuracy percentage
+  final int totalXp;
+  final String timeTaken;
+  final double accuracy;
   final Map<String, dynamic> lessonCompletionResponse;
 
-  const ConceptResultScreen(
-      {Key? key,
-      required this.conceptName,
-      required this.totalXp,
-      required this.timeTaken,
-      required this.accuracy,
-      required this.lessonCompletionResponse})
-      : super(key: key);
+  const ConceptResultScreen({
+    Key? key,
+    required this.conceptName,
+    required this.totalXp,
+    required this.timeTaken,
+    required this.accuracy,
+    required this.lessonCompletionResponse,
+  }) : super(key: key);
 
-  void handleClaimXPClick(int xpEarned, BuildContext context) async {
-    if (lessonCompletionResponse["streakExtended"]) {
-      showEventPopup(
-          context,
-          {
-            "streakIncreased": true,
-            "newStreak": lessonCompletionResponse["streakActiveDays"]
-          },
-          xpEarned);
-    } else {
-      _navigateToQuestUpdateScreen(context, xpEarned);
-    }
+  @override
+  _ConceptResultScreenState createState() => _ConceptResultScreenState();
+}
+
+class _ConceptResultScreenState extends State<ConceptResultScreen> {
+  // late Map<String, dynamic> userProfile;
+
+  // Future<void> fetchProfile() async {
+  //   try {
+  //     final profileData = await refreshProfile();
+
+  //     setState(() {
+  //       userProfile = profileData;
+  //     });
+  //   } catch (error) {
+  //     print("Error fetching userProfile: $error");
+  //   }
+  // }
+
+  @override
+  void initState() {
+    super.initState();
   }
 
-  void showEventPopup(
-      BuildContext context, Map<String, dynamic> event, int xpEarned) {
-    final popupData = PopupManager.getPopupForEvent(event);
-    if (popupData != null) {
+  void handleClaimXPClick(int xpEarned, BuildContext context) async {
+    if (widget.lessonCompletionResponse["leaderboardUpdated"]) {
+      final leaderboard = await fetchLeaderboard(leaderboardType: "weekly");
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (context) {
-          return GenericPopup(popupData: popupData);
+          return LeaderboardPopup(
+            leaderboard: leaderboard,
+            rank: widget.lessonCompletionResponse["newRank"],
+          );
+        },
+      );
+    }
+
+    if (widget.lessonCompletionResponse["streakExtended"]) {
+      final userProfile = await refreshProfile();
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return StreakPopup(
+              streakCount: userProfile["streakDetails"]["activeDays"],
+              streakStartEpoch: userProfile["streakDetails"]["startTime"],
+              streakGoal: userProfile["streakGoal"]);
         },
       ).whenComplete(() {
         _navigateToQuestUpdateScreen(context, xpEarned);
       });
+    } else {
+      _navigateToQuestUpdateScreen(context, xpEarned);
     }
   }
+
+  // void showEventPopup(BuildContext context, int xpEarned) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (context) {
+  //       return StreakPopup(
+  //           streakCount: userProfile["streakDetails"]["activeDays"],
+  //           streakStartEpoch: userProfile["streakDetails"]["startTime"],
+  //           streakGoal: userProfile["streakGoal"]);
+  //     },
+  //   ).whenComplete(() {
+  //     _navigateToQuestUpdateScreen(context, xpEarned);
+  //   });
+  // }
 
   void _navigateToQuestUpdateScreen(BuildContext context, int xpEarned) async {
     Map<String, dynamic> quests = await getQuests();
@@ -127,7 +176,7 @@ class ConceptResultScreen extends StatelessWidget {
             automaticallyImplyLeading: false,
             elevation: 0,
             title: Text(
-              conceptName,
+              widget.conceptName,
               style: GoogleFonts.raleway(
                 color: Colors.white,
                 fontSize: 20,
@@ -146,13 +195,57 @@ class ConceptResultScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // GIF
-                  SizedBox(
-                    height: 200,
-                    width: 200,
-                    child: Image.network(
-                      'https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif', // Example GIF
-                      fit: BoxFit.cover,
-                    ),
+                  // SizedBox(
+                  //   height: 200,
+                  //   width: 200,
+                  //   child: Lottie.asset(
+                  //     'lib/assets/animations/confetti.json',
+                  //     fit: BoxFit.cover,
+                  //     // repeat: false,
+                  //   ),
+                  // ),
+
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Top Left Confetti
+                      Positioned(
+                        top: -20, // Move slightly above the screen
+                        left: -20, // Move slightly outside the screen
+                        child: SizedBox(
+                          height: 150, // Increase size for better visibility
+                          width: 150,
+                          child: Lottie.asset(
+                            'lib/assets/animations/confetti.json',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+
+                      // Top Right Confetti
+                      Positioned(
+                        top: 50,
+                        right: 100,
+                        child: SizedBox(
+                          height: 100,
+                          width: 100,
+                          child: Lottie.asset(
+                            'lib/assets/animations/confetti.json',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+
+                      // Main Center Animation
+                      SizedBox(
+                        height: 50,
+                        width: 50,
+                        child: Lottie.asset(
+                          'lib/assets/animations/lovelyCat.json',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ],
                   ),
 
                   // Lesson Completed Text
@@ -176,21 +269,21 @@ class ConceptResultScreen extends StatelessWidget {
                         _buildStatTile(
                           context: context,
                           title: 'Total XP',
-                          value: '$totalXp XP',
+                          value: '${widget.totalXp} XP',
                           icon: Icons.star,
                           color: Colors.green,
                         ),
                         _buildStatTile(
                           context: context,
                           title: 'Time Taken',
-                          value: timeTaken,
+                          value: widget.timeTaken,
                           icon: Icons.timer,
                           color: Color.fromRGBO(255, 217, 0, 1),
                         ),
                         _buildStatTile(
                           context: context,
                           title: 'Accuracy',
-                          value: '${accuracy.toStringAsFixed(1)}%',
+                          value: '${widget.accuracy.toStringAsFixed(1)}%',
                           icon: Icons.check_circle,
                           color: Colors.orange,
                         ),
@@ -205,7 +298,7 @@ class ConceptResultScreen extends StatelessWidget {
                 child: ChicletAnimatedButton(
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    handleClaimXPClick(totalXp, context);
+                    handleClaimXPClick(widget.totalXp, context);
                     // Navigator.pop(context); // Go back to the chapter
                   },
                   buttonType: ChicletButtonTypes.roundedRectangle,

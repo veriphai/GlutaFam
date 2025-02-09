@@ -1,4 +1,5 @@
 import 'package:chiclet/chiclet.dart';
+import 'package:eureka_app/main.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -140,11 +141,8 @@ class QuestProgressScreen extends StatelessWidget {
                   // Show rewards dialog
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => HomeScreen(),
-                    ),
-                    (Route<dynamic> route) =>
-                        false, // Remove all previous routes
+                    MaterialPageRoute(builder: (context) => MainPage()),
+                    (route) => false,
                   );
                   // showDialog(
                   //   context: context,

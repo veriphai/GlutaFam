@@ -33,6 +33,9 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        iconTheme: IconThemeData(
+          color: Colors.grey,
+        ),
         backgroundColor: const Color.fromRGBO(19, 31, 36, 1),
       ),
       backgroundColor: const Color.fromRGBO(19, 31, 36, 1),

@@ -1,8 +1,11 @@
 import 'package:eureka_app/apis/fetchLeaderboard.dart';
+import 'package:eureka_app/apis/fetchLeaderboardResult.dart';
+import 'package:eureka_app/apis/markLeaderboardResultSeen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
+import 'package:eureka_app/widgets/leaderboardResultWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
@@ -16,8 +19,11 @@ class WeeklyLeaderboardContent extends StatefulWidget {
 
 class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
   Map<String, dynamic> leaderboardData = {};
+  Map<String, dynamic> leaderboardResult = {};
   bool isLoading = true;
   late Map<String, dynamic> userProfile;
+  late int promotionIndex;
+  late int demotionIndex;
   late int promotionZoneXP;
   late int demotionZoneXP;
 
@@ -28,23 +34,59 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
       setState(() {
         userProfile = profileData;
       });
+      if (!profileData["leaderboardResultSeen"]) {
+        final leaderboardResultData = await fetchLeaderboardResult();
+
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          enableDrag: false,
+          isDismissible: false,
+          builder: (context) {
+            return LeaderboardResultWidget(
+                leaderboardResult: leaderboardResultData);
+          },
+        );
+        markLeaderboardResultSeen();
+      }
     } catch (error) {
       print("Error fetching userProfile: $error");
+    }
+  }
+
+  Future<void> getLeaderboardResult() async {
+    try {
+      final leaderboardResultData = await fetchLeaderboardResult();
+      // final profileData = await refreshProfile();
+
+      setState(() {
+        leaderboardResult = leaderboardResultData;
+      });
+    } catch (error) {
+      print("Error fetching leaderboardResult: $error");
     }
   }
 
   Future<void> getLeaderboardData() async {
     try {
       final leaderboard = await fetchLeaderboard(leaderboardType: "weekly");
+      final int standingsLength = leaderboard["standings"].length;
+
+      // Ensure that we have at least some valid indexes
+      promotionIndex = standingsLength > 3 ? standingsLength ~/ 3 : 1;
+      demotionIndex = standingsLength > 3
+          ? standingsLength - (standingsLength ~/ 3)
+          : standingsLength - 1;
 
       setState(() {
         leaderboardData = leaderboard;
         isLoading = false;
-        promotionZoneXP = leaderboard["standings"][9]["points"];
-        demotionZoneXP = leaderboard["standings"][19]["points"];
+        promotionZoneXP = leaderboard["standings"][promotionIndex]["points"];
+        demotionZoneXP = leaderboard["standings"][demotionIndex]["points"];
       });
     } catch (error) {
-      print("Error fetching feeds: $error");
+      print("Error fetching leaderboard: $error");
     }
   }
 
@@ -214,13 +256,16 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                     itemCount:
                         standings.length + 2, // Add one for the promotion row
                     itemBuilder: (context, index) {
-                      if (index == 10) {
+                      if (index == promotionIndex) {
                         // Render the promotion zone row after the 10th rank
                         return Container(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.arrow_upward, color: Colors.green),
+                              Icon(
+                                Icons.keyboard_double_arrow_up,
+                                color: Colors.green,
+                              ),
                               SizedBox(
                                 width: 16,
                               ),
@@ -229,45 +274,51 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                                 style: GoogleFonts.raleway(
                                   color: Colors.green,
                                   fontSize: 18,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
                               SizedBox(
                                 width: 16,
                               ),
-                              Icon(Icons.arrow_upward, color: Colors.green),
+                              Icon(
+                                Icons.keyboard_double_arrow_up,
+                                color: Colors.green,
+                              ),
                             ],
                           ),
                         );
                       }
-                      if (index == 21) {
+                      if (index == demotionIndex) {
                         // Render the demotion zone row after the 20th rank
                         return Container(
                           padding: EdgeInsets.symmetric(vertical: 8),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.arrow_downward, color: Colors.red),
+                              Icon(Icons.keyboard_double_arrow_down,
+                                  color: Colors.red),
                               SizedBox(width: 16),
                               Text(
                                 "DEMOTION ZONE",
                                 style: GoogleFonts.raleway(
                                   color: Colors.red,
                                   fontSize: 18,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
                               SizedBox(width: 16),
-                              Icon(Icons.arrow_downward, color: Colors.red),
+                              Icon(Icons.keyboard_double_arrow_down,
+                                  color: Colors.red),
                             ],
                           ),
                         );
                       }
 
                       // Adjust index for actual standings
-                      final actualIndex = index > 10 && index < 21
-                          ? index - 1
-                          : (index > 21 ? index - 2 : index);
+                      final actualIndex =
+                          index > promotionIndex && index < demotionIndex
+                              ? index - 1
+                              : (index > demotionIndex ? index - 2 : index);
                       final entry = standings[actualIndex];
                       final rank = entry["rank"];
                       final isCurrentUser =

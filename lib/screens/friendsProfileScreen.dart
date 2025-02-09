@@ -2,13 +2,18 @@ import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchAchievements.dart';
 import 'package:eureka_app/apis/fetchFriendsProfile.dart';
 import 'package:eureka_app/apis/addFriend.dart';
+import 'package:eureka_app/screens/achievementsScreen.dart';
 import 'package:eureka_app/screens/friendsScreen.dart';
+import 'package:eureka_app/utils/achievements.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:eureka_app/utils/avatars.dart';
+import 'package:eureka_app/widgets/achievementDetailsWidget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
 
 class FriendsProfileScreen extends StatefulWidget {
   final String friendId;
@@ -24,6 +29,8 @@ class FriendsProfileScreen extends StatefulWidget {
 class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
   late Map<String, dynamic> profileData;
   List<Map<String, dynamic>> achievements = [];
+  late Map<String, String>? avatar;
+  late bool isFriend;
 
   bool isLoading = true;
 
@@ -38,6 +45,10 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
 
       setState(() {
         profileData = userProfile;
+        avatar = getAvatar(userProfile.containsKey("avatar")
+            ? userProfile["avatar"]
+            : "random");
+
         isLoading = false;
       });
     } catch (error) {
@@ -47,7 +58,10 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
 
   Future<void> getAchievements() async {
     try {
-      final data = await fetchAchievements();
+      String encodedFriendId = widget.friendId.startsWith('+')
+          ? widget.friendId.replaceFirst('+', '%2B')
+          : widget.friendId;
+      final data = await fetchAchievements(friendsId: encodedFriendId);
       // final userProfile = await refreshProfile();
 
       setState(() {
@@ -64,6 +78,18 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
     super.initState();
     fetchProfile();
     getAchievements();
+    isFriend = widget.following;
+  }
+
+  void _showAchievementDetails(Map<String, dynamic> achievement) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      builder: (context) {
+        return AchievementDetailsWidget(achievement: achievement);
+      },
+    );
   }
 
   @override
@@ -90,16 +116,40 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                     height: 230,
                     color: Colors.orange,
                     alignment: Alignment.center,
-                    padding: EdgeInsets.only(top: 80),
-                    child: profileData.containsKey("avatar")
-                        ? Image.network(
-                            profileData["avatar"],
-                          )
-                        : Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 150,
+                    padding: EdgeInsets.only(top: 40),
+                    child: Stack(
+                      children: [
+                        // Avatar Image or Placeholder
+                        Center(
+                          child: avatar != null
+                              ? Image.asset(
+                                  avatar!['imagePath'] ?? '',
+                                  fit: BoxFit.cover,
+                                )
+                              : Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 150,
+                                ),
+                        ),
+
+                        // Edit Icon Positioned at the Top Right of the Container
+                        Positioned(
+                          top: 0,
+                          left: 10,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                            },
+                            child: Icon(
+                              Icons.arrow_back,
+                              color: Color.fromRGBO(19, 31, 36, 1),
+                              size: 30,
+                            ),
                           ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -143,7 +193,7 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "Joined ${DateTime.fromMillisecondsSinceEpoch(profileData["joiningTime"]).toLocal().toString().split(' ')[0]}",
+                          "Joined ${DateFormat('MMMM yyyy').format(DateTime.fromMillisecondsSinceEpoch(profileData["joiningTime"] * 1000).toLocal())}",
                           style: GoogleFonts.raleway(
                             color: Colors.grey,
                             fontSize: 16,
@@ -158,41 +208,21 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        FriendsScreen(), // 0 for "Following"
+                                    builder: (context) => FriendsScreen(
+                                      userId: widget.friendId,
+                                    ), // 0 for "Following"
                                   ),
                                 );
                               },
                               child: Text(
-                                "${profileData["followingCount"]} Following",
+                                "${profileData["friends"].length} Friends",
                                 style: GoogleFonts.arOneSans(
                                   color: Color.fromRGBO(255, 217, 0, 1),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                            ),
-                            SizedBox(
-                              width: 20,
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => FriendsScreen(),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                "${profileData["followersCount"]} Followers",
-                                style: GoogleFonts.arOneSans(
-                                  color: Color.fromRGBO(255, 217, 0, 1),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
+                            )
                           ],
                         ),
 
@@ -200,22 +230,29 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                           height: 20,
                         ),
                         ChicletAnimatedButton(
-                            onPressed: () async {
-                              HapticFeedback.lightImpact();
-                              await addFriend(friendId: widget.friendId);
-                              // print('${concepts[index]['name']} clicked');
-                            },
+                            onPressed: isFriend
+                                ? null
+                                : () async {
+                                    HapticFeedback.lightImpact();
+                                    setState(() {
+                                      isFriend = true;
+                                    });
+                                    await addFriend(friendId: widget.friendId);
+                                    // print('${concepts[index]['name']} clicked');
+                                  },
                             buttonType: ChicletButtonTypes.roundedRectangle,
                             height: 50,
                             width: double.infinity,
                             padding: const EdgeInsets.all(8),
-                            buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                            buttonColor: isFriend
+                                ? Color.fromRGBO(29, 195, 65, 1)
+                                : Color.fromRGBO(187, 160, 2, 1),
                             backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                    widget.following
+                                    isFriend
                                         ? Icons.person
                                         : Icons.person_add_alt,
                                     color: Colors.black),
@@ -223,7 +260,7 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                                   width: 10,
                                 ),
                                 Text(
-                                  widget.following ? "FOLLOWING" : "FOLLOW",
+                                  isFriend ? "ADDED" : "ADD FRIEND",
                                   style: GoogleFonts.raleway(
                                       color: Colors.black,
                                       fontSize: 16,
@@ -300,14 +337,38 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Achievements",
-                            style: GoogleFonts.raleway(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Achievements",
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    // Navigate to the AchievementsPage
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => AchievementsPage(
+                                            achievements: achievements),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    "VIEW ALL",
+                                    style: GoogleFonts.raleway(
+                                      color: Colors.yellow,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                )
+                              ]),
                           const SizedBox(height: 8),
                           Container(
                             decoration: BoxDecoration(
@@ -318,40 +379,120 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                             height: 150,
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
-                              itemCount: achievements.length,
+                              itemCount: 3,
                               itemBuilder: (context, index) {
                                 final achievement = achievements[index];
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    // Image with padding
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8.0),
-                                      child: Opacity(
-                                        opacity: 0.1,
-                                        // achievement["unlocked"] ? 1 : 0.1,
-                                        child: Image.network(
-                                          achievement["image"],
-                                          height: 80,
-                                          width: 80,
-                                          fit: BoxFit.cover,
+                                final achievementImage =
+                                    getAchievement(achievement["id"]);
+                                final currentLevelIndex =
+                                    achievement["currentLevel"] ?? 0;
+                                final levels = achievement["levels"] ?? [];
+                                final level = currentLevelIndex < levels.length
+                                    ? levels[currentLevelIndex]
+                                    : null;
+                                return GestureDetector(
+                                    onTap: () =>
+                                        _showAchievementDetails(achievement),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        // Image with padding
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 3.0),
+                                          child: Stack(
+                                            alignment: Alignment.center,
+                                            children: [
+                                              Container(
+                                                height: 120,
+                                                width: 120,
+                                                child: Center(
+                                                  child: SizedBox(
+                                                    height: 110,
+                                                    width: 110,
+                                                    child: Opacity(
+                                                      opacity: achievement[
+                                                              "unlocked"]
+                                                          ? 1
+                                                          : 0.1,
+                                                      child: Image.asset(
+                                                        getAchievement(
+                                                                    achievement[
+                                                                        "id"])?[
+                                                                "imagePath"] ??
+                                                            'lib/assets/placeholder.png',
+                                                        color: achievement[
+                                                                "unlocked"]
+                                                            ? null
+                                                            : Colors.grey,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              Positioned(
+                                                bottom: 0,
+                                                child: Stack(
+                                                  alignment: Alignment.center,
+                                                  children: [
+                                                    Text(
+                                                      "${level["criteria"]}",
+                                                      style:
+                                                          GoogleFonts.raleway(
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        foreground: Paint()
+                                                          ..style =
+                                                              PaintingStyle
+                                                                  .stroke
+                                                          ..strokeWidth = 5
+                                                          ..color = achievement[
+                                                                  "unlocked"]
+                                                              ? const Color
+                                                                  .fromARGB(255,
+                                                                  159, 129, 81)
+                                                              : Colors
+                                                                  .grey, // Outline color
+                                                      ),
+                                                    ),
+                                                    // Filled Text
+                                                    Text(
+                                                      "${level["criteria"]}",
+                                                      style:
+                                                          GoogleFonts.raleway(
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: achievement[
+                                                                "unlocked"]
+                                                            ? Colors.white
+                                                            : const Color
+                                                                .fromRGBO(
+                                                                19, 31, 36, 1),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    // Vertical divider
-                                    if (index <
-                                        achievements.length -
-                                            1) // No divider after the last image
-                                      VerticalDivider(
-                                        color: Color.fromARGB(255, 91, 91, 91),
-                                        thickness: 0.5,
-                                        width:
-                                            35, // Adjust spacing between image and divider
-                                      ),
-                                  ],
-                                );
+                                        // Vertical divider
+                                        if (index <
+                                            2) // No divider after the last image
+                                          VerticalDivider(
+                                            color:
+                                                Color.fromARGB(255, 91, 91, 91),
+                                            thickness: 0.5,
+                                            width:
+                                                0, // Adjust spacing between image and divider
+                                          ),
+                                      ],
+                                    ));
                               },
                             ),
                           ),

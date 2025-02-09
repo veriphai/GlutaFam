@@ -7,6 +7,7 @@ import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/widgets/schoolSelectionWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreenV4 extends StatefulWidget {
@@ -57,7 +58,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "generic",
       "heading": "Hi there! I am Haru!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -66,7 +67,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "headingType": "generic",
       "heading":
           "My parents often used to say curiosity killed the cat but never told me the satisfaction brought it back",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -75,14 +76,14 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "headingType": "generic",
       "heading":
           "I am curious to learn more about you just few quick questions before we start your first lesson!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
       "pageNo": 1,
       "type": "class_selection",
       "heading": "In which class are you?",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": [
         "Class 6",
@@ -104,14 +105,14 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "headingType": "class",
       "heading":
           "Get ready to join all the {} learners growing their conceptual understanding!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
       "pageNo": 2,
       "type": "source_of_information",
       "heading": "How did you hear about Haruki Learning?",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": [
         "App Store",
@@ -125,7 +126,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "pageNo": 3,
       "type": "goal_selection",
       "heading": "What is your primary goal with Haruki Learning?",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": [
         "Improve grades",
@@ -140,7 +141,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "headingType": "goal",
       "heading":
           "Great! We'll focus on helping you {} and make learning paws-itively fun!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -148,36 +149,36 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "generic",
       "heading": "Let's set up a learning routine!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
       "pageNo": 4,
       "type": "daily_goal",
       "heading": "What’s your daily learning goal?",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catLiftingWeights.json",
       "description":
           "With consistent achievement of goals, students are likely to improve drastically!",
       "options": [
         {
           "label": "10 min / day",
           "helperText": "Casual",
-          "description": "1x likely to improve"
+          "description": "You'll be 1x more likely to improve your grades!"
         },
         {
           "label": "15 min / day",
           "helperText": "Regular",
-          "description": "2x likely to improve"
+          "description": "You'll be 2x more likely to improve your grades!"
         },
         {
           "label": "20 min / day",
           "helperText": "Serious",
-          "description": "3x likely to grade jump"
+          "description": "You'll be 3x more likely to improve your grades!"
         },
         {
           "label": "30 min / day",
           "helperText": "Intense",
-          "description": "5x likely to grade jump"
+          "description": "You'll be 5x more likely to improve your grades!"
         }
       ]
     },
@@ -185,7 +186,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "pageNo": 5,
       "type": "learning_time",
       "heading": "What is your preferred learning time?",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": ["Morning", "Afternoon", "Evening", "Night"]
     },
@@ -194,7 +195,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "learning_time",
       "heading": "Let's set up a learning routine!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -202,7 +203,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "generic",
       "heading": "It can be hard to stay motivated...",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -210,35 +211,39 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "generic",
       "heading": "so Haruki Learning is designed to be fun like a game!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
       "pageNo": 6,
       "type": "commit_to_learning",
       "heading": "Commit to learning",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catLiftingWeights.json",
       "description": "",
       "options": [
         {
           "label": "7 day streak",
           "helperText": "Good",
-          "description": "3x Multiplier"
+          "description":
+              "You'll be 3x more likely to stay on track and retain what you learn!"
         },
         {
           "label": "14 day streak",
           "helperText": "Great",
-          "description": "5x Multiplier"
+          "description":
+              "You'll be 5x more likely to stay on track and retain what you learn!"
         },
         {
           "label": "30 day streak",
           "helperText": "Incredible",
-          "description": "7x Multiplier"
+          "description":
+              "You'll be 7x more likely to stay on track and retain what you learn!"
         },
         {
           "label": "50 day streak",
           "helperText": "Unstoppable",
-          "description": " 9x Multiplier"
+          "description":
+              "You'll be 9x more likely to stay on track and retain what you learn!"
         }
       ]
     },
@@ -247,7 +252,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "generic",
       "heading": "I think you and me are going to get along purr-fectly",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -256,7 +261,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "headingType": "generic",
       "heading":
           "I got so excited meeting you that I forgot to even ask about your name!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -296,7 +301,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "name",
       "heading": "Welcome, {}! Your profile is almost setup",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -305,14 +310,14 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "headingType": "generic",
       "heading":
           "Finally, a little bit about your learning preferences! So we can improve the app to support you better",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
       "pageNo": 7,
       "type": "progress_reports",
       "heading": "Would you like to receive progress reports?",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": ["Yes - Weekly", "Yes - Monthly", "No"]
     },
@@ -320,7 +325,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "pageNo": 8,
       "type": "motivation",
       "heading": "What motivates you to learn?",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": [
         "Rewards",
@@ -334,7 +339,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "pageNo": 9,
       "type": "learning_preference",
       "heading": "Do you prefer competitive or individual learning?",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": ["Compete with others", "Learn at my own pace"]
     },
@@ -344,7 +349,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "headingType": "generic",
       "heading":
           "Ahhh! I am so satisfied by getting to know you. Thanks for telling me everything about you!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
@@ -353,7 +358,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "headingType": "generic",
       "heading":
           "Let's dive into learning, and remember haruki learning everyday keeps bad grades away!",
-      "mascotImage": "lib/assets/streakIcon.png",
+      "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     }
   ];
@@ -509,43 +514,41 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
   @override
   Widget build(BuildContext context) {
     final currentData = pages[currentPage];
-    final double progress = (currentProgress) / (pages.length - 12);
+    final double progress = (currentProgress) / (pages.length - 14);
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color.fromRGBO(19, 31, 36, 1),
         elevation: 0,
         title: currentData["type"] != "info_message"
-            ? Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final availableWidth = constraints.maxWidth;
-                    return Stack(
-                      children: [
-                        // Background Bar
-                        Container(
-                          height: 16.0,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[800],
-                            borderRadius: BorderRadius.circular(16.0),
-                          ),
+            ? LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  return Stack(
+                    children: [
+                      // Background Bar
+                      Container(
+                        height: 16.0,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(16.0),
                         ),
-                        // Filled Bar
-                        AnimatedContainer(
-                          duration: const Duration(
-                              milliseconds: 300), // Animation duration
-                          curve: Curves.easeInOut, // Animation curve
-                          width: availableWidth * progress,
-                          height: 16.0,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(16.0),
-                          ),
+                      ),
+                      // Filled Bar
+                      AnimatedContainer(
+                        duration: const Duration(
+                            milliseconds: 300), // Animation duration
+                        curve: Curves.easeInOut, // Animation curve
+                        width: availableWidth * progress,
+                        height: 16.0,
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(16.0),
                         ),
-                      ],
-                    );
-                  },
-                ),
+                      ),
+                    ],
+                  );
+                },
               )
             : null,
         automaticallyImplyLeading: false,
@@ -632,58 +635,61 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (pageData["mascotImage"] != null)
-              Image.asset(
-                pageData["mascotImage"],
-                height: 100,
-                width: 100,
-                fit: BoxFit.cover,
+              SizedBox(
+                height: 120,
+                width: 120,
+                child: Lottie.asset(
+                  pageData["mascotImage"],
+                  fit: BoxFit.cover,
+                ),
               ),
             const SizedBox(width: 4),
-            BubbleBox(
-                maxWidth: MediaQuery.of(context).size.width * 0.6,
-                shape: BubbleShapeBorder(
-                    border: BubbleBoxBorder(
-                      color: Colors.grey.shade700,
-                      width: 3,
-                    ),
-                    radius: BorderRadius.circular(12),
-                    position: const BubblePosition.center(0),
-                    direction: BubbleDirection.left,
-                    arrowHeight: 10),
-                backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-                child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Stack(
-                      children: [
-                        Text(
-                          pageData["heading"],
-                          // textAlign: TextAlign.center,
-                          style: GoogleFonts.raleway(
-                            color: Colors.transparent,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
+            Flexible(
+                child: BubbleBox(
+                    shape: BubbleShapeBorder(
+                        border: BubbleBoxBorder(
+                          color: Colors.grey.shade700,
+                          width: 3,
                         ),
-                        AnimatedTextKit(
-                          key: ValueKey(pageData[
-                              "heading"]), // Unique key for each message
-                          animatedTexts: [
-                            TyperAnimatedText(
+                        radius: BorderRadius.circular(12),
+                        position: const BubblePosition.center(0),
+                        direction: BubbleDirection.left,
+                        arrowHeight: 10),
+                    backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+                    child: Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Stack(
+                          children: [
+                            Text(
                               pageData["heading"],
-                              textStyle: GoogleFonts.raleway(
-                                color: Colors.white,
+                              // textAlign: TextAlign.center,
+                              style: GoogleFonts.raleway(
+                                color: Colors.transparent,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,
                               ),
-                              speed: const Duration(
-                                  milliseconds: 20), // Typing speed
+                            ),
+                            AnimatedTextKit(
+                              key: ValueKey(pageData[
+                                  "heading"]), // Unique key for each message
+                              animatedTexts: [
+                                TyperAnimatedText(
+                                  pageData["heading"],
+                                  textStyle: GoogleFonts.raleway(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  speed: const Duration(
+                                      milliseconds: 20), // Typing speed
+                                ),
+                              ],
+                              isRepeatingAnimation: false, // No looping
+                              totalRepeatCount: 1, // Play once
                             ),
                           ],
-                          isRepeatingAnimation: false, // No looping
-                          totalRepeatCount: 1, // Play once
-                        ),
-                      ],
-                    )))
+                        ))))
           ],
         ),
         const SizedBox(height: 20),
@@ -717,66 +723,69 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
           Row(
             children: [
               if (pageData["mascotImage"] != null)
-                Image.asset(
-                  pageData["mascotImage"],
-                  height: 100,
-                  width: 100,
-                  fit: BoxFit.cover,
+                SizedBox(
+                  height: 150,
+                  width: 150,
+                  child: Lottie.asset(
+                    pageData["mascotImage"],
+                    fit: BoxFit.cover,
+                  ),
                 ),
               const SizedBox(width: 16),
-              BubbleBox(
-                  maxWidth: MediaQuery.of(context).size.width * 0.6,
-                  shape: BubbleShapeBorder(
-                      border: BubbleBoxBorder(
-                        color: Colors.grey.shade700,
-                        width: 3,
-                      ),
-                      radius: BorderRadius.circular(12),
-                      position: const BubblePosition.center(0),
-                      direction: BubbleDirection.left,
-                      arrowHeight: 10),
-                  backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-                  child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Stack(
-                        children: [
-                          Text(
-                            pageData["options"]?.firstWhere((opt) =>
-                                    opt["label"] ==
-                                    selectedOption)["description"] ??
-                                "",
-                            style: GoogleFonts.raleway(
-                              color: Colors.transparent,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
+              Flexible(
+                  child: BubbleBox(
+                      shape: BubbleShapeBorder(
+                          border: BubbleBoxBorder(
+                            color: Colors.grey.shade700,
+                            width: 3,
                           ),
-                          AnimatedTextKit(
-                            key: ValueKey(pageData["options"]?.firstWhere(
-                                    (opt) =>
-                                        opt["label"] ==
-                                        selectedOption)["description"] ??
-                                ""), // Unique key for each message
-                            animatedTexts: [
-                              TyperAnimatedText(
+                          radius: BorderRadius.circular(12),
+                          position: const BubblePosition.center(0),
+                          direction: BubbleDirection.left,
+                          arrowHeight: 10),
+                      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+                      child: Padding(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Stack(
+                            children: [
+                              Text(
                                 pageData["options"]?.firstWhere((opt) =>
                                         opt["label"] ==
                                         selectedOption)["description"] ??
                                     "",
-                                textStyle: GoogleFonts.raleway(
-                                  color: Colors.white,
+                                style: GoogleFonts.raleway(
+                                  color: Colors.transparent,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
                                 ),
-                                speed: const Duration(
-                                    milliseconds: 20), // Typing speed
+                              ),
+                              AnimatedTextKit(
+                                key: ValueKey(pageData["options"]?.firstWhere(
+                                        (opt) =>
+                                            opt["label"] ==
+                                            selectedOption)["description"] ??
+                                    ""), // Unique key for each message
+                                animatedTexts: [
+                                  TyperAnimatedText(
+                                    pageData["options"]?.firstWhere((opt) =>
+                                            opt["label"] ==
+                                            selectedOption)["description"] ??
+                                        "",
+                                    textStyle: GoogleFonts.raleway(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    speed: const Duration(
+                                        milliseconds: 20), // Typing speed
+                                  ),
+                                ],
+                                isRepeatingAnimation: false, // No looping
+                                totalRepeatCount: 1, // Play once
                               ),
                             ],
-                            isRepeatingAnimation: false, // No looping
-                            totalRepeatCount: 1, // Play once
-                          ),
-                        ],
-                      )))
+                          ))))
             ],
           ),
         ],
@@ -836,12 +845,17 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
                       ],
                     )))),
         if (pageData["mascotImage"] != null)
-          Image.asset(
-            pageData["mascotImage"],
-            height: 100,
-            width: 100,
-            fit: BoxFit.cover,
-          )
+          Transform.translate(
+            offset: Offset(-8, -25), // Moves it up slightly
+            child: SizedBox(
+              height: 150,
+              width: 150,
+              child: Lottie.asset(
+                pageData["mascotImage"],
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -1026,7 +1040,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
                               ? Colors.blue
                               : Colors.white,
                           fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w500,
                         ),
                       )
                     ],

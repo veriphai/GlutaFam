@@ -1,12 +1,14 @@
 import 'package:eureka_app/apis/fetchFriends.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
+import 'package:eureka_app/utils/avatars.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:flutter/services.dart';
 
 class FriendsScreen extends StatefulWidget {
-  const FriendsScreen({Key? key}) : super(key: key);
+  final String? userId;
+  const FriendsScreen({Key? key, this.userId}) : super(key: key);
 
   @override
   _FriendsScreenState createState() => _FriendsScreenState();
@@ -24,7 +26,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   Future<void> fetchFriendsData() async {
     try {
-      final friendsData = await fetchFriends();
+      String encodedFriendId = "";
+      if (widget.userId != null && widget.userId!.isNotEmpty) {
+        encodedFriendId = widget.userId!.startsWith('+')
+            ? widget.userId!.replaceFirst('+', '%2B')
+            : widget.userId!;
+      }
+      final friendsData = await fetchFriends(friendsId: encodedFriendId);
       setState(() {
         friends = friendsData;
         isLoading = false;
@@ -60,17 +68,18 @@ class _FriendsScreenState extends State<FriendsScreen> {
               borderRadius: BorderRadius.circular(50), // Circular image
               child: Container(
                 color: Colors.amber,
-                child: friend.containsKey("imgUrl") && friend["imgUrl"] != null
-                    ? Image.network(
-                        friend["imgUrl"],
-                        height: 40,
-                        width: 40,
-                        fit: BoxFit.cover,
+                child: friend.containsKey("avatar") &&
+                        friend["avatar"] != null &&
+                        friend["avatar"]!.isNotEmpty
+                    ? Image.asset(
+                        getAvatar(friend["avatar"])["imagePath"]!,
+                        height: 50,
+                        fit: BoxFit.scaleDown,
                       )
-                    : Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 40,
+                    : Image.asset(
+                        getAvatar("random")["imagePath"]!,
+                        height: 50,
+                        fit: BoxFit.scaleDown,
                       ),
               ),
             ),
@@ -118,6 +127,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
       appBar: AppBar(
         backgroundColor: Color.fromRGBO(19, 31, 36, 1),
         elevation: 0,
+        iconTheme: IconThemeData(
+          color: Colors.grey,
+        ),
         title: Text(
           "Friends",
           style: GoogleFonts.raleway(

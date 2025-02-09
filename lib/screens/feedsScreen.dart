@@ -1,5 +1,9 @@
+import 'package:bubble_box/bubble_box.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchFeeds.dart';
+import 'package:eureka_app/apis/reactOnFeed.dart';
+import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/widgets/feedActionButtons.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,10 +17,12 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> {
   List<Map<String, dynamic>> feedData = [];
   bool isLoading = true;
+  late Map<String, dynamic> userProfile;
 
   Future<void> getFeeds() async {
     try {
       final feeds = await fetchFeeds();
+      feeds.sort((a, b) => b["time"].compareTo(a["time"]));
 
       setState(() {
         feedData = feeds;
@@ -27,10 +33,23 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
+  Future<void> fetchProfile() async {
+    try {
+      final profileData = await getProfile();
+
+      setState(() {
+        userProfile = profileData;
+      });
+    } catch (error) {
+      print("Error fetching userProfile: $error");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     getFeeds();
+    fetchProfile();
   }
 
   String getTimeDifferenceFromEpoch(int epochTimeInSeconds) {
@@ -48,6 +67,306 @@ class _FeedScreenState extends State<FeedScreen> {
     } else {
       return "${difference.inDays} days ago";
     }
+  }
+
+  Widget buildFeedContainerForNudge(Map<String, dynamic> feed) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color.fromARGB(255, 91, 91, 91)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          // Profile Image, Name, and Feed Image
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Description Section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        feed.containsKey("userAvatar")
+                            ? Image.asset(
+                                getAvatar(feed["userAvatar"])["imagePath"]!,
+                                height: 50,
+                                fit: BoxFit.scaleDown,
+                              )
+                            : Image.asset(
+                                getAvatar("random")["imagePath"]!,
+                                height: 50,
+                                fit: BoxFit.scaleDown,
+                              ),
+                        const SizedBox(
+                            width: 8), // Spacing between avatar and name
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Text(
+                                feed['name'],
+                                style: GoogleFonts.raleway(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 4,
+                              ),
+                              Text(
+                                "nudged you",
+                                style: GoogleFonts.raleway(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              )
+                            ]),
+                            Text(
+                              getTimeDifferenceFromEpoch(feed["time"]),
+                              style: GoogleFonts.arOneSans(
+                                color: const Color.fromARGB(255, 91, 91, 91),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    BubbleBox(
+                      maxWidth: MediaQuery.of(context).size.width * 0.6,
+                      shape: BubbleShapeBorder(
+                        border: BubbleBoxBorder(
+                          color: Colors.grey.shade700,
+                          width: 3,
+                        ),
+                        radius: BorderRadius.circular(12),
+                        position: const BubblePosition.start(20),
+                        direction: BubbleDirection.top,
+                        arrowHeight: 12,
+                      ),
+                      backgroundColor: Colors.grey[900],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                                child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  feed["feedData"]["heading"],
+                                  style: GoogleFonts.raleway(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700),
+                                ),
+                                Text(
+                                  feed["feedData"]["message"],
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                )
+                              ],
+                            )),
+                            const SizedBox(width: 10),
+                            Image.asset(feed["feedData"]["image"], height: 50),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ActionButton(
+                buttonText: "View Friend Quest",
+                feed: feed,
+                isReacted: feed.containsKey("feedReactions") &&
+                    (feed["feedReactions"] as Map<String, dynamic>)
+                        .containsKey(userProfile["id"]),
+                onPress: () {
+                  reactOnFeed(feedId: feed["id"]);
+                },
+              ),
+              if (feed.containsKey("feedReactions"))
+                Row(children: [
+                  Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: const Color.fromARGB(255, 91, 91, 91))),
+                      child: Icon(
+                        Icons.celebration_rounded,
+                        color: Colors.white,
+                      )),
+                  SizedBox(
+                    width: 8,
+                  ),
+                  Text(
+                    "${feed["feedReactions"].length}",
+                    style: GoogleFonts.raleway(
+                      color: Color.fromARGB(255, 91, 91, 91),
+                      fontSize: 18,
+                    ),
+                  )
+                ])
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget buildFeedContainer(Map<String, dynamic> feed) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color.fromARGB(255, 91, 91, 91)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          // Profile Image, Name, and Feed Image
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Description Section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        feed.containsKey("userAvatar")
+                            ? Image.asset(
+                                getAvatar(feed["userAvatar"])["imagePath"]!,
+                                height: 50,
+                                fit: BoxFit.scaleDown,
+                              )
+                            : Image.asset(
+                                getAvatar("random")["imagePath"]!,
+                                height: 50,
+                                fit: BoxFit.scaleDown,
+                              ),
+                        const SizedBox(
+                            width: 8), // Spacing between avatar and name
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              feed['name'],
+                              style: GoogleFonts.raleway(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 18,
+                              ),
+                            ),
+                            Text(
+                              getTimeDifferenceFromEpoch(feed["time"]),
+                              style: GoogleFonts.arOneSans(
+                                color: const Color.fromARGB(255, 91, 91, 91),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                        height: 16), // Spacing between name and description
+                    SizedBox(
+                        height: 44,
+                        child: Text(
+                          feed['description'],
+                          style: GoogleFonts.raleway(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                          maxLines: 2, // Ensure text doesn't overflow
+                          overflow: TextOverflow.ellipsis,
+                        )),
+                  ],
+                ),
+              ),
+              const SizedBox(
+                  width: 16), // Spacing between description and image
+              // Feed Image
+              Image.network(
+                feed['feedImage'],
+                height: 80,
+                width: 80,
+                fit: BoxFit.cover,
+              ),
+            ],
+          ),
+          const SizedBox(height: 36),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ActionButton(
+                buttonText: feed["feedButton"],
+                feed: feed,
+                isReacted: feed.containsKey("feedReactions") &&
+                    (feed["feedReactions"] as Map<String, dynamic>)
+                        .containsKey(userProfile["id"]),
+                onPress: () {
+                  reactOnFeed(feedId: feed["id"]);
+                },
+              ),
+              if (feed.containsKey("feedReactions"))
+                Row(children: [
+                  Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: const Color.fromARGB(255, 91, 91, 91))),
+                      child: Icon(
+                        Icons.celebration_rounded,
+                        color: Colors.white,
+                      )),
+                  SizedBox(
+                    width: 8,
+                  ),
+                  Text(
+                    "${feed["feedReactions"].length}",
+                    style: GoogleFonts.raleway(
+                      color: Color.fromARGB(255, 91, 91, 91),
+                      fontSize: 18,
+                    ),
+                  )
+                ])
+            ],
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -83,112 +402,14 @@ class _FeedScreenState extends State<FeedScreen> {
                 itemCount: feedData.length,
                 itemBuilder: (context, index) {
                   final feed = feedData[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16.0),
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: const Color.fromARGB(255, 91, 91, 91)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        // Profile Image, Name, and Feed Image
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Description Section
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      CircleAvatar(
-                                        backgroundColor: Colors.yellow,
-                                        child: Text(
-                                          feed['name'][0],
-                                          style: GoogleFonts.raleway(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                          width:
-                                              8), // Spacing between avatar and name
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            feed['name'],
-                                            style: GoogleFonts.raleway(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                          Text(
-                                            getTimeDifferenceFromEpoch(
-                                                feed["time"]),
-                                            style: GoogleFonts.arOneSans(
-                                              color: const Color.fromARGB(
-                                                  255, 91, 91, 91),
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                      height:
-                                          16), // Spacing between name and description
-                                  SizedBox(
-                                      height: 44,
-                                      child: Text(
-                                        feed['description'],
-                                        style: GoogleFonts.raleway(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                        ),
-                                        maxLines:
-                                            2, // Ensure text doesn't overflow
-                                        overflow: TextOverflow.ellipsis,
-                                      )),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(
-                                width:
-                                    16), // Spacing between description and image
-                            // Feed Image
-                            Image.network(
-                              feed['feedImage'],
-                              height: 80,
-                              width: 80,
-                              fit: BoxFit.cover,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(
-                            height:
-                                36), // Spacing between feed details and the action button
-                        ActionButton(
-                          buttonText: feed["feedButton"],
-                          feed: feed,
-                        ),
-                      ],
-                    ),
-                  );
+                  if (feed["hidden"]) {
+                    return Container();
+                  }
+                  if (feed["type"] != "NUDGE") {
+                    return buildFeedContainer(feed);
+                  } else {
+                    return buildFeedContainerForNudge(feed);
+                  }
                 },
               ),
             ),

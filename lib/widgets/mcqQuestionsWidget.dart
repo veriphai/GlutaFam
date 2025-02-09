@@ -1,6 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:eureka_app/apis/fetchLessonQuestions.dart';
 import 'package:eureka_app/apis/markLessonCompletion.dart';
+import 'package:eureka_app/main.dart';
 import 'package:eureka_app/screens/mistakesCorrectionScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/lifelinesManager.dart';
@@ -89,6 +90,8 @@ class _MCQQuestionsState extends State<MCQQuestions> {
 
   int _currentQuestionIndex = 0;
   String? _selectedOption;
+  Set<String> _selectedOptions = {}; // For MCMA questions
+
   bool _isAnswerChecked = false;
   final AudioPlayer _correctAudioPlayer = AudioPlayer();
   final AudioPlayer _incorrectAudioPlayer = AudioPlayer();
@@ -169,15 +172,28 @@ class _MCQQuestionsState extends State<MCQQuestions> {
 
   void _checkAnswer() async {
     final currentQuestion = lessonQuestions['questions'][_currentQuestionIndex];
-    final isCorrect = _selectedOption == currentQuestion['correctAnswer'];
+    final isMCMA =
+        currentQuestion['type'] == "Multiple Choice - Multiple Answers";
+
+    // final isCorrect = _selectedOption == currentQuestion['correctAnswer'];
     final questionTimeTaken =
         DateTime.now().difference(questionStartTime).inSeconds;
+
+    bool isCorrect;
+    if (isMCMA) {
+      Set<String> correctAnswers =
+          currentQuestion['correctAnswer'].split(", ").toSet();
+      isCorrect = _selectedOptions.length == correctAnswers.length &&
+          _selectedOptions.every((option) => correctAnswers.contains(option));
+    } else {
+      isCorrect = _selectedOption == currentQuestion['correctAnswer'];
+    }
 
     // Add report object for the current question
     lessonReport.add({
       "questionId": currentQuestion["id"],
       "correct": isCorrect,
-      "userAnswer": _selectedOption,
+      "userAnswer": isMCMA ? _selectedOptions.join(", ") : _selectedOption,
       "timeTaken": questionTimeTaken,
     });
 
@@ -216,7 +232,8 @@ class _MCQQuestionsState extends State<MCQQuestions> {
         }
         lifelineManager.reduceLifeline();
       }
-      currentQuestion["userAnswer"] = _selectedOption;
+      currentQuestion["userAnswer"] =
+          isMCMA ? _selectedOptions.join(", ") : _selectedOption;
       incorrectQuestions.add(currentQuestion);
     }
 
@@ -242,6 +259,8 @@ class _MCQQuestionsState extends State<MCQQuestions> {
       setState(() {
         _currentQuestionIndex++;
         _selectedOption = null;
+        _selectedOptions.clear();
+
         _isAnswerChecked = false;
         showQuestionStreak = false;
         questionStartTime = DateTime.now();
@@ -298,197 +317,260 @@ class _MCQQuestionsState extends State<MCQQuestions> {
     return (_currentQuestionIndex + 1) / lessonQuestions['questions'].length;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  void _showExitConfirmation(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
       backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-      appBar: AppBar(
-        backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: Colors.grey,
-        ),
-        title: Text(
-          widget.conceptName,
-          style: GoogleFonts.raleway(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 🎯 Image at the top
+              Container(
+                height: 100,
+                width: 100,
+                child: Center(
+                  child: Image.asset(
+                    "lib/assets/streakIcon.png",
+                    height: 50,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 16),
+
+              // ⚠️ Warning Text
+              Text(
+                "Quit and you'll lose all XP gained in this lesson!",
+                style: GoogleFonts.raleway(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: 16),
+
+              // ❌ Exit Button
+              ChicletAnimatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                buttonType: ChicletButtonTypes.roundedRectangle,
+                width: double.infinity,
+                height: 50,
+                buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                child: Text(
+                  "KEEP GOING",
+                  style: GoogleFonts.raleway(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 12),
+
+              // 🔄 Cancel Button
+              ChicletOutlinedAnimatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Navigator.pop(context);
+                  // Navigator.pop(context);
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => MainPage()),
+                    (route) => false,
+                  );
+                },
+                buttonType: ChicletButtonTypes.roundedRectangle,
+                width: double.infinity,
+                height: 50,
+                borderColor: Colors.transparent,
+                // buttonColor: Colors.transparent,
+                backgroundColor: Colors.transparent,
+                child: Text(
+                  "QUIT",
+                  style: GoogleFonts.raleway(
+                    color: Colors.red,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
+        );
+      },
+    );
+  }
+
+  double _calculateButtonHeight(String text, double maxWidth) {
+    TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: GoogleFonts.raleway(
+          fontSize: 16,
+          color: Colors.white,
         ),
       ),
-      body: isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                  color: Color.fromRGBO(255, 217, 0, 1)))
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Progress Bar
-                  if (_correctStreak >= 2 && showQuestionStreak)
-                    FractionallySizedBox(
-                      widthFactor: getProgress(),
-                      child: Center(
-                          child: SizedBox(
-                              height: 20,
-                              child: Text(
-                                '$_correctStreak in row',
-                                style: GoogleFonts.arOneSans(
-                                  color: getProgressBarColor(getProgress()),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ))),
-                    )
-                  else
-                    SizedBox(height: 20),
+      textDirection: TextDirection.ltr,
+      maxLines: 2,
+    )..layout(maxWidth: maxWidth - 20); // Adjust padding for width
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(children: [
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final availableWidth = constraints.maxWidth;
-                            return Stack(
-                              children: [
-                                // Background Bar
-                                Container(
-                                  height: 16.0,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[800],
-                                    borderRadius: BorderRadius.circular(16.0),
-                                  ),
-                                ),
-                                // Filled Bar
-                                AnimatedContainer(
-                                  duration: const Duration(
-                                      milliseconds: 300), // Animation duration
-                                  curve: Curves.easeInOut, // Animation curve
-                                  width: availableWidth *
-                                      getProgress(), // Dynamically adjust width
-                                  height: 16.0,
-                                  decoration: BoxDecoration(
-                                    color: getProgressBarColor(getProgress()),
-                                    borderRadius: BorderRadius.circular(16.0),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 20),
-                      Row(children: [
-                        Icon(
-                          Icons.favorite,
-                          color: Colors.red,
-                          size: 24,
-                        ),
-                        SizedBox(width: 5),
-                        Text(unlimitedLifelines ? "∞" : "$lifelines",
-                            style: TextStyle(color: Colors.white))
-                      ])
-                    ]),
-                  ),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  if (_isCelebrationVisible)
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          '🎉 Great Job! 🎉\nKeep Going!',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.raleway(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+    int lineCount = textPainter.computeLineMetrics().length;
+    return lineCount > 1 ? 70 : 50;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+        onWillPop: () async {
+          _showExitConfirmation(context);
+          return false; // Prevent immediate back navigation
+        },
+        child: Scaffold(
+          backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+          appBar: AppBar(
+            backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+            elevation: 0,
+            iconTheme: IconThemeData(
+              color: Colors.grey,
+            ),
+            title: Text(
+              widget.conceptName,
+              style: GoogleFonts.raleway(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          body: isLoading
+              ? Center(
+                  child: CircularProgressIndicator(
+                      color: Color.fromRGBO(255, 217, 0, 1)))
+              : Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Progress Bar
+                      if (_correctStreak >= 2 && showQuestionStreak)
+                        FractionallySizedBox(
+                          widthFactor: getProgress(),
+                          child: Center(
+                              child: SizedBox(
+                                  height: 20,
+                                  child: Text(
+                                    '$_correctStreak in row',
+                                    style: GoogleFonts.arOneSans(
+                                      color: getProgressBarColor(getProgress()),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ))),
+                        )
+                      else
+                        SizedBox(height: 20),
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Row(children: [
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final availableWidth = constraints.maxWidth;
+                                return Stack(
+                                  children: [
+                                    // Background Bar
+                                    Container(
+                                      height: 16.0,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[800],
+                                        borderRadius:
+                                            BorderRadius.circular(16.0),
+                                      ),
+                                    ),
+                                    // Filled Bar
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                          milliseconds:
+                                              300), // Animation duration
+                                      curve:
+                                          Curves.easeInOut, // Animation curve
+                                      width: availableWidth *
+                                          getProgress(), // Dynamically adjust width
+                                      height: 16.0,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            getProgressBarColor(getProgress()),
+                                        borderRadius:
+                                            BorderRadius.circular(16.0),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                           ),
-                        ),
+                          SizedBox(width: 20),
+                          Row(children: [
+                            Icon(
+                              Icons.favorite,
+                              color: Colors.red,
+                              size: 24,
+                            ),
+                            SizedBox(width: 5),
+                            Text(unlimitedLifelines ? "∞" : "$lifelines",
+                                style: TextStyle(color: Colors.white))
+                          ])
+                        ]),
                       ),
-                    )
-                  else
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16.0),
-                              child: MarkdownBody(
-                                selectable: true,
-                                data: lessonQuestions['questions']
-                                    [_currentQuestionIndex]['question'],
-                                builders: {
-                                  'latex': LatexElementBuilder(
-                                    textStyle: GoogleFonts.raleway(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w700),
-                                  ),
-                                },
-                                extensionSet: md.ExtensionSet(
-                                  [LatexBlockSyntax()],
-                                  [LatexInlineSyntax()],
-                                ),
-                                styleSheet: MarkdownStyleSheet(
-                                  p: GoogleFonts.raleway(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700),
-                                  blockSpacing: 8.0,
-                                ),
-                              )),
-
-                          // Options
-                          ...lessonQuestions['questions'][_currentQuestionIndex]
-                                  ['options']
-                              .map<Widget>((option) {
-                            final isSelected = _selectedOption == option['id'];
-                            final isCorrect = option['id'] ==
-                                lessonQuestions['questions']
-                                    [_currentQuestionIndex]['correctAnswer'];
-
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: ChicletOutlinedAnimatedButton(
-                                  onPressed: () {
-                                    HapticFeedback.lightImpact();
-                                    if (!_isAnswerChecked) {
-                                      setState(() {
-                                        _selectedOption = option['id'];
-                                      });
-                                    }
-                                  },
-                                  buttonType:
-                                      ChicletButtonTypes.roundedRectangle,
-                                  height: 50,
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(8),
-                                  borderWidth: 1.0,
-                                  borderColor: _isAnswerChecked
-                                      ? (isCorrect
-                                          ? Color.fromRGBO(187, 160, 2, 1)
-                                          : (isSelected
-                                              ? Colors.red
-                                              : Colors.grey))
-                                      : (isSelected
-                                          ? Colors.blue
-                                          : Colors.grey),
-                                  backgroundColor:
-                                      Color.fromRGBO(19, 31, 36, 1),
+                      SizedBox(
+                        height: 20,
+                      ),
+                      if (_isCelebrationVisible)
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              '🎉 Great Job! 🎉\nKeep Going!',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.raleway(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 16.0),
                                   child: MarkdownBody(
                                     selectable: true,
-                                    data: option['option'],
+                                    data: lessonQuestions['questions']
+                                        [_currentQuestionIndex]['question'],
                                     builders: {
                                       'latex': LatexElementBuilder(
                                         textStyle: GoogleFonts.raleway(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                        ),
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700),
                                       ),
                                     },
                                     extensionSet: md.ExtensionSet(
@@ -497,63 +579,168 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                                     ),
                                     styleSheet: MarkdownStyleSheet(
                                       p: GoogleFonts.raleway(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700),
                                       blockSpacing: 8.0,
                                     ),
-                                  )
-                                  //  Text(
-                                  //   option['option'],
-                                  //   style: GoogleFonts.raleway(
-                                  //     color: Colors.white,
-                                  //     fontSize: 16,
-                                  //   ),
-                                  // ),
-                                  ),
-                            );
-                          }).toList(),
+                                  )),
 
-                          const Spacer(),
+                              // Options
+                              ...lessonQuestions['questions']
+                                      [_currentQuestionIndex]['options']
+                                  .map<Widget>((option) {
+                                final isMCMA = lessonQuestions['questions']
+                                        [_currentQuestionIndex]['type'] ==
+                                    "Multiple Choice - Multiple Answers";
 
-                          // Check/Next Button
-                          ChicletAnimatedButton(
-                            onPressed: _selectedOption == null
-                                ? null
-                                : () {
-                                    HapticFeedback.lightImpact();
+                                final isSelected = isMCMA
+                                    ? _selectedOptions.contains(option['id'])
+                                    : _selectedOption == option['id'];
 
-                                    if (_isAnswerChecked) {
-                                      _nextQuestion();
-                                    } else {
-                                      _checkAnswer();
-                                    }
-                                  },
-                            buttonType: ChicletButtonTypes.roundedRectangle,
-                            height: 50,
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(8),
-                            buttonColor: _isAnswerChecked
-                                ? Color.fromRGBO(187, 160, 2, 1)
-                                : (_selectedOption != null
+                                final isCorrect = lessonQuestions['questions']
+                                        [_currentQuestionIndex]['correctAnswer']
+                                    .split(", ")
+                                    .contains(option['id']);
+                                return LayoutBuilder(
+                                    builder: (context, constraints) {
+                                  double buttonHeight = _calculateButtonHeight(
+                                      option['option'], constraints.maxWidth);
+                                  return Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 8),
+                                    child: ChicletOutlinedAnimatedButton(
+                                        onPressed: () {
+                                          HapticFeedback.lightImpact();
+                                          if (!_isAnswerChecked) {
+                                            setState(() {
+                                              if (isMCMA) {
+                                                // Toggle selection for MCMA
+                                                if (_selectedOptions
+                                                    .contains(option['id'])) {
+                                                  _selectedOptions
+                                                      .remove(option['id']);
+                                                } else {
+                                                  _selectedOptions
+                                                      .add(option['id']);
+                                                }
+                                              } else {
+                                                // Standard MCQ behavior
+                                                _selectedOption = option['id'];
+                                              }
+                                            });
+                                          }
+                                        },
+                                        buttonType:
+                                            ChicletButtonTypes.roundedRectangle,
+                                        height: buttonHeight,
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(8),
+                                        borderWidth: 1.0,
+                                        borderColor: _isAnswerChecked
+                                            ? (isCorrect
+                                                ? Color.fromRGBO(187, 160, 2, 1)
+                                                : (isSelected
+                                                    ? Colors.red
+                                                    : Colors.grey))
+                                            : (isSelected
+                                                ? Colors.blue
+                                                : Colors.grey),
+                                        backgroundColor:
+                                            Color.fromRGBO(19, 31, 36, 1),
+                                        child: MarkdownBody(
+                                          selectable: true,
+                                          data: option['option'],
+                                          builders: {
+                                            'latex': LatexElementBuilder(
+                                              textStyle: GoogleFonts.raleway(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          },
+                                          extensionSet: md.ExtensionSet(
+                                            [LatexBlockSyntax()],
+                                            [LatexInlineSyntax()],
+                                          ),
+                                          styleSheet: MarkdownStyleSheet(
+                                            p: GoogleFonts.raleway(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                            blockSpacing: 8.0,
+                                          ),
+                                        )
+                                        //  Text(
+                                        //   option['option'],
+                                        //   style: GoogleFonts.raleway(
+                                        //     color: Colors.white,
+                                        //     fontSize: 16,
+                                        //   ),
+                                        // ),
+                                        ),
+                                  );
+                                });
+                              }).toList(),
+
+                              const Spacer(),
+
+                              // Check/Next Button
+                              ChicletAnimatedButton(
+                                onPressed: (lessonQuestions['questions']
+                                                        [_currentQuestionIndex]
+                                                    ['type'] ==
+                                                'Multiple Choice - Multiple Answers' &&
+                                            _selectedOptions.isEmpty) ||
+                                        (lessonQuestions['questions']
+                                                        [_currentQuestionIndex]
+                                                    ['type'] ==
+                                                'MCQ' &&
+                                            _selectedOption == null)
+                                    ? null
+                                    : () {
+                                        HapticFeedback.lightImpact();
+
+                                        if (_isAnswerChecked) {
+                                          _nextQuestion();
+                                        } else {
+                                          _checkAnswer();
+                                        }
+                                      },
+                                buttonType: ChicletButtonTypes.roundedRectangle,
+                                height: 50,
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(8),
+                                buttonColor: _isAnswerChecked
                                     ? Color.fromRGBO(187, 160, 2, 1)
-                                    : Colors.grey),
-                            backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                            child: Text(
-                              _isAnswerChecked ? 'Next' : 'Check',
-                              style: GoogleFonts.raleway(
-                                  color: Colors.black,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700),
-                            ),
+                                    : ((lessonQuestions['questions'][
+                                                            _currentQuestionIndex]
+                                                        ['type'] ==
+                                                    'Multiple Choice - Multiple Answers' &&
+                                                _selectedOptions.isNotEmpty) ||
+                                            (lessonQuestions['questions'][
+                                                            _currentQuestionIndex]
+                                                        ['type'] ==
+                                                    'MCQ' &&
+                                                _selectedOption != null))
+                                        ? Color.fromRGBO(187, 160, 2, 1)
+                                        : Colors.grey,
+                                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                                child: Text(
+                                  _isAnswerChecked ? 'Next' : 'Check',
+                                  style: GoogleFonts.raleway(
+                                      color: Colors.black,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ), // Question Text
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-    );
+                        ), // Question Text
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+        ));
   }
 }

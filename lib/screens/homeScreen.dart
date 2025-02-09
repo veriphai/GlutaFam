@@ -1,3 +1,4 @@
+import 'package:bubble_box/bubble_box.dart';
 import 'package:eureka_app/apis/fetchBooks.dart';
 import 'package:eureka_app/apis/fetchChaptersV2.dart';
 import 'package:eureka_app/apis/fetchCompletedConcepts.dart';
@@ -31,13 +32,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedSubject = "Science";
   String selectedBookId = "";
   bool isLoading = true;
-  String conceptToStartFrom =
-      "crop_production_and_management_8_Science_Section_1_SubSection_2";
+  String conceptToStartFrom = "";
 
-  List<String> completedConcepts = [
-    "crop_production_and_management_8_Science_Section_1_SubSection_3",
-    "crop_production_and_management_8_Science_Section_1_SubSection_4"
-  ];
+  List<String> completedConcepts = [];
 
   late List<Map<String, dynamic>> chapters;
   late List<Map<String, dynamic>> books;
@@ -50,6 +47,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int totalXPForConcept = 45;
 
   String? selectedConceptId;
+
+  Map<String, dynamic> activePowerup = {};
 
   void toggleOverlay(String conceptId) {
     setState(() {
@@ -134,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (chapterData.isEmpty) {
         return;
       }
-      final booksData = await fetchBooks(standard: 8);
+      final booksData = await fetchBooks(standard: standard);
 
       final completedConceptsData =
           await fetchCompletedConcepts(bookId: booksData[0]["id"]);
@@ -450,92 +449,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // void _displayOverlay(
-  //     BuildContext context,
-  //     Map<String, dynamic> concept,
-  //     Offset buttonPosition,
-  //     Size buttonSize,
-  //     double overlayWidth,
-  //     Color background,
-  //     bool isCompleted,
-  //     bool isLocked) {
-  //   currentOverlayEntry = OverlayEntry(
-  //     builder: (context) => Positioned(
-  //       top: buttonPosition.dy + buttonSize.height, // Position below the button
-  //       left: (MediaQuery.of(context).size.width - overlayWidth) /
-  //           2, // Center the overlay horizontally
-  //       child: Material(
-  //         color: Colors.transparent,
-  //         child: Container(
-  //           width: overlayWidth,
-  //           padding: const EdgeInsets.all(12),
-  //           decoration: BoxDecoration(
-  //             color: background,
-  //             border: Border.all(color: Colors.grey[700]!),
-  //             borderRadius: BorderRadius.circular(12),
-  //           ),
-  //           child: Column(
-  //             mainAxisSize: MainAxisSize.min,
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Text(
-  //                 concept['name'],
-  //                 style: GoogleFonts.raleway(
-  //                   color: Colors.black,
-  //                   fontSize: 16,
-  //                   fontWeight: FontWeight.w700,
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 12),
-  //               ChicletAnimatedButton(
-  //                 onPressed: () {
-  //                   if (isLocked) {
-  //                     return;
-  //                   }
-  //                   currentOverlayEntry?.remove(); // Close the overlay
-  //                   currentOverlayEntry = null; // Reset the reference
-  //                   Navigator.push(
-  //                     context,
-  //                     MaterialPageRoute(
-  //                       builder: (context) => ConceptLearningScreen(
-  //                         conceptId: concept['id'],
-  //                         conceptName: concept['name'],
-  //                         maxXP: totalXPForConcept * xpMultiplier,
-  //                       ),
-  //                     ),
-  //                   );
-  //                 },
-  //                 buttonType: ChicletButtonTypes.roundedRectangle,
-  //                 height: 40,
-  //                 width: double.infinity,
-  //                 buttonHeight: 4,
-  //                 padding: EdgeInsets.all(0),
-  //                 buttonColor: Colors.green,
-  //                 backgroundColor: Colors.lightGreen,
-  //                 child: Text(
-  //                   isCompleted
-  //                       ? "REVIEW"
-  //                       : isLocked
-  //                           ? "LOCKED"
-  //                           : "START  +${totalXPForConcept * xpMultiplier} XP",
-  //                   style: GoogleFonts.arOneSans(
-  //                     color: Colors.black,
-  //                     fontSize: 16,
-  //                     fontWeight: FontWeight.bold,
-  //                   ),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-
-  //   // Insert the new overlay
-  //   Overlay.of(context)?.insert(currentOverlayEntry!);
-  // }
-
   void _displayOverlay(
       BuildContext context,
       Map<String, dynamic> concept,
@@ -639,6 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _applyPowerUp(Map<String, dynamic> powerup) {
     setState(() {
       // Example: Update XP Boost or Lifelines
+      activePowerup = powerup;
       if (powerup['type'] == 'XP_BOOST') {
         xpMultiplier = powerup['benefit'];
       } else if (powerup['type'] == 'LIFELINE_BOOST') {
@@ -673,6 +587,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Reset after validity period
       await Future.delayed(Duration(minutes: powerup['validity']), () {
         setState(() {
+          activePowerup = {};
           if (powerup['type'] == 'XP_BOOST') {
             xpMultiplier = 1; // Reset XP multiplier
             showEventPopup(context,
@@ -680,10 +595,14 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (powerup['type'] == 'LIFELINE_BOOST') {
             unlimitedLifelines = false;
             toggleUnlimitedLifelines(prefs, unlimitedLifelines);
+            showEventPopup(context,
+                {"powerupEnded": true, "powerupName": "Unlimited Hearts"});
           } else if (powerup['type'] == 'GOD_MODE') {
             xpMultiplier = 1;
             unlimitedLifelines = false;
             toggleUnlimitedLifelines(prefs, unlimitedLifelines);
+            showEventPopup(
+                context, {"powerupEnded": true, "powerupName": "God Mode"});
           }
         });
       });
@@ -895,12 +814,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 10, // Space between divider and text
                                           ),
                                         ),
-                                        Text(
-                                          topic['name'],
-                                          style: GoogleFonts.raleway(
-                                            color: Colors.grey,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w700,
+                                        Expanded(
+                                          child: Text(
+                                            topic['name'],
+                                            style: GoogleFonts.raleway(
+                                              color: Colors.grey,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                            maxLines:
+                                                1, // Ensure single-line text
+                                            overflow: TextOverflow
+                                                .ellipsis, // Add "..." if text is too long
+                                            textAlign: TextAlign
+                                                .center, // Center the text
                                           ),
                                         ),
                                         Expanded(
@@ -918,49 +845,59 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               // Concept Islands in a Stack with Alternating Pattern
                               SizedBox(
-                                height: concepts.length * 120.0,
+                                height: concepts.length * 100.0,
                                 child: Stack(
                                   children: [
-                                    Positioned(
-                                      top: 0,
-                                      left: topicIndex % 2 != 0
-                                          ? 20
-                                          : null, // Left for odd topics
-                                      right: topicIndex % 2 == 0
-                                          ? 20
-                                          : null, // Right for even topics
-                                      child: Container(
-                                        width: 150,
-                                        height: concepts.length * 120.0,
-                                        alignment: Alignment.center,
-                                        child: Image.asset(
-                                          'lib/assets/glutaclassLogo.png',
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                    ),
                                     ...List.generate(concepts.length, (index) {
-                                      double topOffset = index * 120.0;
+                                      double topOffset = index * 100.0;
                                       double screenWidth =
                                           MediaQuery.of(context).size.width;
                                       double leftOffset;
 
-                                      // First, fifth, and last concepts are centered
-                                      if (index == 0 ||
-                                          index == concepts.length - 1) {
-                                        leftOffset = (screenWidth - 100) / 2;
-                                      } else {
-                                        // Alternate directions based on topicIndex
-                                        bool isEvenTopic = topicIndex % 2 == 0;
-                                        int shift = index % 2 == 1 ? 30 : 60;
-                                        shift = index == 4 ? 10 : shift;
-                                        leftOffset = isEvenTopic
-                                            ? (screenWidth / 2) -
-                                                shift -
-                                                60 // Shift left for even topics
-                                            : ((screenWidth - 60) / 2) +
-                                                shift; // Shift right for odd topics
-                                      }
+                                      int globalConceptIndex = chapters
+                                              .take(chapterIndex)
+                                              .fold<int>(0, (total, chapter) {
+                                            return total +
+                                                ((chapter['topics'] as List)
+                                                    .fold<int>(
+                                                        0,
+                                                        (subTotal, topic) =>
+                                                            subTotal +
+                                                            (topic['lessons']
+                                                                    as List)
+                                                                .length));
+                                          }) +
+                                          (chapter['topics'] as List)
+                                              .take(topicIndex)
+                                              .fold<int>(
+                                                  0,
+                                                  (subTotal, topic) =>
+                                                      subTotal +
+                                                      (topic['lessons'] as List)
+                                                          .length) +
+                                          index;
+
+                                      int topicConceptIndex =
+                                          index; // Resets per topic
+
+                                      int wavePosition = topicConceptIndex % 6;
+                                      bool isLeft = wavePosition <
+                                          3; // First 3 go left, last 3 go right
+
+                                      int shift = [
+                                        50,
+                                        80,
+                                        120,
+                                        120,
+                                        80,
+                                        50
+                                      ][wavePosition];
+
+                                      leftOffset = isLeft
+                                          ? (screenWidth / 2) - shift
+                                          : (screenWidth / 2) -
+                                              shift +
+                                              60; // Shift right
                                       final concept = concepts[index];
                                       //current_lesson
                                       final isLastCompleted =
@@ -987,9 +924,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                               Padding(
                                                 padding: const EdgeInsets.only(
                                                     top: 30.0,
-                                                    left: 10,
+                                                    left: 20,
                                                     right:
-                                                        10), // Add space above the stack
+                                                        20), // Add space above the stack
                                                 child: ChicletAnimatedButton(
                                                   key: buttonKey,
                                                   onPressed: () {
@@ -1000,41 +937,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         concept,
                                                         buttonKey,
                                                         isDisabled
-                                                            ? Colors.grey
+                                                            ? Color.fromRGBO(
+                                                                56, 70, 79, 1)
                                                             : buttonColour[
                                                                 'background'],
                                                         isCompleted,
                                                         isDisabled);
-                                                    ;
-                                                    // Navigator.push(
-                                                    //   context,
-                                                    //   MaterialPageRoute(
-                                                    //     builder: (context) =>
-                                                    //         ConceptLearningScreen(
-                                                    //       conceptId:
-                                                    //           concepts[index]
-                                                    //               ["id"],
-                                                    //       conceptName:
-                                                    //           concepts[index]
-                                                    //               ["name"],
-                                                    //     ),
-                                                    //   ),
-                                                    // );
                                                   },
                                                   buttonType:
                                                       ChicletButtonTypes.oval,
-                                                  width: 80,
-                                                  height: 70,
-                                                  buttonHeight: 10,
+                                                  width: 70,
+                                                  height: 60,
+                                                  buttonHeight: 6,
                                                   padding: EdgeInsets.all(0),
                                                   buttonColor: isDisabled
-                                                      ? Colors.grey[600]
+                                                      ? Color.fromRGBO(
+                                                          42, 55, 63, 1)
                                                       : isCompleted
                                                           ? Colors.green
                                                           : buttonColour[
                                                               'button'],
                                                   backgroundColor: isDisabled
-                                                      ? Colors.grey
+                                                      ? Color.fromRGBO(
+                                                          56, 70, 79, 1)
                                                       : isCompleted
                                                           ? Colors.green[200]
                                                           : buttonColour[
@@ -1073,13 +998,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   text: "START",
                                                   textColor: buttonColour[
                                                       "background"],
+                                                  powerupType: activePowerup
+                                                          .isNotEmpty
+                                                      ? activePowerup["type"]
+                                                      : null,
                                                 ),
                                               if (isStartOfTopic)
                                                 _BouncingTextIndicator(
-                                                  text: "JUMP HERE",
-                                                  textColor: buttonColour[
-                                                      "background"],
-                                                ),
+                                                    text: "JUMP HERE",
+                                                    textColor: buttonColour[
+                                                        "background"]),
                                             ]),
                                       );
                                     })
@@ -1132,6 +1060,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -1167,9 +1097,10 @@ class _HomeScreenState extends State<HomeScreen> {
 class _BouncingTextIndicator extends StatefulWidget {
   final String text;
   final Color textColor;
+  final String? powerupType;
 
   const _BouncingTextIndicator(
-      {Key? key, required this.text, required this.textColor})
+      {Key? key, required this.text, required this.textColor, this.powerupType})
       : super(key: key);
 
   @override
@@ -1197,9 +1128,49 @@ class _BouncingTextIndicatorState extends State<_BouncingTextIndicator>
     );
   }
 
+  Widget getPowerupIcon() {
+    switch (widget.powerupType) {
+      case "XP_BOOST":
+        return Icon(Icons.trending_up, color: Colors.purple.shade400, size: 20);
+      case "LIFELINE_BOOST":
+        return Icon(Icons.favorite, color: Colors.red, size: 20);
+      case "GOD_MODE":
+        return Icon(Icons.star, color: Colors.blue, size: 20);
+      default:
+        return SizedBox(); // Empty widget if no power-up type is provided
+    }
+  }
+
+  Color getTextColor() {
+    switch (widget.powerupType) {
+      case "XP_BOOST":
+        return Colors.purple.shade400;
+      case "LIFELINE_BOOST":
+        return Colors.red;
+      case "GOD_MODE":
+        return Colors.blue;
+      default:
+        return widget.textColor;
+    }
+  }
+
+  /// **Dynamically get Border Color**
+  Color getBorderColor() {
+    switch (widget.powerupType) {
+      case "XP_BOOST":
+        return Colors.purple.shade400;
+      case "LIFELINE_BOOST":
+        return Colors.red;
+      case "GOD_MODE":
+        return Colors.blue;
+      default:
+        return Colors.grey.shade700;
+    }
+  }
+
   @override
   void dispose() {
-    _controller.dispose(); // Dispose controller to avoid memory leaks
+    _controller.dispose();
     super.dispose();
   }
 
@@ -1211,28 +1182,34 @@ class _BouncingTextIndicatorState extends State<_BouncingTextIndicator>
         return Positioned(
           top: _animation.value,
           // left: 7,
-          child: Stack(
-            alignment: Alignment.center, // Centers the text on the image
-            children: [
-              // Background Dialog Box Image
-              Image.asset(
-                'lib/assets/dialogBox.png', // Replace with your dialog box image path
-                height: 45,
-                // Adjust height based on the image size
-                fit: BoxFit.contain, // Ensures the image fits nicely
-              ),
-              // Centered Text
-              Text(
-                widget.text,
-                style: GoogleFonts.raleway(
-                  color: widget.textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+          child: BubbleBox(
+              maxWidth: double.infinity,
+              shape: BubbleShapeBorder(
+                  border: BubbleBoxBorder(
+                    color: getBorderColor(),
+                    width: 3,
+                  ),
+                  radius: BorderRadius.circular(12),
+                  position: const BubblePosition.center(0),
+                  direction: BubbleDirection.bottom,
+                  arrowHeight: 8),
+              backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                child: Row(children: [
+                  getPowerupIcon(),
+                  if (widget.powerupType != null) SizedBox(width: 6),
+                  Text(
+                    widget.text,
+                    style: GoogleFonts.raleway(
+                      color: getTextColor(),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  )
+                ]),
+              )),
         );
       },
     );

@@ -2,7 +2,9 @@ import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchBooks.dart';
 import 'package:eureka_app/apis/fetchProgressReport.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/widgets/chapterWiseProgressReport.dart';
+import 'package:eureka_app/widgets/findMyFriendsWidget.dart';
 import 'package:eureka_app/widgets/subjectSelection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -39,7 +41,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   }
 
   Future<void> getBooks() async {
-    final booksData = await fetchBooks(standard: 8);
+    final booksData = await fetchBooks(standard: userProfile["standard"]);
     setState(() {
       books = booksData;
       selectedSubject = booksData[0]["name"];
@@ -62,8 +64,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   @override
   void initState() {
     super.initState();
-    getBooks().then((_) => getProgressReport());
-    fetchProfile();
+    fetchProfile().then((_) => getBooks().then((_) => getProgressReport()));
   }
 
   void _showChapterReportSheet(
@@ -87,11 +88,12 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
         return SubjectSelection(
           selectedSubject: selectedSubject,
           books: books,
-          onSubjectSelect: (selected, bookId) {
+          onSubjectSelect: (selected, bookId) async {
             setState(() {
               selectedSubject = selected;
               selectedBookId = bookId;
             });
+            await getProgressReport();
           },
         );
       },
@@ -100,7 +102,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
   void _showCompareWithFriendsSheet(BuildContext context) {
     final List<Map<String, dynamic>> friends =
-        userProfile["following"].cast<Map<String, dynamic>>();
+        userProfile["friends"].cast<Map<String, dynamic>>();
 
     showModalBottomSheet(
       context: context,
@@ -112,6 +114,10 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
       builder: (context) {
         return Container(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+          constraints: BoxConstraints(
+            maxHeight:
+                MediaQuery.of(context).size.height * 0.5, // Set max height
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -135,56 +141,118 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
               ),
               const SizedBox(height: 16),
               // List of Friends
-              Expanded(
-                child: ListView.builder(
-                  itemCount: friends.length,
-                  itemBuilder: (context, index) {
-                    final friend = friends[index];
-                    return Card(
-                      color: Colors.grey[850],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        title: Text(
-                          friend["name"]!,
+              friends.isEmpty
+                  ? Column(
+                      children: [
+                        Text(
+                          "No friends added yet!",
                           style: GoogleFonts.raleway(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            // Logic to compare with the selected friend
-                            Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ProgressReportScreen(userId: friend["id"]),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: Text(
-                            "Compare",
-                            style: GoogleFonts.raleway(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                        const SizedBox(height: 16), // Add spacing for better UI
+                        SizedBox(
+                          width: double
+                              .infinity, // Ensures full width inside a column
+                          child: ChicletAnimatedButton(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FindMyFriendsScreen(
+                                    profileData: userProfile,
+                                  ),
+                                ),
+                              );
+                            },
+                            buttonType: ChicletButtonTypes.roundedRectangle,
+                            height: 50,
+                            padding: const EdgeInsets.all(8),
+                            buttonColor: const Color.fromRGBO(187, 160, 2, 1),
+                            backgroundColor:
+                                const Color.fromRGBO(255, 217, 0, 1),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.person_add_alt,
+                                    color: Colors.black),
+                                const SizedBox(width: 10),
+                                Text(
+                                  "ADD FRIENDS",
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
+                      ],
+                    )
+                  : Expanded(
+                      child: ListView.builder(
+                        itemCount: friends.length,
+                        itemBuilder: (context, index) {
+                          final friend = friends[index];
+                          return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Image.asset(
+                                getAvatar(friend.containsKey("avatar") &&
+                                        friend["avatar"] != null
+                                    ? friend["avatar"]
+                                    : "random")["imagePath"]!,
+                                height: 50,
+                              ),
+                              title: Text(
+                                friend["name"]!,
+                                style: GoogleFonts.raleway(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              trailing: ChicletAnimatedButton(
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    Navigator.pop(context);
+                                    String encodedFriendId = friend["id"]
+                                            .startsWith('+')
+                                        ? friend["id"].replaceFirst('+', '%2B')
+                                        : friend["id"];
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ProgressReportScreen(
+                                                userId: encodedFriendId),
+                                      ),
+                                    );
+                                  },
+                                  buttonType:
+                                      ChicletButtonTypes.roundedRectangle,
+                                  height: 40,
+                                  width: 100,
+                                  padding: const EdgeInsets.all(8),
+                                  buttonColor:
+                                      const Color.fromRGBO(25, 151, 213, 1),
+                                  backgroundColor:
+                                      const Color.fromRGBO(74, 193, 249, 1),
+                                  child: Text(
+                                    "COMPARE",
+                                    style: GoogleFonts.raleway(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  )));
+                        },
                       ),
-                    );
-                  },
-                ),
-              ),
+                    ),
             ],
           ),
         );
@@ -225,6 +293,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
           "Progress Report",
           style: TextStyle(color: Colors.white),
         ),
+        scrolledUnderElevation: 0,
         actions: [
           Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
@@ -378,11 +447,11 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                 ],
               ),
               SizedBox(
-                height: 10,
+                height: 20,
               ),
               if (widget.userId == null)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Add Friends Button
                     Expanded(
@@ -390,6 +459,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                         onPressed: () {
                           HapticFeedback.lightImpact();
                           _showCompareWithFriendsSheet(context);
+                          // _showFriendSelectionBottomSheet();
 
                           // Logic for adding friends
                         },
@@ -414,29 +484,6 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 16), // Spacing between buttons
-
-                    // Share Button
-                    ChicletAnimatedButton(
-                      onPressed: () {
-                        // _shareProfileLink();
-                      },
-                      buttonType: ChicletButtonTypes.roundedRectangle,
-                      height: 50,
-                      padding: const EdgeInsets.all(8),
-                      buttonColor: const Color.fromRGBO(187, 160, 2, 1),
-                      backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.ios_share_rounded,
-                            color: Colors.black,
-                            size: 30,
-                          ),
-                        ],
                       ),
                     ),
                   ],
@@ -510,7 +557,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
         ),
         title: Text(
           chapter["name"],
-          style: TextStyle(
+          style: GoogleFonts.raleway(
             fontSize: 16,
             fontWeight: FontWeight.w500,
             color: Colors.white,
@@ -518,9 +565,8 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
         ),
         subtitle: Text(
           "${(chapter['progress']['accuracy'] as num).toStringAsFixed(0)}% Accuracy  ${chapter['progress']['topicCompleted']} lessons Completed",
-          style: TextStyle(
-            color: Colors.white,
-          ),
+          style: GoogleFonts.raleway(
+              color: Colors.white, fontWeight: FontWeight.w500),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios,

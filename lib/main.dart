@@ -1,4 +1,7 @@
+import 'dart:ffi';
+
 import 'package:eureka_app/events/genericEvents.dart';
+import 'package:eureka_app/popups/streakPopup.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
 import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
@@ -21,6 +24,8 @@ import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
+import 'package:eureka_app/widgets/achievementDetailsWidget.dart';
+import 'package:eureka_app/widgets/achievementDetailsWidgetV2.dart';
 import 'package:eureka_app/widgets/conversationScreen.dart';
 import 'package:eureka_app/widgets/customBottomBar.dart';
 import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
@@ -153,9 +158,12 @@ class MyApp extends StatelessWidget {
 }
 
 class MainPage extends StatelessWidget {
+  final int? initialIndex; // Optional index parameter
+
+  const MainPage({Key? key, this.initialIndex}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    int currentIndex = context.watch<MyAppState>().currentIndex;
+    int currentIndex = initialIndex ?? context.watch<MyAppState>().currentIndex;
 
     // Define your screens
     final screens = [
@@ -170,8 +178,8 @@ class MainPage extends StatelessWidget {
       QuestsScreen(),
       // SocraticTutorScreen()
       // SocraticTutorScreenV2()
-      // OnboardingScreenV4()
-      FeedScreen()
+      OnboardingScreenV4()
+      // FeedScreen()
     ];
 
     return Scaffold(
@@ -227,23 +235,7 @@ void initDynamicLinkListener(SharedPreferences prefs) {
     final Uri? deepLink = data?.link;
 
     if (deepLink != null) {
-      // Check if the link contains a referral code
-      if (deepLink.queryParameters.containsKey('referralCode')) {
-        String referralCode = deepLink.queryParameters['referralCode']!;
-        print('Referee Code: $referralCode');
-        prefs.setString("referralCode", referralCode);
-        // Store referral code or send it to your backend for further processing
-      }
-
-      // Check if the link is for a profile
-      if (deepLink.path == '/profile' &&
-          deepLink.queryParameters.containsKey('userId')) {
-        String userId = deepLink.queryParameters['userId']!;
-        print('Profile User ID: $userId');
-
-        // Navigate to the ProfileScreen
-        navigateToProfileScreen(userId);
-      }
+      handleDeeplinks(prefs, deepLink);
     }
   }).onError((error) {
     print('Dynamic Link Error: $error');
@@ -257,24 +249,34 @@ Future<void> handleInitialDynamicLink(SharedPreferences prefs) async {
 
   if (initialLink?.link != null) {
     final Uri deepLink = initialLink!.link;
+    handleDeeplinks(prefs, deepLink);
+  }
+}
 
-    // Check if the link contains a referral code
-    if (deepLink.queryParameters.containsKey('referralCode')) {
-      String referralCode = deepLink.queryParameters['referralCode']!;
-      print('Referral Code from Initial Link: $referralCode');
-      prefs.setString("referralCode", referralCode);
-      // Handle referral code logic
-    }
+void handleDeeplinks(SharedPreferences prefs, Uri deepLink) {
+  if (deepLink.queryParameters.containsKey('referralCode')) {
+    String referralCode = deepLink.queryParameters['referralCode']!;
+    print('Referral Code from Initial Link: $referralCode');
+    prefs.setString("referralCode", referralCode);
+    // Handle referral code logic
+  }
 
-    // Check if the link is for a profile
-    if (deepLink.path == '/profile' &&
-        deepLink.queryParameters.containsKey('userId')) {
-      String userId = deepLink.queryParameters['userId']!;
-      print('Profile User ID from Initial Link: $userId');
+  // Check if the link is for a profile
+  if (deepLink.path == '/profile' &&
+      deepLink.queryParameters.containsKey('userId')) {
+    String userId = deepLink.queryParameters['userId']!;
+    print('Profile User ID from Initial Link: $userId');
 
-      // Navigate to the ProfileScreen
-      navigateToProfileScreen(userId);
-    }
+    // Navigate to the ProfileScreen
+    navigateToProfileScreen(userId);
+  }
+  if (deepLink.path == '/achievement' &&
+      deepLink.queryParameters.containsKey('achievementId')) {
+    String achievementId = deepLink.queryParameters['achievementId']!;
+    String levelCriteria = deepLink.queryParameters['levelCriteria']!;
+
+    // Navigate to the ProfileScreen
+    navigateToAchievementDetails(achievementId, levelCriteria);
   }
 }
 
@@ -287,6 +289,20 @@ void navigateToProfileScreen(String userId) {
       builder: (context) => FriendsProfileScreen(
         friendId: userId,
         following: false,
+      ),
+    ),
+  );
+}
+
+void navigateToAchievementDetails(String achievementId, String levelCriteria) {
+  int levelCriteriaInt = int.tryParse(levelCriteria) ?? 0;
+
+  Navigator.push(
+    navigatorKey.currentContext!,
+    MaterialPageRoute(
+      builder: (context) => AchievementDetailsWidgetV2(
+        achievementId: achievementId,
+        levelCriteria: levelCriteriaInt,
       ),
     ),
   );

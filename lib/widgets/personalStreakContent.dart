@@ -201,9 +201,10 @@ class PersonalStreakContent extends StatelessWidget {
                         focusedDay: DateTime.now(),
                         firstDay: DateTime.utc(2000, 1, 1),
                         lastDay: DateTime.utc(2100, 12, 31),
+                        availableGestures: AvailableGestures.none,
                         calendarStyle: CalendarStyle(
                           todayDecoration: BoxDecoration(
-                            color: Colors.orange,
+                            color: Colors.green,
                             shape: BoxShape.circle,
                           ),
                           selectedDecoration: BoxDecoration(
@@ -235,9 +236,10 @@ class PersonalStreakContent extends StatelessWidget {
                               return Container(
                                 // margin: const EdgeInsets.all(6.0),
                                 alignment: Alignment.center,
+                                height: 40,
                                 decoration: BoxDecoration(
-                                    color: Color.fromARGB(255, 221, 133,
-                                        0), // Green circle for the start
+                                    color: Color.fromRGBO(255, 217, 0,
+                                        1), // Green circle for the start
                                     borderRadius: BorderRadius.only(
                                         topLeft: Radius.circular(16),
                                         bottomLeft: Radius.circular(16))
@@ -256,9 +258,10 @@ class PersonalStreakContent extends StatelessWidget {
                             return Container(
                               // margin: const EdgeInsets.all(6.0),
                               alignment: Alignment.center,
+                              height: 40,
                               decoration: BoxDecoration(
-                                  color: Color.fromARGB(255, 221, 133,
-                                      0), // Green circle for the end
+                                  color: Color.fromRGBO(255, 217, 0,
+                                      1), // Green circle for the end
                                   // shape: BoxShape.circle,
                                   borderRadius: BorderRadius.only(
                                       topRight: Radius.circular(16),
@@ -275,8 +278,10 @@ class PersonalStreakContent extends StatelessWidget {
                             return Container(
                               // margin: const EdgeInsets.all(6.0),
                               alignment: Alignment.center,
+                              height: 40,
+
                               decoration: BoxDecoration(
-                                color: Color.fromARGB(255, 221, 133, 0),
+                                color: Color.fromRGBO(255, 217, 0, 1),
                               ),
                               child: Text(
                                 '${day.day}',
@@ -292,7 +297,8 @@ class PersonalStreakContent extends StatelessWidget {
                               margin: const EdgeInsets.all(6.0),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: Colors.orange, // Orange circle for today
+                                color: Color.fromRGBO(
+                                    255, 217, 0, 1), // Orange circle for today
                                 shape: BoxShape.circle,
                               ),
                               child: Text(
@@ -348,10 +354,9 @@ class PersonalStreakContent extends StatelessWidget {
                             children: [
                               // Start Icon
 
-                              Icon(
-                                Icons.calendar_today,
-                                size: 30,
-                                color: Colors.white,
+                              Image.asset(
+                                "lib/assets/calendar-icon.png",
+                                height: 40,
                               ),
 
                               Expanded(
@@ -362,14 +367,13 @@ class PersonalStreakContent extends StatelessWidget {
                                   minHeight: 20,
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
-                                          Colors.green),
+                                          Color.fromRGBO(255, 217, 0, 1)),
                                 ),
                               ),
 
-                              Icon(
-                                Icons.calendar_today,
-                                size: 30,
-                                color: Colors.white,
+                              Image.asset(
+                                "lib/assets/calendar-icon.png",
+                                height: 40,
                               ),
                             ],
                           ),
