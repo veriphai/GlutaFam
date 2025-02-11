@@ -48,7 +48,7 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                 leaderboardResult: leaderboardResultData);
           },
         );
-        markLeaderboardResultSeen();
+        await markLeaderboardResultSeen();
       }
     } catch (error) {
       print("Error fetching userProfile: $error");

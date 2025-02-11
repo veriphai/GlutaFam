@@ -31,142 +31,6 @@ class ConversationScreen extends StatefulWidget {
 }
 
 class _ConversationScreenState extends State<ConversationScreen> {
-//   final List<Map<String, String>> conversations = [
-//     {
-//       "_id": "conversation_1",
-//       "name": "Aarav",
-//       "conversation": """
-// Oh, that’s cool! So if \$a = 3\$ and \$b = 4\$, then \$c\$ would be:
-// \\[ c = \\sqrt{3^2 + 4^2} = \\sqrt{9 + 16} = 5 \\]
-// """
-//     },
-//     {
-//       "_id": "conversation_2",
-//       "name": "Meera",
-//       "conversation": "Simplify \$(3x^2-5x+3)+(-3x^2+5x-3)\$"
-//     },
-//     {
-//       "_id": "conversation_3",
-//       "name": "Sam",
-//       "conversation": "Wait, so plants don’t just eat food like us?"
-//     },
-//     {
-//       "_id": "conversation_4",
-//       "name": "Meera",
-//       "conversation":
-//           "Nope! They make their food. It’s kind of like they’re little chefs. They take sunlight as energy, water from the soil, and carbon dioxide from the air to create glucose – their food."
-//     },
-//     {
-//       "_id": "conversation_5",
-//       "name": "Tara",
-//       "conversation":
-//           "And they also give out oxygen as a by-product, which we breathe in!"
-//     },
-//     {
-//       "_id": "conversation_6",
-//       "name": "Aarav",
-//       "conversation":
-//           "Ohhh, that’s cool! But how does sunlight help them make food?"
-//     },
-//     {
-//       "_id": "conversation_7",
-//       "name": "Meera",
-//       "conversation":
-//           "Good question! Plants have this green pigment called chlorophyll, which absorbs sunlight. Chlorophyll is what makes leaves look green."
-//     },
-//     {
-//       "_id": "conversation_8",
-//       "name": "Sam",
-//       "conversation": "So, chlorophyll is why plants are green?"
-//     },
-//     {"_id": "conversation_9", "name": "Meera", "conversation": "Exactly!"},
-//     {
-//       "_id": "conversation_10",
-//       "name": "Aarav",
-//       "conversation":
-//           "Okay, so they use sunlight and chlorophyll. But where do the other things come in – like water and carbon dioxide?"
-//     },
-//     {
-//       "_id": "conversation_11",
-//       "name": "Meera",
-//       "conversation":
-//           "Water is absorbed by the roots from the soil. Carbon dioxide comes from the air and enters the leaves through tiny pores called stomata."
-//     },
-//     {
-//       "_id": "conversation_12",
-//       "name": "Aarav",
-//       "conversation": "Stomata? What are those?"
-//     },
-//     {
-//       "_id": "conversation_13",
-//       "name": "Meera",
-//       "conversation":
-//           "They’re just tiny pores on the leaves that allow the plant to take in carbon dioxide and release oxygen."
-//     },
-//     {
-//       "_id": "conversation_14",
-//       "name": "Sam",
-//       "conversation": "What happens next? How does it all come together?"
-//     },
-//     {
-//       "_id": "conversation_15",
-//       "name": "Tara",
-//       "conversation":
-//           "Inside the chloroplasts, sunlight provides energy to combine water and carbon dioxide to make glucose, and oxygen is released as a by-product."
-//     },
-//     {
-//       "_id": "conversation_16",
-//       "name": "Aarav",
-//       "conversation": "Ohh, so plants are literally like little factories?"
-//     },
-//     {
-//       "_id": "conversation_17",
-//       "name": "Meera",
-//       "conversation":
-//           "Yep! And the whole reaction looks like this in science terms: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2."
-//     },
-//     {
-//       "_id": "conversation_18",
-//       "name": "Sam",
-//       "conversation": "That’s wild. But why does it matter so much?"
-//     },
-//     {
-//       "_id": "conversation_19",
-//       "name": "Tara",
-//       "conversation":
-//           "Because plants are the base of the food chain. They make food for themselves and for all of us. Plus, they give out oxygen, so we can breathe."
-//     },
-//     {
-//       "_id": "conversation_20",
-//       "name": "Aarav",
-//       "conversation":
-//           "Got it! So let me sum this up: Photosynthesis happens in plants, algae, and some bacteria. It needs sunlight, water, and carbon dioxide. Chlorophyll traps sunlight to power the process. It makes glucose and oxygen."
-//     },
-//     {
-//       "_id": "conversation_21",
-//       "name": "Tara",
-//       "conversation":
-//           "Perfect! And don’t forget, it all happens in the chloroplasts in the cells."
-//     },
-//     {
-//       "_id": "conversation_22",
-//       "name": "Sam",
-//       "conversation":
-//           "You know, I never thought about how important plants are. They’re like the planet’s life-support system."
-//     },
-//     {
-//       "_id": "conversation_23",
-//       "name": "Meera",
-//       "conversation":
-//           "Yeah, they’re literally keeping us alive. No photosynthesis, no oxygen, no us."
-//     },
-//     {
-//       "_id": "conversation_24",
-//       "name": "Aarav",
-//       "conversation": "Wow, plants are superheroes in disguise! Respect. 🌱"
-//     }
-//   ];
-
   List<Map<String, String>> displayedConversations = [];
   int conversationIndex = 0;
   final ScrollController _scrollController = ScrollController();
@@ -178,6 +42,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
   late Map<String, dynamic> userProfile;
   late List<Map<String, String>> conversations;
   bool isLoading = true;
+
+  Map<String, List<Map<String, String>>> raisedHandConversations = {};
+  Map<String, bool> expandedRaiseHandSections = {};
+  int raiseHandCounter = 0;
 
   Map<String, String> assignSequentialAvatars(
       List<Map<String, String>> conversations) {
@@ -244,7 +112,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   void _startRenderingConversations() async {
-    if (isRenderingConversations) return; // Prevent multiple calls
+    if (isRenderingConversations) return;
     isRenderingConversations = true;
 
     final batchSize = 4; // Number of messages per batch
@@ -259,16 +127,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
           displayedConversations.add(conversations[i]);
         });
 
-        // Scroll to the bottom after adding a new message
         scrollToBottom();
 
         if (i < endIndex - 1) {
-          // Calculate the delay based on the length of the current message
           final currentMessageLength = conversations[i]['text']!.length;
-          final delayDuration = Duration(
-              milliseconds: 50 * currentMessageLength); // 50ms per character
-
-          // Wait for the calculated delay before showing the next message
+          final delayDuration =
+              Duration(milliseconds: 50 * currentMessageLength);
           await Future.delayed(delayDuration);
         }
       }
@@ -448,30 +312,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
     );
   }
 
-  // Widget yourMessage(final senderColor, final conversation) {
-  //   return Row(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Expanded(
-  //         child: Stack(
-  //           children: [
-  //             BubbleSpecialOne(
-  //               text: "${conversation['conversation']!}",
-  //               color: Color.fromRGBO(44, 250, 106, 0.2),
-  //               tail: true,
-  //               isSender: true,
-  //               textStyle: const TextStyle(
-  //                 color: Colors.white,
-  //                 fontSize: 16,
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
-
   void scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -485,25 +325,28 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Widget renderMessageBar() {
+    String raiseHandId = "raise_hand_${raiseHandCounter - 1}";
+
     return Container(
-      color: Colors.black,
+      color: Color.fromRGBO(19, 31, 36, 1),
       padding: const EdgeInsets.all(8.0),
       child: Row(
         children: [
           Expanded(
             child: MessageBar(
-              messageBarColor: Colors.black,
+              messageBarColor: Color.fromRGBO(19, 31, 36, 1),
               onSend: (message) async {
-                // Add user's message to the chat
                 setState(() {
-                  displayedConversations.add({
+                  raisedHandConversations[raiseHandId]!.add({
                     "id": DateTime.now().toString(),
                     "name": "You",
                     "text": message,
                   });
+
+                  // **Force UI update**
+                  displayedConversations = List.from(displayedConversations);
                 });
 
-                // Scroll to the bottom after sending a new message
                 scrollToBottom();
 
                 // Fetch AI responses
@@ -515,71 +358,74 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   query: message,
                 );
 
-                // Render the first message immediately
                 if (aiResponses.isNotEmpty) {
                   setState(() {
-                    displayedConversations.add({
+                    raisedHandConversations[raiseHandId]!.add({
                       "id": aiResponses[0]['id'],
-                      "name": aiResponses[0]['name'], // AI character name
-                      "text": aiResponses[0]['text'], // AI message
+                      "name": aiResponses[0]['name'],
+                      "text": aiResponses[0]['text'],
                     });
+
+                    // **Force UI update**
+                    displayedConversations = List.from(displayedConversations);
                   });
 
-                  // Scroll after adding the first message
                   scrollToBottom();
 
                   // Render the remaining messages with a delay
                   for (int i = 1; i < aiResponses.length; i++) {
-                    await Future.delayed(
-                        const Duration(seconds: 2)); // Adjust delay as needed
+                    await Future.delayed(const Duration(seconds: 2));
                     setState(() {
-                      displayedConversations.add({
+                      raisedHandConversations[raiseHandId]!.add({
                         "id": aiResponses[i]['id'],
                         "name": aiResponses[i]['name'],
                         "text": aiResponses[i]['text'],
                       });
+
+                      // **Force UI update**
+                      displayedConversations =
+                          List.from(displayedConversations);
                     });
 
-                    // Scroll after each delayed message
                     scrollToBottom();
                   }
                 }
 
                 // Exit the conversation after the last response
                 setState(() {
-                  displayedConversations.add({
-                    "id": DateTime.now().toString(),
-                    "name": "You",
-                    "text": "You exited the conversation!",
-                    "entryExit": "True",
-                  });
+                  // raisedHandConversations[raiseHandId]!.add({
+                  //   "id": DateTime.now().toString(),
+                  //   "name": "You",
+                  //   "text": "You exited the conversation!",
+                  //   "entryExit": "True",
+                  // });
 
-                  // Scroll to the bottom after AI response
-                  scrollToBottom();
-
-                  // Close the chat mode
+                  // Ensure displayedConversations is rebuilt
+                  displayedConversations = List.from(displayedConversations);
                   isChatMode = false;
+                  expandedRaiseHandSections[raiseHandId] = false;
                 });
+
+                scrollToBottom();
               },
             ),
           ),
-          // Close Button
           IconButton(
             onPressed: () {
-              // Handle close action
               setState(() {
-                displayedConversations.add({
-                  "id": DateTime.now().toString(),
-                  "name": "You",
-                  "text": "You exited the conversation!",
-                  "entryExit": "True"
-                });
+                // displayedConversations.add({
+                //   "id": DateTime.now().toString(),
+                //   "name": "You",
+                //   "text": "You exited the conversation!",
+                //   "entryExit": "True",
+                // });
 
-                // Scroll to the bottom after AI response
-                scrollToBottom();
-
+                displayedConversations = List.from(displayedConversations);
                 isChatMode = false;
+                expandedRaiseHandSections[raiseHandId] = false;
               });
+
+              scrollToBottom();
             },
             icon: Icon(Icons.close, color: Colors.white),
           ),
@@ -594,14 +440,24 @@ class _ConversationScreenState extends State<ConversationScreen> {
       isChatMode = true;
     });
 
-    // Add "You joined the chat" and AI greetings
+    String raiseHandId = "raise_hand_$raiseHandCounter";
+    raiseHandCounter += 1;
+
     setState(() {
+      raisedHandConversations[raiseHandId] = [];
+      expandedRaiseHandSections[raiseHandId] = true;
       displayedConversations.add({
-        "id": DateTime.now().toString(),
-        "name": "You",
-        "text": "You joined the chat",
-        "entryExit": "True"
+        "id": raiseHandId,
+        "type": "raise_hand_placeholder",
+        "text": "Click to expand",
+        "name": "You"
       });
+      // raisedHandConversations[raiseHandId]!.add({
+      //   "id": DateTime.now().toString(),
+      //   "name": "You",
+      //   "text": "You joined the chat",
+      //   "entryExit": "True"
+      // });
 
       final List<String> greetingMessages = [
         "Hi!",
@@ -613,11 +469,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ];
 
       // AI Participants Greetings
-      List<Map<String, String>> greetings = [];
-
       int counter = 1;
       characters.forEach((name, _) {
-        greetings.add({
+        raisedHandConversations[raiseHandId]!.add({
           "id": "greeting_$counter",
           "name": name,
           "text": greetingMessages[
@@ -625,7 +479,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
         });
         counter++;
       });
-      displayedConversations.addAll(greetings);
 
       // Scroll to the bottom to show greetings
       scrollToBottom();
@@ -646,6 +499,54 @@ class _ConversationScreenState extends State<ConversationScreen> {
     } else {
       return Colors.green; // Above 75%
     }
+  }
+
+  Widget buildRaiseHandSection(String raiseHandId) {
+    final initiallyExpanded = expandedRaiseHandSections[raiseHandId] ?? false;
+    return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+        child: Container(
+            decoration: BoxDecoration(
+              color:
+                  Color.fromRGBO(35, 49, 56, 0.8), // Background color for title
+              borderRadius:
+                  BorderRadius.circular(8), // Optional: Add rounded corners
+            ),
+            child: ExpansionTile(
+              key: ValueKey(expandedRaiseHandSections[
+                  raiseHandId]), // NEW: Forces rebuild
+
+              title: Text(
+                "Discussion Thread (Tap to ${initiallyExpanded ? 'collapse' : 'expand'})",
+                style: GoogleFonts.raleway(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700),
+              ),
+              initiallyExpanded: initiallyExpanded,
+              onExpansionChanged: (expanded) {
+                setState(() {
+                  expandedRaiseHandSections[raiseHandId] = expanded;
+                });
+              },
+              backgroundColor: Color.fromRGBO(35, 49, 56, 0.8),
+              children: raisedHandConversations[raiseHandId]!
+                  .map((conversation) => conversation.containsKey("entryExit")
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8.0, horizontal: 12.0),
+                          child: entryExitConversation(conversation))
+                      : conversation['name'] == "You"
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0, horizontal: 12.0),
+                              child: yourMessage(null, conversation))
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0, horizontal: 12.0),
+                              child: othersMessage(null, conversation)))
+                  .toList(),
+            )));
   }
 
   void _showExitConfirmation(BuildContext context) {
@@ -980,9 +881,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
                         itemCount: displayedConversations.length,
                         itemBuilder: (context, index) {
                           final conversation = displayedConversations[index];
-                          final senderColor =
-                              getSenderColor(conversation['name']!);
-
+                          if (conversation["type"] ==
+                              "raise_hand_placeholder") {
+                            String raiseHandId = conversation["id"]!;
+                            return buildRaiseHandSection(raiseHandId);
+                          }
+                          final senderColor = null;
                           return Padding(
                               padding: const EdgeInsets.symmetric(
                                   vertical: 8.0, horizontal: 12.0),

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:chiclet/chiclet.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
@@ -95,6 +96,8 @@ class _MCQQuestionsState extends State<MCQQuestions> {
   bool _isAnswerChecked = false;
   final AudioPlayer _correctAudioPlayer = AudioPlayer();
   final AudioPlayer _incorrectAudioPlayer = AudioPlayer();
+  final AudioPlayer _correctStreakPlayer = AudioPlayer();
+
   int _totalXp = 0;
   late DateTime _startTime;
   late SharedPreferences prefs;
@@ -116,6 +119,10 @@ class _MCQQuestionsState extends State<MCQQuestions> {
     questionStartTime = DateTime.now();
     // Preload audio files
     _correctAudioPlayer.setSource(AssetSource('correct_answer.mp3')).then((_) {
+      print('Correct answer audio preloaded');
+    });
+
+    _correctStreakPlayer.setSource(AssetSource('jumpSound.mp3')).then((_) {
       print('Correct answer audio preloaded');
     });
 
@@ -210,8 +217,10 @@ class _MCQQuestionsState extends State<MCQQuestions> {
         setState(() {
           _isCelebrationVisible = true;
         });
+        _correctAudioPlayer.stop();
+        _correctStreakPlayer.play(AssetSource('jumpSound.mp3'));
 
-        Future.delayed(const Duration(seconds: 1), () {
+        Future.delayed(const Duration(milliseconds: 1500), () {
           setState(() {
             _isCelebrationVisible = false;
           });
@@ -542,16 +551,27 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                       if (_isCelebrationVisible)
                         Expanded(
                           child: Center(
-                            child: Text(
-                              '🎉 Great Job! 🎉\nKeep Going!',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.raleway(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                              child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text('$_correctStreak in a row!',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.raleway(
+                                    color: Color.fromRGBO(255, 217, 0, 1),
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w700,
+                                  )),
+                              SizedBox(
+                                height: 20,
                               ),
-                            ),
-                          ),
+                              Lottie.asset(
+                                  "lib/assets/animations/catLiftingWeights.json",
+                                  fit: BoxFit.cover,
+                                  height: 250,
+                                  width: 250),
+                            ],
+                          )),
                         )
                       else
                         Expanded(

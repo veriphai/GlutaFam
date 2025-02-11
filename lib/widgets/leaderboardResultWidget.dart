@@ -230,6 +230,8 @@ class _LeaderboardResultWidgetState extends State<LeaderboardResultWidget> {
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ]),
                 trailing: Text(

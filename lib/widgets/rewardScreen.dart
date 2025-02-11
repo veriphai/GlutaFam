@@ -3,6 +3,7 @@ import 'package:eureka_app/apis/claimAndGetReward.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 
 class RewardScreen extends StatefulWidget {
   final String rewardFor;
@@ -18,14 +19,66 @@ class RewardScreen extends StatefulWidget {
   State<RewardScreen> createState() => _RewardScreenState();
 }
 
-class _RewardScreenState extends State<RewardScreen> {
+class _RewardScreenState extends State<RewardScreen>
+    with TickerProviderStateMixin {
   bool isLoading = true;
   Map<String, dynamic> rewardData = {};
+  bool isChestOpening = true; // Controls chest animation visibility
+  bool showReward = false; // Controls reward emergence
+
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _positionAnimation;
 
   @override
   void initState() {
     super.initState();
     _fetchReward();
+
+    // Initialize animation controller for reward emergence
+    _controller = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.2, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _positionAnimation = Tween<double>(begin: 50, end: -50).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _startVibrationEffect();
+
+    // Start chest animation, then reveal reward
+    Future.delayed(Duration(seconds: 4), () {
+      setState(() {
+        isChestOpening = false;
+        showReward = true;
+      });
+
+      _controller.forward();
+    });
+  }
+
+  void _startVibrationEffect() {
+    int duration = 50; // Start with a short vibration
+    int step = 5; // Increase duration by 50ms each step
+    int totalDuration = 4000; // Total 4 seconds
+
+    Future.doWhile(() async {
+      if (!isChestOpening) return false; // Stop when chest animation ends
+
+      HapticFeedback.mediumImpact(); // Vibration effect
+      await Future.delayed(Duration(milliseconds: duration));
+
+      if (duration > 0) {
+        duration -= step;
+      }
+
+      return true; // Keep looping
+    });
   }
 
   Future<void> _fetchReward() async {
@@ -38,67 +91,63 @@ class _RewardScreenState extends State<RewardScreen> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: Colors.orange),
-            )
-          : rewardData.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Spacer(),
-                        // Reward Image
-                        Image.network(
-                          rewardData["image"] ?? "",
-                          height: 200,
-                          width: 200,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, progress) {
-                            return progress == null
-                                ? child
-                                : CircularProgressIndicator(
-                                    color: Colors.orange,
-                                  );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        // Reward Name
-                        Text(
-                          rewardData["name"] ?? "No Name",
-                          style: GoogleFonts.raleway(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        // Reward Description
-                        Text(
-                          rewardData["description"] ?? "No Description",
-                          style: GoogleFonts.raleway(
-                            color: Colors.white70,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        Spacer(),
-                        // Close Button
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      body: Center(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // **1️⃣ Chest Opening Animation (Lottie)**
+            if (isChestOpening)
+              Lottie.asset(
+                "lib/assets/animations/treasureChest.json",
+                width: 350,
+                height: 350,
+              ),
 
-                        ChicletAnimatedButton(
+            // **2️⃣ Reward Emerges**
+            if (showReward)
+              Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Spacer(),
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(0, _positionAnimation.value),
+                          child: Transform.scale(
+                            scale: _scaleAnimation.value,
+                            child: Image.network(
+                              rewardData["image"] ?? "",
+                              height: 150,
+                              width: 150,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    Spacer(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      child: SizedBox(
+                        width: double.infinity, // 🆕 Takes full width
+                        child: ChicletAnimatedButton(
                           onPressed: () {
                             HapticFeedback.lightImpact();
                             Navigator.pop(context);
                           },
                           buttonType: ChicletButtonTypes.roundedRectangle,
-                          width: double.infinity,
                           height: 50,
                           buttonHeight: 4,
                           padding: const EdgeInsets.all(8),
@@ -114,19 +163,12 @@ class _RewardScreenState extends State<RewardScreen> {
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                )
-              : Center(
-                  child: Text(
-                    "No reward details available.",
-                    style: GoogleFonts.raleway(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+                  ]),
+          ],
+        ),
+      ),
     );
   }
 }
