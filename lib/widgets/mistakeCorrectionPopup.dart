@@ -3,6 +3,7 @@ import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/screens/mistakesCorrectionScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 
 class MistakeCorrectionPopup extends StatelessWidget {
   final String conceptId;
@@ -56,12 +57,10 @@ class MistakeCorrectionPopup extends StatelessWidget {
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ))))),
-            Image.asset(
-              "lib/assets/streakIcon.png",
-              height: 100,
-              width: 100,
-              fit: BoxFit.cover,
-            )
+            Transform.translate(
+                offset: Offset(10, -25), // Moves it up slightly
+                child: Lottie.asset("lib/assets/animations/coolCat.json",
+                    width: 150, height: 150, repeat: true)),
           ],
         ),
       ),

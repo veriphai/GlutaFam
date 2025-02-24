@@ -20,6 +20,7 @@ import 'package:eureka_app/screens/progressReportScreen.dart';
 import 'package:eureka_app/screens/quizzesScreen.dart';
 import 'package:eureka_app/screens/socraticTutorScreen.dart';
 import 'package:eureka_app/screens/socraticTutorScreenV2.dart';
+import 'package:eureka_app/screens/socraticTutorScreenV3.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
@@ -177,8 +178,8 @@ class MainPage extends StatelessWidget {
       ProfileScreen(),
       QuestsScreen(),
       // SocraticTutorScreen()
-      // SocraticTutorScreenV2()
-      OnboardingScreenV4()
+      SocraticTutorScreenV3()
+      // OnboardingScreenV4()
       // FeedScreen()
     ];
 

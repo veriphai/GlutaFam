@@ -141,6 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         chapters = chapterData;
+        chapters.sort((a, b) => a["chapterNo"].compareTo(b["chapterNo"]));
         books = booksData;
         selectedBookId = booksData[0]["id"];
         completedConcepts =
@@ -296,8 +297,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> scrollToTopic(int firstTopicIndex) async {
+  Future<void> scrollToTopic(int firstTopicIndex, int chapterIndex) async {
     final topicKey = _topicKeys[firstTopicIndex];
+    int conceptCount = 0;
+    for (int i = 0; i < chapterIndex; i++) {
+      for (var topic in chapters[i]['topics']) {
+        conceptCount +=
+            (topic['lessons']?.length as int); // Count concepts in each topic
+      }
+    }
 
     // First, try to use the key's context
     if (topicKey.currentContext != null) {
@@ -309,11 +317,8 @@ class _HomeScreenState extends State<HomeScreen> {
         alignment: 0.1, // Aligns it slightly below the top
       );
     } else {
-      ;
-
       // If the widget is not yet rendered, approximate the position and scroll
-      final estimatedPosition = firstTopicIndex *
-          MediaQuery.of(context).size.height; // Approximate height
+      final estimatedPosition = (conceptCount + 10) * 100.0;
       await _scrollController.animateTo(
         estimatedPosition,
         duration: const Duration(milliseconds: 500),
@@ -371,7 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
               //   duration: const Duration(milliseconds: 500),
               //   curve: Curves.easeInOut,
               // );
-              scrollToTopic(firstTopicIndex);
+              scrollToTopic(firstTopicIndex, index);
 
               // Update the active topic
               setState(() {

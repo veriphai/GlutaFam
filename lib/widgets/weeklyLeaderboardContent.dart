@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:eureka_app/apis/fetchLeaderboard.dart';
 import 'package:eureka_app/apis/fetchLeaderboardResult.dart';
 import 'package:eureka_app/apis/markLeaderboardResultSeen.dart';
@@ -74,7 +76,9 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
       final int standingsLength = leaderboard["standings"].length;
 
       // Ensure that we have at least some valid indexes
-      promotionIndex = standingsLength > 3 ? standingsLength ~/ 3 : 1;
+      promotionIndex = max(3, min(standingsLength - 1, standingsLength ~/ 3));
+
+      // promotionIndex = standingsLength > 3 ? standingsLength ~/ 3 : 1;
       demotionIndex = standingsLength > 3
           ? standingsLength - (standingsLength ~/ 3)
           : standingsLength - 1;

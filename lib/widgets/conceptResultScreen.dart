@@ -56,39 +56,49 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
   }
 
   void handleClaimXPClick(int xpEarned, BuildContext context) async {
-    if (widget.lessonCompletionResponse["leaderboardUpdated"]) {
-      final leaderboard = await fetchLeaderboard(leaderboardType: "weekly");
-      showModalBottomSheet(
+    bool isStreakExtended = widget.lessonCompletionResponse["streakExtended"];
+    bool isLeaderboardUpdated =
+        widget.lessonCompletionResponse["leaderboardUpdated"];
+
+    if (isStreakExtended) {
+      final userProfile = await refreshProfile();
+      await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
+        isDismissible: false, // Prevents manual dismiss
+        enableDrag: false, // Prevents swipe-down dismiss
+        builder: (context) {
+          return StreakPopup(
+            streakCount: userProfile["streakDetails"]["activeDays"],
+            streakStartEpoch: userProfile["streakDetails"]["startTime"],
+            streakGoal: userProfile["streakGoal"],
+          );
+        },
+      ); // ✅ Waits until StreakPopup is closed
+
+      // After StreakPopup is closed, show leaderboard (if needed)
+    }
+
+    if (isLeaderboardUpdated) {
+      final leaderboard = await fetchLeaderboard(leaderboardType: "weekly");
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        isDismissible: false,
+        enableDrag: false,
         builder: (context) {
           return LeaderboardPopup(
             leaderboard: leaderboard,
             rank: widget.lessonCompletionResponse["newRank"],
           );
         },
-      );
+      ); // ✅ Waits until LeaderboardPopup is closed
     }
 
-    if (widget.lessonCompletionResponse["streakExtended"]) {
-      final userProfile = await refreshProfile();
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) {
-          return StreakPopup(
-              streakCount: userProfile["streakDetails"]["activeDays"],
-              streakStartEpoch: userProfile["streakDetails"]["startTime"],
-              streakGoal: userProfile["streakGoal"]);
-        },
-      ).whenComplete(() {
-        _navigateToQuestUpdateScreen(context, xpEarned);
-      });
-    } else {
-      _navigateToQuestUpdateScreen(context, xpEarned);
-    }
+    // Once all modals are closed, navigate to Quest Update screen
+    _navigateToQuestUpdateScreen(context, xpEarned);
   }
 
   // void showEventPopup(BuildContext context, int xpEarned) {

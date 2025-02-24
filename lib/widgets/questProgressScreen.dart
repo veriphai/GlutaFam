@@ -1,6 +1,7 @@
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/main.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
+import 'package:eureka_app/widgets/rewardScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -135,37 +136,42 @@ class QuestProgressScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ChicletAnimatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
                 if (questCompleted) {
                   // Show rewards dialog
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainPage()),
-                    (route) => false,
-                  );
-                  // showDialog(
-                  //   context: context,
-                  //   builder: (context) => AlertDialog(
-                  //     title: Text(
-                  //       "Rewards Claimed!",
-                  //       style: GoogleFonts.raleway(
-                  //           fontWeight: FontWeight.bold, fontSize: 18),
-                  //     ),
-                  //     content: Text(
-                  //       "You have claimed rewards for completed quests!",
-                  //       style: GoogleFonts.raleway(fontSize: 16),
-                  //     ),
-                  //     actions: [
-                  //       TextButton(
-                  //         onPressed: () {
-                  //           Navigator.pop(context);
-                  //         },
-                  //         child: const Text("OK"),
-                  //       ),
-                  //     ],
-                  //   ),
+                  // Navigator.pushAndRemoveUntil(
+                  //   context,
+                  //   MaterialPageRoute(builder: (context) => MainPage()),
+                  //   (route) => false,
                   // );
+                  await Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) {
+                        return RewardScreen(
+                          rewardFor: "quest",
+                          taskId: updatedQuests[0]["quest"]["id"],
+                          redirectToHomeScreen: true,
+                        );
+                      },
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+
+                        var tween = Tween(begin: begin, end: end)
+                            .chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
                 }
               },
               buttonType: ChicletButtonTypes.roundedRectangle,

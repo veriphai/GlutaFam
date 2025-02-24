@@ -133,19 +133,25 @@ class _MCQQuestionsState extends State<MCQQuestions> {
     });
   }
 
-  void _showLifelinesSheet(BuildContext context) async {
+  void _showLifelinesSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.grey[900],
+      isDismissible: false,
+      enableDrag: false,
       builder: (BuildContext context) {
-        return LifelinesWidget(
-          lifelines: lifelines,
-          onLifelinesUpdated: (updatedLifelines, updatedCredits) {
-            setState(() {
-              lifelines = updatedLifelines;
-            });
-          },
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: LifelinesWidget(
+            lifelines: lifelines,
+            isUnclosable: true,
+            onLifelinesUpdated: (updatedLifelines, updatedCredits) {
+              setState(() {
+                lifelines = updatedLifelines;
+              });
+            },
+          ),
         );
       },
     );
@@ -582,7 +588,7 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                                   padding: const EdgeInsets.symmetric(
                                       vertical: 16.0),
                                   child: MarkdownBody(
-                                    selectable: true,
+                                    selectable: false,
                                     data: lessonQuestions['questions']
                                         [_currentQuestionIndex]['question'],
                                     builders: {
@@ -668,29 +674,32 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                                                 : Colors.grey),
                                         backgroundColor:
                                             Color.fromRGBO(19, 31, 36, 1),
-                                        child: MarkdownBody(
-                                          selectable: true,
-                                          data: option['option'],
-                                          builders: {
-                                            'latex': LatexElementBuilder(
-                                              textStyle: GoogleFonts.raleway(
-                                                color: Colors.white,
-                                                fontSize: 16,
+                                        child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: MarkdownBody(
+                                              selectable: false,
+                                              data: option['option'],
+                                              builders: {
+                                                'latex': LatexElementBuilder(
+                                                  textStyle:
+                                                      GoogleFonts.raleway(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                              },
+                                              extensionSet: md.ExtensionSet(
+                                                [LatexBlockSyntax()],
+                                                [LatexInlineSyntax()],
                                               ),
-                                            ),
-                                          },
-                                          extensionSet: md.ExtensionSet(
-                                            [LatexBlockSyntax()],
-                                            [LatexInlineSyntax()],
-                                          ),
-                                          styleSheet: MarkdownStyleSheet(
-                                            p: GoogleFonts.raleway(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                            ),
-                                            blockSpacing: 8.0,
-                                          ),
-                                        )
+                                              styleSheet: MarkdownStyleSheet(
+                                                p: GoogleFonts.raleway(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                ),
+                                                blockSpacing: 8.0,
+                                              ),
+                                            ))
                                         //  Text(
                                         //   option['option'],
                                         //   style: GoogleFonts.raleway(

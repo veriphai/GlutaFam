@@ -3,7 +3,11 @@ import 'package:web_socket_channel/io.dart';
 
 class WebSocketService {
   final String websocketUrl =
-      "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-realtime-preview&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
+      "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-mini-realtime-preview&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
+
+  // final String websocketUrl =
+  //     "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-realtime-preview-2&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
+
   late IOWebSocketChannel channel;
   Function(String)? onMessageReceived;
 

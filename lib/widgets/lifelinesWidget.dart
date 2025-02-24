@@ -8,11 +8,13 @@ import 'package:google_fonts/google_fonts.dart';
 class LifelinesWidget extends StatefulWidget {
   final int lifelines;
   final Function(int lifelines, int credits)? onLifelinesUpdated;
+  final bool isUnclosable;
 
   const LifelinesWidget({
     Key? key,
     required this.lifelines,
     this.onLifelinesUpdated,
+    this.isUnclosable = false,
   }) : super(key: key);
 
   @override
@@ -65,7 +67,7 @@ class LifelinesWidgetState extends State<LifelinesWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.4, // Adjust height
+      // height: MediaQuery.of(context).size.height * 0.4, // Adjust height
       decoration: BoxDecoration(
         color: Colors.grey[900],
         borderRadius: const BorderRadius.vertical(
@@ -76,6 +78,7 @@ class LifelinesWidgetState extends State<LifelinesWidget> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Header with title and close button
             Row(
@@ -89,10 +92,11 @@ class LifelinesWidgetState extends State<LifelinesWidget> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
+                if (!widget.isUnclosable)
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
               ],
             ),
             const SizedBox(height: 20),
@@ -131,9 +135,10 @@ class LifelinesWidgetState extends State<LifelinesWidget> {
                 width: double.infinity,
                 child: ChicletOutlinedAnimatedButton(
                   onPressed: _lifelines < 5
-                      ? () {
+                      ? () async {
                           HapticFeedback.lightImpact();
-                          _refillHearts(credits < 300 ? true : false);
+                          await _refillHearts(credits < 300 ? true : false);
+                          Navigator.pop(context);
                         }
                       : () {},
                   buttonType: ChicletButtonTypes.roundedRectangle,
@@ -162,22 +167,23 @@ class LifelinesWidgetState extends State<LifelinesWidget> {
                         ),
                       ),
                       Spacer(),
-                      Row(
-                        children: [
-                          Image.asset(
-                            'lib/assets/gemIcon.png',
-                            height: 30,
-                            width: 30,
-                            color: _lifelines < 5 ? null : Colors.grey,
-                          ),
-                          SizedBox(width: 5),
-                          Text("300",
-                              style: TextStyle(
-                                  color: _lifelines < 5
-                                      ? Colors.white
-                                      : Colors.grey))
-                        ],
-                      )
+                      if (credits > 300)
+                        Row(
+                          children: [
+                            Image.asset(
+                              'lib/assets/gemIcon.png',
+                              height: 30,
+                              width: 30,
+                              color: _lifelines < 5 ? null : Colors.grey,
+                            ),
+                            SizedBox(width: 5),
+                            Text("300",
+                                style: TextStyle(
+                                    color: _lifelines < 5
+                                        ? Colors.white
+                                        : Colors.grey))
+                          ],
+                        )
                     ],
                   ),
                 )),
@@ -185,48 +191,48 @@ class LifelinesWidgetState extends State<LifelinesWidget> {
             const SizedBox(height: 16),
 
             // Unlimited Hearts Button
-            SizedBox(
-              width: double.infinity,
-              child: ChicletAnimatedButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    // Add action logic here
-                  },
-                  buttonType: ChicletButtonTypes.roundedRectangle,
-                  height: 50,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  buttonColor: Color.fromRGBO(61, 21, 204, 1),
-                  backgroundColor: Color.fromRGBO(90, 58, 207, 1),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.favorite,
-                        color: Colors.red,
-                        size: 30,
-                      ),
-                      SizedBox(
-                        width: 10,
-                      ),
-                      Text(
-                        "UNLIMITED HEARTS",
-                        style: GoogleFonts.raleway(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Spacer(),
-                      Row(
-                        children: [
-                          Image.asset(
-                            'lib/assets/gemIcon.png',
-                            height: 30,
-                            width: 30,
-                          )
-                        ],
-                      )
-                    ],
-                  )),
-            ),
+            // SizedBox(
+            //   width: double.infinity,
+            //   child: ChicletAnimatedButton(
+            //       onPressed: () {
+            //         HapticFeedback.lightImpact();
+            //         // Add action logic here
+            //       },
+            //       buttonType: ChicletButtonTypes.roundedRectangle,
+            //       height: 50,
+            //       padding: const EdgeInsets.symmetric(horizontal: 10),
+            //       buttonColor: Color.fromRGBO(61, 21, 204, 1),
+            //       backgroundColor: Color.fromRGBO(90, 58, 207, 1),
+            //       child: Row(
+            //         children: [
+            //           Icon(
+            //             Icons.favorite,
+            //             color: Colors.red,
+            //             size: 30,
+            //           ),
+            //           SizedBox(
+            //             width: 10,
+            //           ),
+            //           Text(
+            //             "UNLIMITED HEARTS",
+            //             style: GoogleFonts.raleway(
+            //               color: Colors.white,
+            //               fontWeight: FontWeight.w700,
+            //             ),
+            //           ),
+            //           Spacer(),
+            //           Row(
+            //             children: [
+            //               Image.asset(
+            //                 'lib/assets/gemIcon.png',
+            //                 height: 30,
+            //                 width: 30,
+            //               )
+            //             ],
+            //           )
+            //         ],
+            //       )),
+            // ),
           ],
         ),
       ),

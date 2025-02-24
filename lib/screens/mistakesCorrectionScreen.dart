@@ -296,6 +296,23 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
     }
   }
 
+  double _calculateButtonHeight(String text, double maxWidth) {
+    TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: GoogleFonts.raleway(
+          fontSize: 14,
+          color: Colors.white,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 2,
+    )..layout(maxWidth: maxWidth - 20); // Adjust padding for width
+
+    int lineCount = textPainter.computeLineMetrics().length;
+    return lineCount > 1 ? 60 : 40;
+  }
+
   Widget buildQuestionCard() {
     Map<String, dynamic> currentQuestion =
         widget.incorrectQuestions[currentQuestionIndex];
@@ -346,57 +363,84 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
                       .split(', ')
                       .contains(option["id"])
                   : currentQuestion["correctAnswer"] == option["id"];
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: AbsorbPointer(
-                  absorbing: true, // Prevent taps but keep appearance
-                  child: ChicletOutlinedAnimatedButton(
-                    onPressed: () {}, // This won't show ripple or press effect
-                    buttonType: ChicletButtonTypes.roundedRectangle,
-                    height: 40,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    borderWidth: 1.0,
-                    borderColor: isActualCorrect
-                        ? Colors.green
-                        : (isSelected ? Colors.red : Colors.grey),
-                    backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        MarkdownBody(
-                          selectable: true,
-                          data: option['option'],
-                          builders: {
-                            'latex': LatexElementBuilder(
-                              textStyle: GoogleFonts.raleway(
-                                color: Colors.white,
-                                fontSize: 14,
+              return LayoutBuilder(builder: (context, constraints) {
+                double buttonHeight = _calculateButtonHeight(
+                    option['option'], constraints.maxWidth);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: AbsorbPointer(
+                    absorbing: true, // Prevent taps but keep appearance
+                    child: ChicletOutlinedAnimatedButton(
+                        onPressed:
+                            () {}, // This won't show ripple or press effect
+                        buttonType: ChicletButtonTypes.roundedRectangle,
+                        height: buttonHeight,
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        borderWidth: 1.0,
+                        borderColor: isActualCorrect
+                            ? Colors.green
+                            : (isSelected ? Colors.red : Colors.grey),
+                        backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+                        child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: MarkdownBody(
+                              selectable: false,
+                              data: option['option'],
+                              builders: {
+                                'latex': LatexElementBuilder(
+                                  textStyle: GoogleFonts.raleway(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              },
+                              extensionSet: md.ExtensionSet(
+                                [LatexBlockSyntax()],
+                                [LatexInlineSyntax()],
                               ),
-                            ),
-                          },
-                          extensionSet: md.ExtensionSet(
-                            [LatexBlockSyntax()],
-                            [LatexInlineSyntax()],
-                          ),
-                          styleSheet: MarkdownStyleSheet(
-                            p: GoogleFonts.raleway(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                            blockSpacing: 8.0,
-                          ),
+                              styleSheet: MarkdownStyleSheet(
+                                p: GoogleFonts.raleway(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ))
+                        // child: Row(
+                        //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //   children: [
+                        //     MarkdownBody(
+                        //       selectable: false,
+                        //       data: option['option'],
+                        //       builders: {
+                        //         'latex': LatexElementBuilder(
+                        //           textStyle: GoogleFonts.raleway(
+                        //             color: Colors.white,
+                        //             fontSize: 14,
+                        //           ),
+                        //         ),
+                        //       },
+                        //       extensionSet: md.ExtensionSet(
+                        //         [LatexBlockSyntax()],
+                        //         [LatexInlineSyntax()],
+                        //       ),
+                        //       styleSheet: MarkdownStyleSheet(
+                        //         p: GoogleFonts.raleway(
+                        //           color: Colors.white,
+                        //           fontSize: 14,
+                        //         ),
+                        //       ),
+                        //     ),
+                        //     if (isActualCorrect)
+                        //       Icon(Icons.check, color: Colors.green, size: 24)
+                        //     else if (isSelected)
+                        //       Icon(Icons.close, color: Colors.red, size: 24),
+                        //   ],
+                        // ),
                         ),
-                        if (isActualCorrect)
-                          Icon(Icons.check, color: Colors.green, size: 24)
-                        else if (isSelected)
-                          Icon(Icons.close, color: Colors.red, size: 24),
-                      ],
-                    ),
                   ),
-                ),
-              );
+                );
+              });
             }).toList(),
             SizedBox(
               height: 20,

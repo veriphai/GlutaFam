@@ -1,5 +1,6 @@
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/claimAndGetReward.dart';
+import 'package:eureka_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,11 +9,13 @@ import 'package:lottie/lottie.dart';
 class RewardScreen extends StatefulWidget {
   final String rewardFor;
   final String taskId;
+  final bool redirectToHomeScreen;
 
   const RewardScreen({
     Key? key,
     required this.rewardFor,
     required this.taskId,
+    this.redirectToHomeScreen = false,
   }) : super(key: key);
 
   @override
@@ -145,7 +148,16 @@ class _RewardScreenState extends State<RewardScreen>
                         child: ChicletAnimatedButton(
                           onPressed: () {
                             HapticFeedback.lightImpact();
-                            Navigator.pop(context);
+                            if (widget.redirectToHomeScreen) {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => MainPage()),
+                                (route) => false,
+                              );
+                            } else {
+                              Navigator.pop(context);
+                            }
                           },
                           buttonType: ChicletButtonTypes.roundedRectangle,
                           height: 50,

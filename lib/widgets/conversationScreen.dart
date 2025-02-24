@@ -55,7 +55,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     for (var conversation in conversations) {
       final name = conversation["name"];
       if (name != null &&
-          // name != "not_required" &&
+          name != "not_required" &&
           !assignedAvatars.containsKey(name)) {
         assignedAvatars[name] = getAvatar("avatar-$avatarIndex")["imagePath"]!;
         avatarIndex++;
@@ -154,6 +154,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   void _handleContinue() {
+    String raiseHandId = "raise_hand_${raiseHandCounter - 1}";
+
+    expandedRaiseHandSections[raiseHandId] = false;
+
     if (conversationIndex >= conversations.length) {
       Navigator.push(
         context,
@@ -252,6 +256,23 @@ class _ConversationScreenState extends State<ConversationScreen> {
         style: GoogleFonts.raleway(
           color: Colors.white,
           fontSize: 14, // Small size kept aligned to the left
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ));
+  }
+
+  Widget sceneSetting(final conversation) {
+    return Center(
+        child: Container(
+      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      decoration: BoxDecoration(
+          color: Colors.transparent, borderRadius: BorderRadius.circular(8)),
+      child: Text(
+        "${conversation['text']!}",
+        style: GoogleFonts.raleway(
+          color: Colors.grey,
+          fontSize: 15, // Small size kept aligned to the left
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -403,7 +424,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   // Ensure displayedConversations is rebuilt
                   displayedConversations = List.from(displayedConversations);
                   isChatMode = false;
-                  expandedRaiseHandSections[raiseHandId] = false;
                 });
 
                 scrollToBottom();
@@ -468,17 +488,19 @@ class _ConversationScreenState extends State<ConversationScreen> {
         "Good to see you!"
       ];
 
+      // Select 2 random characters from the available ones
+      final selectedCharacters = (characters.keys.toList()..shuffle()).take(2);
+
       // AI Participants Greetings
       int counter = 1;
-      characters.forEach((name, _) {
+      for (String name in selectedCharacters) {
         raisedHandConversations[raiseHandId]!.add({
           "id": "greeting_$counter",
           "name": name,
-          "text": greetingMessages[
-              counter % greetingMessages.length] // Cycle through messages
+          "text": (greetingMessages..shuffle()).first, // Random greeting
         });
         counter++;
-      });
+      }
 
       // Scroll to the bottom to show greetings
       scrollToBottom();
@@ -671,7 +693,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                "Your Total XP will be reduced by 15.",
+                "Your Total XP will be reduced by 20.",
                 style: GoogleFonts.raleway(
                   color: Colors.grey[400],
                   fontSize: 14,
@@ -714,7 +736,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             builder: (context) => MCQQuestions(
                               conceptId: widget.conceptId,
                               conceptName: widget.conceptName,
-                              maxXP: widget.maxXP - 15,
+                              maxXP: widget.maxXP - 20,
                             ),
                           ),
                         );
@@ -737,7 +759,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             ),
                           ),
                           Text(
-                            "  -15",
+                            "  -20",
                             style: GoogleFonts.arOneSans(
                               color: Colors.red,
                               fontSize: 16,
@@ -890,8 +912,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                           return Padding(
                               padding: const EdgeInsets.symmetric(
                                   vertical: 8.0, horizontal: 12.0),
-                              child: conversation.containsKey("entryExit")
-                                  ? entryExitConversation(conversation)
+                              child: conversation["type"] == "scene_setting"
+                                  ? sceneSetting(conversation)
                                   : conversation['name'] == "You"
                                       ? yourMessage(senderColor, conversation)
                                       : othersMessage(
