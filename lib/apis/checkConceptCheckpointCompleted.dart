@@ -5,6 +5,7 @@ import 'package:eureka_app/utils/authTokenService.dart';
 Future<Map<String, dynamic>> checkConceptCheckpointCompleted(
     {required List<Map<String, String>> conversations,
     required String conceptName,
+    required bool greeting,
     required Map<String, dynamic> conceptCheckpoint}) async {
   try {
     const url =
@@ -16,7 +17,8 @@ Future<Map<String, dynamic>> checkConceptCheckpointCompleted(
     final body = {
       "conversations": conversations,
       "conceptName": conceptName,
-      "conceptCheckpoint": conceptCheckpoint
+      "conceptCheckpoint": conceptCheckpoint,
+      "greeting": greeting
     };
 
     // Make the POST request

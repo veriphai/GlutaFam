@@ -104,18 +104,19 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
       });
     } else {
       // Handle when all questions are completed
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ConceptResultScreen(
-            conceptName: widget.conceptName,
-            totalXp: widget.totalXp,
-            timeTaken: widget.timeTaken,
-            accuracy: widget.accuracy,
-            lessonCompletionResponse: widget.lessonCompletionResponse,
-          ),
-        ),
-      );
+      Navigator.pop(context, "completed");
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (context) => ConceptResultScreen(
+      //       conceptName: widget.conceptName,
+      //       totalXp: widget.totalXp,
+      //       timeTaken: widget.timeTaken,
+      //       accuracy: widget.accuracy,
+      //       lessonCompletionResponse: widget.lessonCompletionResponse,
+      //     ),
+      //   ),
+      // );
     }
   }
 

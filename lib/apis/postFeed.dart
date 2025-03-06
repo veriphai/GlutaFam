@@ -13,7 +13,7 @@ Future<String> postFeed(
 
     String? authToken = await authTokenService.getAuthToken();
 
-    final body = {"feedData": feedData, "type": type};
+    final body = {"feedData": feedData, "type": type, "feedImage": image};
 
     // Construct the request
     final response = await http.post(

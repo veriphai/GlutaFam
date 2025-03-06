@@ -159,16 +159,17 @@ class _ConversationScreenState extends State<ConversationScreen> {
     expandedRaiseHandSections[raiseHandId] = false;
 
     if (conversationIndex >= conversations.length) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MCQQuestions(
-            conceptId: widget.conceptId,
-            conceptName: widget.conceptName,
-            maxXP: widget.maxXP,
-          ),
-        ),
-      );
+      Navigator.pop(context, "completed");
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (context) => MCQQuestions(
+      //       conceptId: widget.conceptId,
+      //       conceptName: widget.conceptName,
+      //       maxXP: widget.maxXP,
+      //     ),
+      //   ),
+      // );
     } else {
       setState(() {
         isContinueButtonEnabled = false;
@@ -633,18 +634,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
               SizedBox(height: 12),
 
-              // 🔄 Cancel Button
               ChicletOutlinedAnimatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  Navigator.pop(context);
-                  // Navigator.pop(context);
-
-                  // Navigator.pushAndRemoveUntil(
-                  //   context,
-                  //   MaterialPageRoute(builder: (context) => MainPage()),
-                  //   (route) => false,
-                  // );
+                  Navigator.pop(context, "notCompleted");
                 },
                 buttonType: ChicletButtonTypes.roundedRectangle,
                 width: double.infinity,
@@ -796,6 +789,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
           appBar: AppBar(
             backgroundColor: Color.fromRGBO(19, 31, 36, 1),
             elevation: 0,
+            scrolledUnderElevation: 0,
             iconTheme: IconThemeData(
               color: Colors.grey,
             ),

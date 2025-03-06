@@ -173,6 +173,7 @@ class _SocraticTutorScreenState extends State<SocraticTutorScreenV3> {
     final result = await checkConceptCheckpointCompleted(
         conversations: conversations,
         conceptName: conceptName,
+        greeting: false,
         conceptCheckpoint: conceptCheckpoints[currentCheckpointIndex]);
     bool conceptCompleted = result['checkpointCompleted'] ?? false;
 

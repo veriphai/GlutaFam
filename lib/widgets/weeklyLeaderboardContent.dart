@@ -9,6 +9,8 @@ import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/widgets/leaderboardResultWidget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:eureka_app/utils/leagues.dart';
@@ -128,6 +130,13 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
     } else if (xp < demotionZoneXP) {
       return "Earn ${demotionZoneXP - xp} to be in the same league";
     }
+    int rank = leaderboardData["standings"].firstWhere(
+        (standing) => standing["userId"] == userProfile["id"],
+        orElse: () => {"rank": 100})["rank"];
+
+    if (rank < 4) {
+      return "Maintain your rank for a reward";
+    }
     return "Reach the top 3 for a reward";
   }
 
@@ -152,6 +161,7 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
 
     final league = leaderboardData["league"];
     final standings = leaderboardData["standings"];
+    bool showDemotionZone = league != null && league > 1 ? true : false;
 
     return isLoading
         ? Scaffold(
@@ -257,12 +267,19 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                 // Leaderboard
                 Expanded(
                   child: ListView.builder(
-                    itemCount:
-                        standings.length + 2, // Add one for the promotion row
+                    itemCount: showDemotionZone
+                        ? standings.length + 2
+                        : standings.length + 1,
                     itemBuilder: (context, index) {
                       if (index == promotionIndex) {
                         // Render the promotion zone row after the 10th rank
                         return Container(
+                          padding: EdgeInsets.all(10),
+                          margin: EdgeInsets.symmetric(horizontal: 30),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -292,10 +309,15 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                           ),
                         );
                       }
-                      if (index == demotionIndex) {
+                      if (index == demotionIndex && showDemotionZone) {
                         // Render the demotion zone row after the 20th rank
                         return Container(
-                          padding: EdgeInsets.symmetric(vertical: 8),
+                          padding: EdgeInsets.all(10),
+                          margin: EdgeInsets.symmetric(horizontal: 30),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -318,11 +340,12 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                         );
                       }
 
-                      // Adjust index for actual standings
-                      final actualIndex =
-                          index > promotionIndex && index < demotionIndex
+                      final actualIndex = showDemotionZone
+                          ? (index > promotionIndex && index < demotionIndex
                               ? index - 1
-                              : (index > demotionIndex ? index - 2 : index);
+                              : (index > demotionIndex ? index - 2 : index))
+                          : (index > promotionIndex ? index - 1 : index);
+
                       final entry = standings[actualIndex];
                       final rank = entry["rank"];
                       final isCurrentUser =
@@ -342,6 +365,7 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
 
                       return GestureDetector(
                           onTap: () {
+                            HapticFeedback.lightImpact();
                             if (isCurrentUser) {
                               Navigator.push(
                                 context,

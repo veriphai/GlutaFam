@@ -3,7 +3,9 @@ import 'package:eureka_app/apis/fetchRewardDetails.dart';
 import 'package:eureka_app/main.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/widgets/collectionDetailsWidget.dart';
+import 'package:eureka_app/widgets/questsScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ActionButton extends StatefulWidget {
@@ -113,9 +115,7 @@ class _ActionButtonState extends State<ActionButton> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MainPage(
-          initialIndex: 4,
-        ),
+        builder: (context) => QuestsScreen(),
       ),
     );
   }
@@ -133,6 +133,8 @@ class _ActionButtonState extends State<ActionButton> {
   Widget build(BuildContext context) {
     return ChicletOutlinedAnimatedButton(
       onPressed: () {
+        HapticFeedback.lightImpact();
+
         _handleButtonClick(context, buttonText);
       },
       buttonType: ChicletButtonTypes.roundedRectangle,

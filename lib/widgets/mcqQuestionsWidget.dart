@@ -137,7 +137,7 @@ class _MCQQuestionsState extends State<MCQQuestions> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       isDismissible: false,
       enableDrag: false,
       builder: (BuildContext context) {
@@ -295,35 +295,53 @@ class _MCQQuestionsState extends State<MCQQuestions> {
               correctlyAnswered: lessonQuestions['questions'].length -
                   incorrectQuestions.length);
       if (incorrectQuestions.isEmpty) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ConceptResultScreen(
-              conceptName: widget.conceptName,
-              totalXp: _totalXp,
-              timeTaken: timeTaken,
-              accuracy: accuracy,
-              lessonCompletionResponse: lessonCompletionResponse,
-            ),
-          ),
-          (route) => false,
-        );
+        Navigator.pop(context, {
+          "completed": true,
+          "lessonCompletionResponse": lessonCompletionResponse,
+          "totalXp": _totalXp,
+          "timeTaken": timeTaken,
+          "accuracy": accuracy,
+          "totalQuestions": lessonQuestions['questions'].length
+        });
+        // Navigator.pushAndRemoveUntil(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => ConceptResultScreen(
+        //       conceptName: widget.conceptName,
+        //       totalXp: _totalXp,
+        //       timeTaken: timeTaken,
+        //       accuracy: accuracy,
+        //       lessonCompletionResponse: lessonCompletionResponse,
+        //     ),
+        //   ),
+        //   (route) => false,
+        // );
       } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MistakeCorrectionPopup(
-              conceptName: widget.conceptName,
-              conceptId: widget.conceptId,
-              totalXp: _totalXp,
-              timeTaken: timeTaken,
-              accuracy: accuracy,
-              incorrectQuestions: incorrectQuestions,
-              lessonCompletionResponse: lessonCompletionResponse,
-            ),
-          ),
-          (route) => false,
-        );
+        Navigator.pop(context, {
+          "completed": true,
+          "incorrectQuestions": incorrectQuestions,
+          "lessonCompletionResponse": lessonCompletionResponse,
+          "totalXp": _totalXp,
+          "timeTaken": timeTaken,
+          "accuracy": accuracy,
+          "totalQuestions": lessonQuestions['questions'].length
+        });
+
+        // Navigator.pushAndRemoveUntil(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => MistakeCorrectionPopup(
+        //       conceptName: widget.conceptName,
+        //       conceptId: widget.conceptId,
+        //       totalXp: _totalXp,
+        //       timeTaken: timeTaken,
+        //       accuracy: accuracy,
+        //       incorrectQuestions: incorrectQuestions,
+        //       lessonCompletionResponse: lessonCompletionResponse,
+        //     ),
+        //   ),
+        //   (route) => false,
+        // );
       }
     }
   }
@@ -400,12 +418,13 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                   Navigator.pop(context);
                   // Navigator.pop(context);
                   // Navigator.pop(context);
+                  Navigator.pop(context, {"completed": false});
 
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => MainPage()),
-                    (route) => false,
-                  );
+                  // Navigator.pushAndRemoveUntil(
+                  //   context,
+                  //   MaterialPageRoute(builder: (context) => MainPage()),
+                  //   (route) => false,
+                  // );
                 },
                 buttonType: ChicletButtonTypes.roundedRectangle,
                 width: double.infinity,
@@ -584,9 +603,27 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Container(
+                                  decoration: BoxDecoration(
+                                    color: Color.fromRGBO(255, 217, 0, 1),
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                  child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 0.0, horizontal: 10),
+                                      child: Text(
+                                        "MCQ",
+                                        style: GoogleFonts.raleway(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color:
+                                                Color.fromRGBO(19, 31, 36, 1)),
+                                      ))),
                               Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 16.0),
+                                  // padding: const EdgeInsets.symmetric(
+                                  //     vertical: 16.0),
+                                  padding: const EdgeInsets.only(
+                                      bottom: 16.0, top: 8),
                                   child: MarkdownBody(
                                     selectable: false,
                                     data: lessonQuestions['questions']

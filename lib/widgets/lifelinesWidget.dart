@@ -69,7 +69,7 @@ class LifelinesWidgetState extends State<LifelinesWidget> {
     return Container(
       // height: MediaQuery.of(context).size.height * 0.4, // Adjust height
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: Color.fromRGBO(19, 31, 36, 1),
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(20),
         ),

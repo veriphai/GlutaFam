@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -156,6 +157,7 @@ class PersonalStreakContent extends StatelessWidget {
                                   SizedBox(height: 10),
                                   GestureDetector(
                                     onTap: () {
+                                      HapticFeedback.lightImpact();
                                       Navigator.pop(context);
                                     },
                                     child: Text(

@@ -1,14 +1,28 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:async';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io'; // ✅ Required for Platform check
 
 class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  Future<void> requestAndroidNotificationPermission() async {
+    if (await Permission.notification.isDenied) {
+      await Permission.notification.request();
+    }
+  }
+
   // Initialize notification service
   Future<void> initNotifications() async {
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print("User tapped the notification: ${message.notification?.title}");
+    });
+    if (Platform.isAndroid) {
+      await requestAndroidNotificationPermission();
+    }
     // Request permission
     await requestIOSPermissions();
 

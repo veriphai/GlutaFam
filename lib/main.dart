@@ -1,8 +1,10 @@
 import 'dart:ffi';
 
+import 'package:eureka_app/apis/updateFCMToken.dart';
 import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/popups/streakPopup.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
+import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
@@ -78,8 +80,11 @@ void main() async {
       if (isRealDevice) {
         String? token = await notificationService.getDeviceToken();
         prefs.setString("fcmToken", token ?? "");
-        // print("FCM Device Token: $token");
+        print("FCM Device Token: $token");
         await notificationService.subscribeToTopic("all_users");
+        if (!firstLaunch) {
+          updateFCMToken(fcmToken: token ?? "");
+        }
       }
     }
     print("First Launch: $firstLaunch");
@@ -178,9 +183,10 @@ class MainPage extends StatelessWidget {
       ProfileScreen(),
       QuestsScreen(),
       // SocraticTutorScreen()
-      SocraticTutorScreenV3()
+      // SocraticTutorScreenV3()
+      // ConceptLearningScreenV2()
       // OnboardingScreenV4()
-      // FeedScreen()
+      FeedScreen()
     ];
 
     return Scaffold(

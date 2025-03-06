@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SubjectSelection extends StatefulWidget {
@@ -111,7 +112,10 @@ class _SubjectTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => onSelect(subjectName, bookId), // Call the onSelect callback
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onSelect(subjectName, bookId);
+      }, // Call the onSelect callback
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: Column(

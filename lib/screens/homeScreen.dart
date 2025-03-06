@@ -5,6 +5,7 @@ import 'package:eureka_app/apis/fetchCompletedConcepts.dart';
 import 'package:eureka_app/popups/genericPopupWidget.dart';
 import 'package:eureka_app/popups/popUpManager.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
+import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/widgets/chapterSelection.dart';
 import 'package:eureka_app/widgets/lifelinesWidget.dart';
@@ -49,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? selectedConceptId;
 
   Map<String, dynamic> activePowerup = {};
+  double _listOpacity = 0.0;
 
   void toggleOverlay(String conceptId) {
     setState(() {
@@ -147,7 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
         completedConcepts =
             (completedConceptsData["completedConcepts"] as List<dynamic>)
                 .cast<String>();
-        conceptToStartFrom = completedConceptsData["conceptToStartFrom"];
+        conceptToStartFrom =
+            "crop_production_and_management_8_Science_Section_6_SubSection_7";
+        // conceptToStartFrom = completedConceptsData["conceptToStartFrom"];
         if (chapters.isNotEmpty && chapters[0]['topics'].isNotEmpty) {
           _activeTopic = chapters[0]['topics'][0]['name'];
           activeChapter = chapters[0]['name'];
@@ -164,6 +168,12 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         isLoading = false;
         _scrollController.addListener(_onScroll);
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollToConcept(conceptToStartFrom);
+        }
       });
     } catch (error) {
       setState(() {
@@ -282,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       builder: (BuildContext context) {
         return LifelinesWidget(
           lifelines: lifelinesAvailable,
@@ -295,6 +305,50 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  Future<void> _scrollToConcept(String conceptId) async {
+    int conceptIndex = 0;
+    int topicIndex = 0;
+    int chapterIndex = 0;
+    bool found = false;
+
+    // 🔍 Find the index of `conceptToStartFrom`
+    for (int cIndex = 0; cIndex < chapters.length; cIndex++) {
+      final chapter = chapters[cIndex];
+      for (int tIndex = 0; tIndex < chapter['topics'].length; tIndex++) {
+        final topic = chapter['topics'][tIndex];
+
+        for (int lIndex = 0; lIndex < topic['lessons'].length; lIndex++) {
+          if (topic['lessons'][lIndex]['id'] == conceptId) {
+            conceptIndex = lIndex;
+            topicIndex = tIndex;
+            chapterIndex = cIndex;
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+      if (found) break;
+    }
+
+    if (!found) return; // If not found, exit early
+
+    await scrollToTopic(topicIndex, chapterIndex);
+
+    double additionalOffset =
+        (conceptIndex * 100.0) - 50; // Approximate height per concept
+
+    await _scrollController.animateTo(
+      _scrollController.offset +
+          additionalOffset, // Add to current offset instead of overriding
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    );
+    // setState(() {
+    //   isLoading = false;
+    // });
   }
 
   Future<void> scrollToTopic(int firstTopicIndex, int chapterIndex) async {
@@ -318,7 +372,8 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     } else {
       // If the widget is not yet rendered, approximate the position and scroll
-      final estimatedPosition = (conceptCount + 10) * 100.0;
+      final estimatedPosition =
+          (conceptCount * 100.0) + (firstTopicIndex * 100);
       await _scrollController.animateTo(
         estimatedPosition,
         duration: const Duration(milliseconds: 500),
@@ -508,16 +563,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (isLocked) {
                           return;
                         }
-                        currentOverlayEntry?.remove(); // Close the overlay
-                        currentOverlayEntry = null; // Reset the reference
+                        HapticFeedback.lightImpact();
+                        currentOverlayEntry?.remove();
+                        currentOverlayEntry = null;
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ConceptLearningScreen(
-                              conceptId: concept['id'],
-                              conceptName: concept['name'],
-                              maxXP: totalXPForConcept * xpMultiplier,
-                            ),
+                            builder: (context) => ConceptLearningScreenV2(
+                                conceptId: concept['id'],
+                                conceptName: concept['name'],
+                                maxXP: totalXPForConcept * xpMultiplier,
+                                name: userProfile['firstName']),
                           ),
                         );
                       },
@@ -660,12 +716,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 24,
                         ),
                         onPressed: () {
+                          HapticFeedback.lightImpact();
                           _showSubjectSelectionSheet(context);
                         },
                       ),
                       Row(children: [
                         GestureDetector(
                             onTap: () {
+                              HapticFeedback.lightImpact();
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
@@ -712,6 +770,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ]),
                       GestureDetector(
                           onTap: () {
+                            HapticFeedback.lightImpact();
                             showModalBottomSheet(
                               context: context,
                               isScrollControlled: true,
@@ -738,6 +797,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           )),
                       GestureDetector(
                           onTap: () {
+                            HapticFeedback.lightImpact();
                             _showLifelinesSheet(context);
                           },
                           child: Row(children: [

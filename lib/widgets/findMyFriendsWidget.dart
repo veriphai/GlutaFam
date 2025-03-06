@@ -315,7 +315,10 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
 
                       // Share Follow Link Button
                       ChicletAnimatedButton(
-                        onPressed: _shareFollowLink,
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          _shareFollowLink();
+                        },
                         buttonType: ChicletButtonTypes.roundedRectangle,
                         height: 50,
                         width: double.infinity,

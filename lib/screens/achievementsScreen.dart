@@ -1,6 +1,7 @@
 import 'package:eureka_app/utils/achievements.dart';
 import 'package:eureka_app/widgets/achievementDetailsWidget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AchievementsPage extends StatefulWidget {
@@ -65,8 +66,8 @@ class _AchievementsPageState extends State<AchievementsPage> {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.7,
+                  mainAxisSpacing: 50,
+                  childAspectRatio: 1,
                 ),
                 itemCount: widget.achievements.length,
                 itemBuilder: (context, index) {
@@ -81,68 +82,69 @@ class _AchievementsPageState extends State<AchievementsPage> {
                       ? levels[adjustedLevelIndex]
                       : null;
                   return GestureDetector(
-                    onTap: () => _showAchievementDetails(achievement),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _showAchievementDetails(achievement);
+                    },
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              height: 120,
-                              width: 120,
-                              child: Center(
-                                child: SizedBox(
-                                  height: 100,
-                                  width: 100,
-                                  child: Opacity(
-                                    opacity: achievement["unlocked"] ? 1 : 0.1,
-                                    child: Image.asset(
-                                      getAchievement(achievement["id"])?[
-                                              "imagePath"] ??
-                                          'lib/assets/placeholder.png',
-                                      color: achievement["unlocked"]
-                                          ? null
-                                          : Colors.grey,
-                                    ),
+                        SizedBox(
+                          height:
+                              100, // Fix the height so that text expansion doesn't shrink the image
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                height: 100, // Maintain fixed image size
+                                width: 100,
+                                child: Opacity(
+                                  opacity: achievement["unlocked"] ? 1 : 0.1,
+                                  child: Image.asset(
+                                    getAchievement(
+                                            achievement["id"])?["imagePath"] ??
+                                        'lib/assets/placeholder.png',
+                                    color: achievement["unlocked"]
+                                        ? null
+                                        : Colors.grey,
                                   ),
                                 ),
                               ),
-                            ),
-                            Positioned(
-                              bottom: 5,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Text(
-                                    "${level["criteria"]}",
-                                    style: GoogleFonts.raleway(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w700,
-                                      foreground: Paint()
-                                        ..style = PaintingStyle.stroke
-                                        ..strokeWidth = 5
-                                        ..color = achievement["unlocked"]
-                                            ? const Color.fromARGB(
-                                                255, 159, 129, 81)
-                                            : Colors.grey, // Outline color
+                              Positioned(
+                                bottom: 5,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Text(
+                                      "${level["criteria"]}",
+                                      style: GoogleFonts.raleway(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        foreground: Paint()
+                                          ..style = PaintingStyle.stroke
+                                          ..strokeWidth = 5
+                                          ..color = achievement["unlocked"]
+                                              ? const Color.fromARGB(
+                                                  255, 159, 129, 81)
+                                              : Colors.grey,
+                                      ),
                                     ),
-                                  ),
-                                  // Filled Text
-                                  Text(
-                                    "${level["criteria"]}",
-                                    style: GoogleFonts.raleway(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w700,
-                                      color: achievement["unlocked"]
-                                          ? Colors.white
-                                          : const Color.fromRGBO(19, 31, 36, 1),
+                                    Text(
+                                      "${level["criteria"]}",
+                                      style: GoogleFonts.raleway(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: achievement["unlocked"]
+                                            ? Colors.white
+                                            : const Color.fromRGBO(
+                                                19, 31, 36, 1),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 8),
                         // Achievement Name

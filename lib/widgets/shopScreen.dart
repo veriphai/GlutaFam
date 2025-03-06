@@ -306,8 +306,10 @@ class _ShopScreenState extends State<ShopScreen> {
         itemBuilder: (context, index) {
           final powerup = powerups[index];
           return GestureDetector(
-              onTap: () =>
-                  _showPowerUpDetails(context, powerup, available: true),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _showPowerUpDetails(context, powerup, available: true);
+              },
               child: Container(
                 padding: const EdgeInsets.all(0.0),
                 decoration: BoxDecoration(
@@ -356,7 +358,10 @@ class _ShopScreenState extends State<ShopScreen> {
         itemBuilder: (context, index) {
           final powerup = powerups[index];
           return GestureDetector(
-              onTap: () => _showPowerUpDetails(context, powerup),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _showPowerUpDetails(context, powerup);
+              },
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: 8.0),
                 padding: const EdgeInsets.all(12.0),
@@ -477,6 +482,7 @@ class _ShopScreenState extends State<ShopScreen> {
                       onPressed: purchaseDisabled
                           ? null
                           : () async {
+                              HapticFeedback.lightImpact();
                               onPowerUpPurchased(powerup,
                                   alreadyBought: available);
                               setModalState(() {
@@ -559,6 +565,7 @@ class _ShopScreenState extends State<ShopScreen> {
                     // Button to Start Lessons
                     ChicletAnimatedButton(
                       onPressed: () {
+                        HapticFeedback.lightImpact();
                         Navigator.pop(context);
                         Navigator.pop(context);
                       },

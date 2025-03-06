@@ -32,10 +32,13 @@ class CollectionDetailsWidget extends StatelessWidget {
               ChicletAnimatedButton(
                 onPressed: () {
                   HapticFeedback.lightImpact();
-                  postFeed(type: "STICKER_SHARED", feedData: {
-                    "image": collectionItem["image"],
-                    "rewardId": collectionItem["id"]
-                  });
+                  postFeed(
+                      type: "STICKER_SHARED",
+                      image: collectionItem["image"],
+                      feedData: {
+                        "image": collectionItem["image"],
+                        "rewardId": collectionItem["id"]
+                      });
                   Navigator.pop(context);
                 },
                 buttonType: ChicletButtonTypes.roundedRectangle,
@@ -167,6 +170,83 @@ class CollectionDetailsWidget extends StatelessWidget {
               height: 1.5,
             ),
             textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ChicletAnimatedButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    postFeed(
+                        type: "STICKER_SHARED",
+                        image: collectionItem["image"],
+                        feedData: {
+                          "image": collectionItem["image"],
+                          "rewardId": collectionItem["id"]
+                        });
+                    Navigator.pop(context);
+                  },
+                  buttonType: ChicletButtonTypes.roundedRectangle,
+                  height: 50,
+                  width: double.infinity,
+                  buttonHeight: 4,
+                  buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                  backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                  child: Text(
+                    "POST ON YOUR FEED",
+                    style: GoogleFonts.raleway(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                ChicletAnimatedButton(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pop(context);
+                      shareCollectionItem();
+                      // Navigator.push(
+                      //   context,
+                      //   MaterialPageRoute(
+                      //     builder: (context) => MCQQuestions(
+                      //       conceptId: widget.conceptId,
+                      //       conceptName: widget.conceptName,
+                      //       maxXP: widget.maxXP - 15,
+                      //     ),
+                      //   ),
+                      // );
+                    },
+                    buttonType: ChicletButtonTypes.roundedRectangle,
+                    height: 50,
+                    width: double.infinity,
+                    buttonHeight: 4,
+                    buttonColor: Colors.transparent,
+                    backgroundColor: Colors.transparent,
+                    // buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                    // backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "SHARE USING LINK",
+                          style: GoogleFonts.raleway(
+                            color: Color.fromRGBO(255, 217, 0, 1),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    )),
+              ],
+            ),
           ),
           Spacer(),
         ],

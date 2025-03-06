@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ChapterProgressReport extends StatefulWidget {
@@ -56,7 +57,10 @@ class _ChapterProgressReportState extends State<ChapterProgressReport> {
                     child:
                         const Icon(Icons.close, color: Colors.white, size: 24),
                   ),
-                  Spacer(), // Spacing between icon and text
+                  SizedBox(
+                    width: 20,
+                  ),
+                  // Spacer(), // Spacing between icon and text
                   Expanded(
                     child: Text(
                       widget.chapter["name"],
@@ -69,7 +73,7 @@ class _ChapterProgressReportState extends State<ChapterProgressReport> {
                           TextOverflow.ellipsis, // Handle long names gracefully
                     ),
                   ),
-                  Spacer()
+                  // Spacer()
                 ],
               ),
             ),
@@ -268,6 +272,7 @@ class _ChapterProgressReportState extends State<ChapterProgressReport> {
           ),
         ),
         onTap: () {
+          // HapticFeedback.lightImpact();
           setState(() {
             expandedTopicId = isExpanded ? null : topic["_id"]; // Toggle topic
           });

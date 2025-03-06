@@ -1,7 +1,7 @@
 const Map<String, Map<String, String>> achievements = {
-  "cheer-leader": {
-    "id": "cheer-leader",
-    "name": "Cheer Leader",
+  "cheerleader": {
+    "id": "cheerleader",
+    "name": "Cheerleader",
     "imagePath": "lib/assets/achievements/cheer-leader.png",
   },
   "early-riser": {
@@ -44,9 +44,9 @@ const Map<String, Map<String, String>> achievements = {
     "name": "Speed Racer",
     "imagePath": "lib/assets/achievements/speed-racer.png",
   },
-  "topic-completion": {
-    "id": "topic-completion",
-    "name": "Topic Completion",
+  "legend": {
+    "id": "legend",
+    "name": "Legend",
     "imagePath": "lib/assets/achievements/topic-completion.png",
   },
   "xp-olympian": {

@@ -6,6 +6,7 @@ import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/widgets/feedActionButtons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -203,6 +204,7 @@ class _FeedScreenState extends State<FeedScreen> {
                     (feed["feedReactions"] as Map<String, dynamic>)
                         .containsKey(userProfile["id"]),
                 onPress: () {
+                  HapticFeedback.lightImpact();
                   reactOnFeed(feedId: feed["id"]);
                 },
               ),

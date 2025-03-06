@@ -1,5 +1,6 @@
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AvatarSelectionScreen extends StatefulWidget {
@@ -58,6 +59,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
 
                   return GestureDetector(
                     onTap: () {
+                      HapticFeedback.lightImpact();
                       setState(() {
                         selectedAvatarKey = avatarKey;
                       });
@@ -106,7 +108,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
             // Confirm Button
             ElevatedButton(
               onPressed: () {
-                // Handle avatar selection confirmation
+                HapticFeedback.lightImpact();
                 if (selectedAvatarKey != null) {
                   Navigator.pop(context, selectedAvatarKey);
                 }

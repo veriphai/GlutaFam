@@ -299,6 +299,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: GestureDetector(
                   onTap: () {
+                    HapticFeedback.lightImpact();
                     _showSubjectSelectionSheet(context);
                   },
                   child: Row(children: [
@@ -573,6 +574,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
           color: Colors.grey,
         ),
         onTap: () {
+          HapticFeedback.lightImpact();
           _showChapterReportSheet(context, chapter);
         },
       ),

@@ -31,6 +31,8 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
   List<Map<String, dynamic>> achievements = [];
   late Map<String, String>? avatar;
   late bool isFriend;
+  late bool friendAdded = false;
+  late int friends;
 
   bool isLoading = true;
 
@@ -50,6 +52,7 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
             : "random");
 
         isLoading = false;
+        friends = userProfile["friends"].length;
       });
     } catch (error) {
       print("Error fetching userProfile: $error");
@@ -87,7 +90,10 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
       isScrollControlled: true,
       backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       builder: (context) {
-        return AchievementDetailsWidget(achievement: achievement);
+        return AchievementDetailsWidget(
+          achievement: achievement,
+          friendsAchievement: true,
+        );
       },
     );
   }
@@ -139,7 +145,7 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                           left: 10,
                           child: GestureDetector(
                             onTap: () {
-                              Navigator.pop(context);
+                              Navigator.pop(context, friendAdded);
                             },
                             child: Icon(
                               Icons.arrow_back,
@@ -215,7 +221,7 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                                 );
                               },
                               child: Text(
-                                "${profileData["friends"].length} Friends",
+                                "$friends Friends",
                                 style: GoogleFonts.arOneSans(
                                   color: Color.fromRGBO(255, 217, 0, 1),
                                   fontSize: 14,
@@ -236,6 +242,8 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                                     HapticFeedback.lightImpact();
                                     setState(() {
                                       isFriend = true;
+                                      friendAdded = true;
+                                      friends += 1;
                                     });
                                     await addFriend(friendId: widget.friendId);
                                     // print('${concepts[index]['name']} clicked');
@@ -387,8 +395,13 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                                 final currentLevelIndex =
                                     achievement["currentLevel"] ?? 0;
                                 final levels = achievement["levels"] ?? [];
-                                final level = currentLevelIndex < levels.length
-                                    ? levels[currentLevelIndex]
+                                final int adjustedLevelIndex =
+                                    currentLevelIndex > 0
+                                        ? currentLevelIndex - 1
+                                        : currentLevelIndex;
+
+                                final level = adjustedLevelIndex < levels.length
+                                    ? levels[adjustedLevelIndex]
                                     : null;
                                 return GestureDetector(
                                     onTap: () =>

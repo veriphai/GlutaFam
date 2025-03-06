@@ -244,6 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           right: 10,
                           child: GestureDetector(
                             onTap: () {
+                              HapticFeedback.lightImpact();
                               editAvatar();
                             },
                             child: Icon(
@@ -278,6 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             GestureDetector(
                                 onTap: () {
+                                  HapticFeedback.lightImpact();
                                   _showClassSelectionBottomSheet();
                                 },
                                 child: Row(children: [
@@ -393,6 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             // Share Button
                             ChicletAnimatedButton(
                               onPressed: () {
+                                HapticFeedback.lightImpact();
                                 _shareProfileLink(context);
                               },
                               buttonType: ChicletButtonTypes.roundedRectangle,
@@ -496,6 +499,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 GestureDetector(
                                   onTap: () {
+                                    HapticFeedback.lightImpact();
                                     // Navigate to the AchievementsPage
                                     Navigator.push(
                                       context,
@@ -540,8 +544,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ? levels[adjustedLevelIndex]
                                     : null;
                                 return GestureDetector(
-                                    onTap: () =>
-                                        _showAchievementDetails(achievement),
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      _showAchievementDetails(achievement);
+                                    },
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -705,7 +711,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 builder: (context) => FriendsProfileScreen(
                     friendId: friendSuggestion["id"],
                     following: friends.contains(friendSuggestion["id"]))),
-          );
+          ).then((value) {
+            if (value) {
+              setState(() {
+                friendsCount += 1;
+                friends.add(friendSuggestion["id"]);
+              });
+            }
+          });
         },
         child: Padding(
           padding: const EdgeInsets.only(right: 8.0),
@@ -945,7 +958,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showClassSelectionBottomSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -988,7 +1001,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           onTap: () async {
-                            // Update selected class and save to SharedPreferences
+                            HapticFeedback.lightImpact();
                             await prefs.setInt('selected_class', standardValue);
                             if (stream != null) {
                               await prefs.setString('selected_stream', stream);

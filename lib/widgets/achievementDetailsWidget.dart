@@ -10,8 +10,10 @@ import 'package:eureka_app/utils/generateAchievementImageForSharing.dart';
 
 class AchievementDetailsWidget extends StatelessWidget {
   final Map<String, dynamic> achievement;
+  final bool? friendsAchievement;
 
-  const AchievementDetailsWidget({Key? key, required this.achievement})
+  const AchievementDetailsWidget(
+      {Key? key, required this.achievement, this.friendsAchievement = false})
       : super(key: key);
 
   void _shareAchievement(BuildContext context, int levelCriteria) async {
@@ -53,6 +55,9 @@ class AchievementDetailsWidget extends StatelessWidget {
     final level =
         adjustedLevelIndex < levels.length ? levels[adjustedLevelIndex] : null;
 
+    final bool showShareButton =
+        achievement['unlocked'] && !friendsAchievement! ? true : false;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
       child: Column(
@@ -68,10 +73,13 @@ class AchievementDetailsWidget extends StatelessWidget {
                 icon: const Icon(Icons.close, color: Colors.white),
               ),
               IconButton(
-                onPressed: () {
-                  _shareAchievement(context, level["criteria"]);
-                },
-                icon: const Icon(Icons.ios_share, color: Colors.white),
+                onPressed: showShareButton
+                    ? () {
+                        _shareAchievement(context, level["criteria"]);
+                      }
+                    : null,
+                icon: Icon(Icons.ios_share,
+                    color: showShareButton ? Colors.white : Colors.transparent),
               ),
             ],
           ),
