@@ -3,10 +3,12 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:audio_session/audio_session.dart';
 import 'package:bubble_box/bubble_box.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/checkConceptCheckpointCompleted.dart';
 import 'package:eureka_app/apis/checkGreetingsAndIntroCompleted.dart';
+import 'package:eureka_app/apis/markLessonCompletion.dart';
 import 'package:eureka_app/apis/transcribeAudio.dart';
 import 'package:eureka_app/screens/mistakesCorrectionScreen.dart';
 import 'package:eureka_app/services/webSocketService.dart';
@@ -18,9 +20,11 @@ import 'package:eureka_app/widgets/conversationScreen.dart';
 import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdfx/pdfx.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
@@ -76,6 +80,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   bool skipAudioTutor = false;
   bool responseStreaming = false;
   bool _isLoading = false;
+  bool showAfterGreetingContinueButton = false;
+  bool showCheckpointContinueButton = false;
 
   // String conceptName = "How Nutrients are Replenished in the Soil";
   // String conceptText =
@@ -94,6 +100,10 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       ],
       "blackboard_text":
           "Pressure in Fluids: \n\\[ P = \\rho gh \\]  \n\\[ P \\propto h \\] (More depth = More pressure)",
+      "images": [
+        "https://gluta.s3.ap-south-1.amazonaws.com/book-images/Science/6_Fig.+4.12.jpeg",
+        "https://gluta.s3.ap-south-1.amazonaws.com/book-images/Science/6_Fig.+4.2.jpeg"
+      ],
       "theory":
           "Fluids exert pressure not only at the base but also on the walls of their container. The pressure at any point in a fluid is given by \\[ P = \\rho gh \\], where \\( h \\) is the height of the fluid column."
     },
@@ -106,6 +116,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       ],
       "blackboard_text":
           "Fluid Pressure is Isotropic: \n\\[ P_1 = P_2 = P_3 \\] at same depth",
+      "images": [
+        "https://gluta.s3.ap-south-1.amazonaws.com/book-images/Science/6_Fig.+4.2.jpeg"
+      ],
       "theory":
           "Fluids exert pressure equally in all directions at a given depth. This isotropic property is fundamental in applications like hydraulic systems and explains the uniform force distribution in underwater environments."
     },
@@ -118,6 +131,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       ],
       "blackboard_text":
           "Buoyancy: \n\\[ F_b = \\rho_{fluid} \\times V_{displaced} \\times g \\]  \nWhy do objects feel lighter in water?",
+      "image": "",
       "theory":
           "Buoyancy is the upward force exerted by a fluid on an object. This force opposes gravity and depends on the weight of the displaced fluid. If the buoyant force is greater than the object's weight, it floats."
     },
@@ -247,6 +261,182 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     });
   }
 
+  void _showAllConversations(BuildContext context) {
+    final displayedConversations = List.from(conversations);
+
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+        builder: (BuildContext context) {
+          return !skipAudioTutor && displayedConversations.isNotEmpty
+              ? Flexible(
+                  child: Padding(
+                      padding: EdgeInsets.only(top: 60),
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        itemCount: displayedConversations.length,
+                        itemBuilder: (context, index) {
+                          final conversation = conversations[index];
+
+                          return conversation['role'] == "user"
+                              ? SizedBox.shrink()
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 8.0, horizontal: 12.0),
+                                  child: othersMessage(conversation["text"]));
+                        },
+                      )))
+              : Spacer();
+        });
+  }
+
+  void _showMenuToSwitch(BuildContext context) {
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+        builder: (BuildContext context) {
+          return Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ChicletAnimatedButton(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+
+                      setState(() {
+                        showContinuationButtons = false;
+                      });
+                      moveToNextCheckpoint();
+                    },
+                    buttonType: ChicletButtonTypes.roundedRectangle,
+                    width: double.infinity,
+                    height: 50,
+                    buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                    backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                    child: Text(
+                      "CONTINUE WITH AI TUTOR",
+                      style: GoogleFonts.raleway(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  ChicletOutlinedAnimatedButton(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ConversationScreen(
+                            conceptId: widget.conceptId,
+                            conceptName: widget.conceptName,
+                            maxXP: widget.maxXP,
+                          ),
+                        ),
+                      ).then((value) {
+                        afterStoryConversation(value);
+                      });
+                    },
+                    buttonType: ChicletButtonTypes.roundedRectangle,
+                    width: double.infinity,
+                    height: 50,
+                    borderColor: Colors.transparent,
+                    // buttonColor: Colors.transparent,
+                    backgroundColor: Colors.transparent,
+                    child: Text(
+                      "START STORY MODE",
+                      style: GoogleFonts.raleway(
+                        color: Colors.red,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  ChicletOutlinedAnimatedButton(
+                    onPressed: () {
+                      player.pausePlayer();
+                      HapticFeedback.lightImpact();
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MCQQuestions(
+                            conceptId: widget.conceptId,
+                            conceptName: widget.conceptName,
+                            maxXP: widget.maxXP,
+                          ),
+                        ),
+                      ).then((value) async {
+                        if (value['completed']) {
+                          if (!value.containsKey('incorrectQuestions')) {
+                            final Map<String, dynamic>
+                                lessonCompletionResponse =
+                                await markLessonCompletion(
+                                    lessonId: widget.conceptId,
+                                    attemptTime: value['attemptTime'],
+                                    timeToComplete: value['timeToComplete'],
+                                    xpGained: value['xpGained'],
+                                    accuracy: value['accuracy'],
+                                    bookId: value['bookId'],
+                                    report: value['lessonReport'],
+                                    correctlyAnswered:
+                                        value['correctlyAnswered'],
+                                    mistakesCorrected: 0);
+                            value['lessonCompletionResponse'] =
+                                lessonCompletionResponse;
+                          }
+
+                          setState(() {
+                            questionsAttemptedDetails = value;
+                          });
+                        }
+                        if (skipAudioTutor) {
+                          setState(() {
+                            showContinuationButtons = false;
+                            if (value['completed']) {
+                              showJumpToQuestionsButton = false;
+                              if (value.containsKey('incorrectQuestions') &&
+                                  value['incorrectQuestions'].isNotEmpty) {
+                                showMistakeCorrectionButton = true;
+                              } else {
+                                showCheckResultButton = true;
+                              }
+                            } else {
+                              showJumpToQuestionsButton = true;
+                            }
+                          });
+                        } else {
+                          afterQuestionsConversation(value);
+                        }
+                      });
+                    },
+                    buttonType: ChicletButtonTypes.roundedRectangle,
+                    width: double.infinity,
+                    height: 50,
+                    borderColor: Colors.transparent,
+                    // buttonColor: Colors.transparent,
+                    backgroundColor: Colors.transparent,
+                    child: Text(
+                      "JUMP TO QUESTIONS",
+                      style: GoogleFonts.raleway(
+                        color: Colors.red,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ));
+        });
+  }
+
   Widget othersMessage(final conversation) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,53 +484,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                         blockSpacing: 8.0,
                       ),
                     ))))
-      ],
-    );
-  }
-
-  Widget yourMessage(final conversation) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Flexible(
-            child: BubbleBox(
-                maxWidth: double.infinity,
-                shape: BubbleShapeBorder(
-                    border: BubbleBoxBorder(
-                      color: Colors.grey.shade700,
-                      width: 3,
-                    ),
-                    radius: BorderRadius.circular(12),
-                    position: const BubblePosition.start(10),
-                    direction: BubbleDirection.right,
-                    arrowHeight: 10),
-                backgroundColor: Color.fromRGBO(19, 36, 22, 1),
-                child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: MarkdownBody(
-                      selectable: true,
-                      data: conversation!,
-                      builders: {
-                        'latex': LatexElementBuilder(
-                          textStyle: GoogleFonts.raleway(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                      },
-                      extensionSet: md.ExtensionSet(
-                        [LatexBlockSyntax()],
-                        [LatexInlineSyntax()],
-                      ),
-                      styleSheet: MarkdownStyleSheet(
-                        p: GoogleFonts.raleway(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                        blockSpacing: 8.0,
-                      ),
-                    )))),
       ],
     );
   }
@@ -479,6 +622,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       // }
       Uint8List silence = generateSilence(durationMs: 1500); // 300ms silence
       player.foodSink?.add(FoodData(silence));
+      player.foodSink?.close();
       setState(() {
         _isLoading = false;
         if (conversations.isNotEmpty &&
@@ -516,8 +660,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     bool greetingsCompleted = result['greetingsCompleted'] ?? false;
 
     if (greetingsCompleted) {
-      greetingDone = true;
-      startConversation();
+      // greetingDone = true;
+      setState(() {
+        showAfterGreetingContinueButton = true;
+      });
+      // startConversation();
     }
   }
 
@@ -624,9 +771,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         showContinuationButtons = false;
       });
     }
-    setState(() {
-      questionsAttemptedDetails = questionCompletion;
-    });
+    // setState(() {
+    //   questionsAttemptedDetails = questionCompletion;
+    // });
     conversationItemCreationForUser(contentText);
   }
 
@@ -751,9 +898,12 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     return Column(
       children: [
         ChicletAnimatedButton(
-          onPressed: _toggleRecording,
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            _toggleRecording();
+          },
           buttonType: ChicletButtonTypes.roundedRectangle,
-          width: 100,
+          width: 50,
           height: 50,
           buttonColor:
               isRecording ? Colors.red : Color.fromRGBO(187, 160, 2, 1),
@@ -870,6 +1020,64 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     );
   }
 
+  double getProgress() {
+    return (currentCheckpointIndex + 1) / conceptCheckpoints.length;
+  }
+
+  void _showImageDialog(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Close the modal by tapping outside
+      builder: (context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(16),
+
+          backgroundColor:
+              Color.fromRGBO(19, 31, 36, 1), // Make background transparent
+          child: GestureDetector(
+              onTap: () => Navigator.pop(context), // Close when tapping outside
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width *
+                    1, // 90% of screen width
+                height: MediaQuery.of(context).size.height *
+                    0.7, // 70% of screen height
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Padding(
+                        padding: EdgeInsets.all(20),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: PhotoView(
+                            imageProvider:
+                                NetworkImage(imageUrl), // Load image from URL
+                            backgroundDecoration:
+                                BoxDecoration(color: Colors.transparent),
+                            minScale: PhotoViewComputedScale
+                                .contained, // Fit image initially
+                            maxScale: PhotoViewComputedScale.covered *
+                                2.0, // Allow zooming
+                            heroAttributes: PhotoViewHeroAttributes(
+                                tag: imageUrl), // Smooth transition effect
+                          ),
+                        )),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: IconButton(
+                        icon: Icon(Icons.close, color: Colors.white, size: 30),
+                        onPressed: () =>
+                            Navigator.pop(context), // Close the modal
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayedConversations = List.from(conversations);
@@ -877,10 +1085,27 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     return Scaffold(
       backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       appBar: AppBar(
-        title: Text(
-          widget.conceptName,
-          style: GoogleFonts.raleway(color: Colors.white),
-        ),
+        title:
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Expanded(
+            // Wrap the Text widget with Expanded
+            child: Text(
+              widget.conceptName,
+              style: GoogleFonts.raleway(color: Colors.white),
+              overflow:
+                  TextOverflow.ellipsis, // Add ellipsis (...) when overflowing
+              maxLines: 1, // Limit to a single line
+            ),
+          ),
+          GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _showMenuToSwitch(context);
+              },
+              child: Icon(
+                Icons.more_vert_outlined,
+              ))
+        ]),
         iconTheme: IconThemeData(
           color: Colors.grey,
         ),
@@ -888,156 +1113,444 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      body: Column(
-        children: [
-          // Always visible image panel
-          SizedBox(
-            height: 20,
-          ),
-          !greetingDone
-              ? Center(
+      body: Stack(children: [
+        Column(
+          children: [
+            Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final availableWidth = constraints.maxWidth;
+                    return Stack(
+                      children: [
+                        // Background Bar
+                        Container(
+                          height: 16.0,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                        ),
+                        // Filled Bar
+                        AnimatedContainer(
+                          duration: const Duration(
+                              milliseconds: 300), // Animation duration
+                          curve: Curves.easeInOut, // Animation curve
+                          width: availableWidth *
+                              getProgress(), // Dynamically adjust width
+                          height: 16.0,
+                          decoration: BoxDecoration(
+                            color: Color.fromRGBO(255, 217, 0, 1),
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                )),
+            SizedBox(
+              height: 20,
+            ),
+            if (!greetingDone)
+              Center(
                   child: ClipRRect(
-                  borderRadius: BorderRadius.circular(150),
+                borderRadius: BorderRadius.circular(150),
+                child: Container(
+                    color: Color.fromRGBO(255, 217, 0, 1),
+                    child: Image.asset(
+                      getAvatar("avatar-9")["imagePath"]!,
+                      height: 150,
+                      fit: BoxFit.scaleDown,
+                    )),
+              )),
+            if (!greetingDone)
+              !skipAudioTutor && displayedConversations.isNotEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8.0, horizontal: 12.0),
+                      child: GestureDetector(
+                          onTap: () {
+                            _showAllConversations(context);
+                          },
+                          child: othersMessage(
+                              displayedConversations.last["text"])))
+                  : Spacer(),
+            if (greetingDone)
+              Expanded(
                   child: Container(
-                      color: Colors.amber,
-                      child: Image.asset(
-                        getAvatar("avatar-9")["imagePath"]!,
-                        height: 150,
-                        fit: BoxFit.scaleDown,
-                      )),
-                ))
-              : Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16),
-                  width: double.infinity,
-                  constraints: BoxConstraints(minHeight: 150),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: Center(
-                      child: Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 20),
-                          child: MarkdownBody(
-                            selectable: false,
-                            data: conceptCheckpoints[currentCheckpointIndex]
-                                ['blackboard_text'],
-                            builders: {
-                              'latex': LatexElementBuilder(
-                                textStyle: GoogleFonts.raleway(
-                                  color: Colors.white,
-                                  fontSize: 16,
+                // margin: EdgeInsets.symmetric(horizontal: 16),
+                // decoration: BoxDecoration(
+                //   color: Colors.black,
+                //   border: Border.all(color: Colors.white, width: 2),
+                // ),
+                child: Expanded(
+                    child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Blackboard Text
+                      !skipAudioTutor && displayedConversations.isNotEmpty
+                          // ? Container(
+                          //     constraints: BoxConstraints(
+                          //       minHeight:
+                          //           MediaQuery.of(context).size.height * 0.2,
+                          //       // 15% of screen height as minimum height
+                          //     ),
+                          //     padding: const EdgeInsets.symmetric(
+                          //         vertical: 8.0, horizontal: 12.0),
+                          //     child: GestureDetector(
+                          //       onTap: () {
+                          //         _showAllConversations(context);
+                          //       },
+                          //       child: othersMessage(
+                          //           displayedConversations.last["text"]),
+                          //     ),
+                          //   )
+                          ? AnimatedSize(
+                              duration: Duration(
+                                  milliseconds:
+                                      300), // Smooth animation duration
+                              curve: Curves.easeInOut, // Natural easing curve
+                              child: Container(
+                                constraints: BoxConstraints(
+                                  minHeight:
+                                      MediaQuery.of(context).size.height * 0.2,
+                                  // 15% of screen height as minimum height
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0, horizontal: 12.0),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _showAllConversations(context);
+                                  },
+                                  child: othersMessage(
+                                      displayedConversations.last["text"]),
                                 ),
                               ),
-                            },
-                            extensionSet: md.ExtensionSet(
-                              [LatexBlockSyntax()],
-                              [LatexInlineSyntax()],
-                            ),
-                            styleSheet: MarkdownStyleSheet(
-                              p: GoogleFonts.raleway(
+                            )
+                          : Spacer(),
+                      Divider(
+                        thickness: 0.5,
+                        color: Colors.grey.shade700,
+                      ),
+                      Center(
+                          child: Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        child: MarkdownBody(
+                          selectable: false,
+                          data: conceptCheckpoints[currentCheckpointIndex]
+                              ['blackboard_text'],
+                          builders: {
+                            'latex': LatexElementBuilder(
+                              textStyle: GoogleFonts.raleway(
                                 color: Colors.white,
                                 fontSize: 16,
                               ),
-                              blockSpacing: 8.0,
                             ),
-                          )))),
-          // Scrollable content
-          SizedBox(
-            height: 16,
-          ),
-          if (skipAudioTutor)
-            Expanded(
-                child: Center(
-                    child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        margin:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: Color.fromRGBO(255, 217, 0, 1)),
-                        child: Row(children: [
-                          Icon(
-                            Icons.network_check_rounded,
-                            size: 50,
+                          },
+                          extensionSet: md.ExtensionSet(
+                            [LatexBlockSyntax()],
+                            [LatexInlineSyntax()],
                           ),
-                          SizedBox(
-                            width: 20,
-                          ),
-                          Expanded(
-                              child: Text(
-                            "Our AI Tutor is currently experiencing lot of traffic, please start with story mode or questions directly.",
-                            style: GoogleFonts.raleway(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700),
-                          ))
-                        ])))),
-          !skipAudioTutor && displayedConversations.isNotEmpty
-              ? Flexible(
-                  child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: displayedConversations.length,
-                  itemBuilder: (context, index) {
-                    final conversation = conversations[index];
-
-                    return conversation['role'] == "user"
-                        ? SizedBox.shrink()
-                        : Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8.0, horizontal: 12.0),
-                            child: othersMessage(conversation["text"]));
-                  },
-                ))
-              : Spacer(),
-          SizedBox(height: 16),
-          if (showContinuationButtons)
-            Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!skipAudioTutor)
-                      ChicletAnimatedButton(
-                        onPressed: () {
-                          setState(() {
-                            showContinuationButtons = false;
-                          });
-                          moveToNextCheckpoint();
-                        },
-                        buttonType: ChicletButtonTypes.roundedRectangle,
-                        width: double.infinity,
-                        height: 50,
-                        buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                        backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                        child: Text(
-                          "CONTINUE WITH AI TUTOR",
-                          style: GoogleFonts.raleway(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                          styleSheet: MarkdownStyleSheet(
+                            p: GoogleFonts.raleway(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                            blockSpacing: 8.0,
                           ),
                         ),
-                      ),
+                      )),
 
-                    SizedBox(height: 12),
+                      // Image Inside Blackboard (If Present)
+                      // if (conceptCheckpoints[currentCheckpointIndex]
+                      //         .containsKey("image") &&
+                      //     conceptCheckpoints[currentCheckpointIndex]["image"]!
+                      //         .isNotEmpty)
+                      //   GestureDetector(
+                      //     onTap: () => _showImageDialog(
+                      //       context,
+                      //       conceptCheckpoints[currentCheckpointIndex]
+                      //           ["image"]!,
+                      //     ),
+                      //     child: Padding(
+                      //       padding: EdgeInsets.all(10),
+                      //       child: Flexible(
+                      //           child: Image.network(
+                      //         conceptCheckpoints[currentCheckpointIndex]
+                      //             ["image"]!,
+                      //         fit: BoxFit.contain,
+                      //         width: double.infinity,
+                      //         loadingBuilder:
+                      //             (context, child, loadingProgress) {
+                      //           if (loadingProgress == null) return child;
+                      //           return Center(
+                      //               child: CircularProgressIndicator());
+                      //         },
+                      //         errorBuilder: (context, error, stackTrace) =>
+                      //             Center(
+                      //           child: Icon(Icons.image_not_supported,
+                      //               color: Colors.grey, size: 50),
+                      //         ),
+                      //       )),
+                      //     ),
+                      //   ),
+                      if (conceptCheckpoints[currentCheckpointIndex]
+                              .containsKey("images") &&
+                          conceptCheckpoints[currentCheckpointIndex]["images"]!
+                              .isNotEmpty) ...[
+                        Column(
+                          children: conceptCheckpoints[currentCheckpointIndex]
+                                  ["images"]!
+                              .map<Widget>((imageUrl) {
+                            return GestureDetector(
+                              onTap: () => _showImageDialog(context, imageUrl),
+                              child: Padding(
+                                padding: EdgeInsets.all(10),
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxHeight:
+                                        400, // Adjust this value dynamically if needed
+                                  ),
+                                  child: Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.contain,
+                                    width: double.infinity,
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                          child: CircularProgressIndicator());
+                                    },
+                                    errorBuilder:
+                                        (context, error, stackTrace) => Center(
+                                      child: Icon(Icons.image_not_supported,
+                                          color: Colors.grey, size: 50),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                )),
+              )),
+            SizedBox(
+              height: 20,
+            ),
+// Scrollable content
+            if (showContinuationButtons ||
+                showJumpToQuestionsButton ||
+                showMistakeCorrectionButton ||
+                showCheckResultButton)
+              Spacer(),
 
-                    // 🔄 Cancel Button
-                    if (storyModeStatus.isEmpty && !skipAudioTutor)
+            if (skipAudioTutor)
+              Expanded(
+                  child: Center(
+                      child: Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                          margin:
+                              EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Color.fromRGBO(255, 217, 0, 1)),
+                          child: Row(children: [
+                            Icon(
+                              Icons.network_check_rounded,
+                              size: 50,
+                            ),
+                            SizedBox(
+                              width: 20,
+                            ),
+                            Expanded(
+                                child: Text(
+                              "Our AI Tutor is currently experiencing lot of traffic, please start with story mode or questions directly.",
+                              style: GoogleFonts.raleway(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700),
+                            ))
+                          ])))),
+            // !skipAudioTutor && displayedConversations.isNotEmpty
+            //     ? Expanded(
+            //         child: Padding(
+            //             padding: const EdgeInsets.symmetric(
+            //                 vertical: 8.0, horizontal: 12.0),
+            //             child:
+            //                 othersMessage(displayedConversations.last["text"])))
+            //     // Flexible(
+            //     //     child: ListView.builder(
+            //     //     controller: _scrollController,
+            //     //     itemCount: displayedConversations.length,
+            //     //     itemBuilder: (context, index) {
+            //     //       final conversation = conversations[index];
+
+            //     //       return conversation['role'] == "user"
+            //     //           ? SizedBox.shrink()
+            //     //           : Padding(
+            //     //               padding: const EdgeInsets.symmetric(
+            //     //                   vertical: 8.0, horizontal: 12.0),
+            //     //               child: othersMessage(conversation["text"]));
+            //     //     },
+            //     //   ))
+            //     : Spacer(),
+            if (showContinuationButtons)
+              Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!skipAudioTutor)
+                        ChicletAnimatedButton(
+                          onPressed: () {
+                            setState(() {
+                              showContinuationButtons = false;
+                            });
+                            moveToNextCheckpoint();
+                          },
+                          buttonType: ChicletButtonTypes.roundedRectangle,
+                          width: double.infinity,
+                          height: 50,
+                          buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                          backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                          child: Text(
+                            "CONTINUE WITH AI TUTOR",
+                            style: GoogleFonts.raleway(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+
+                      SizedBox(height: 12),
+
+                      // 🔄 Cancel Button
+                      if (storyModeStatus.isEmpty && !skipAudioTutor)
+                        ChicletOutlinedAnimatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ConversationScreen(
+                                  conceptId: widget.conceptId,
+                                  conceptName: widget.conceptName,
+                                  maxXP: widget.maxXP,
+                                ),
+                              ),
+                            ).then((value) {
+                              afterStoryConversation(value);
+                            });
+                          },
+                          buttonType: ChicletButtonTypes.roundedRectangle,
+                          width: double.infinity,
+                          height: 50,
+                          borderColor: Colors.transparent,
+                          // buttonColor: Colors.transparent,
+                          backgroundColor: Colors.transparent,
+                          child: Text(
+                            "START STORY MODE",
+                            style: GoogleFonts.raleway(
+                              color: Colors.red,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      if (storyModeStatus.isEmpty && skipAudioTutor)
+                        ChicletAnimatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ConversationScreen(
+                                  conceptId: widget.conceptId,
+                                  conceptName: widget.conceptName,
+                                  maxXP: widget.maxXP,
+                                ),
+                              ),
+                            ).then((value) {
+                              setState(() {
+                                showJumpToQuestionsButton = true;
+                                showContinuationButtons = false;
+                              });
+                            });
+                          },
+                          buttonType: ChicletButtonTypes.roundedRectangle,
+                          width: double.infinity,
+                          height: 50,
+                          buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                          backgroundColor: Color.fromRGBO(255, 217, 0,
+                              1), // buttonColor: Colors.transparent,
+                          child: Text(
+                            "START STORY MODE",
+                            style: GoogleFonts.raleway(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                       ChicletOutlinedAnimatedButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ConversationScreen(
+                              builder: (context) => MCQQuestions(
                                 conceptId: widget.conceptId,
                                 conceptName: widget.conceptName,
                                 maxXP: widget.maxXP,
                               ),
                             ),
-                          ).then((value) {
-                            afterStoryConversation(value);
+                          ).then((value) async {
+                            if (value['completed']) {
+                              if (!value.containsKey('incorrectQuestions')) {
+                                final Map<String, dynamic>
+                                    lessonCompletionResponse =
+                                    await markLessonCompletion(
+                                        lessonId: widget.conceptId,
+                                        attemptTime: value['attemptTime'],
+                                        timeToComplete: value['timeToComplete'],
+                                        xpGained: value['xpGained'],
+                                        accuracy: value['accuracy'],
+                                        bookId: value['bookId'],
+                                        report: value['lessonReport'],
+                                        correctlyAnswered:
+                                            value['correctlyAnswered'],
+                                        mistakesCorrected: 0);
+                                value['lessonCompletionResponse'] =
+                                    lessonCompletionResponse;
+                              }
+
+                              setState(() {
+                                questionsAttemptedDetails = value;
+                              });
+                            }
+                            if (skipAudioTutor) {
+                              setState(() {
+                                questionsAttemptedDetails = value;
+                                showContinuationButtons = false;
+                                if (value['completed']) {
+                                  showJumpToQuestionsButton = false;
+                                  if (value.containsKey('incorrectQuestions') &&
+                                      value['incorrectQuestions'].isNotEmpty) {
+                                    showMistakeCorrectionButton = true;
+                                  } else {
+                                    showCheckResultButton = true;
+                                  }
+                                } else {
+                                  showJumpToQuestionsButton = true;
+                                }
+                              });
+                            } else {
+                              afterQuestionsConversation(value);
+                            }
                           });
                         },
                         buttonType: ChicletButtonTypes.roundedRectangle,
@@ -1047,7 +1560,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                         // buttonColor: Colors.transparent,
                         backgroundColor: Colors.transparent,
                         child: Text(
-                          "START STORY MODE",
+                          "JUMP TO QUESTIONS",
                           style: GoogleFonts.raleway(
                             color: Colors.red,
                             fontSize: 16,
@@ -1055,33 +1568,81 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                           ),
                         ),
                       ),
-                    if (storyModeStatus.isEmpty && skipAudioTutor)
+                    ],
+                  )),
+
+            if (showJumpToQuestionsButton)
+              Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       ChicletAnimatedButton(
                         onPressed: () {
+                          HapticFeedback.lightImpact();
+
+                          setState(() {
+                            showJumpToQuestionsButton = false;
+                          });
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ConversationScreen(
+                              builder: (context) => MCQQuestions(
                                 conceptId: widget.conceptId,
                                 conceptName: widget.conceptName,
                                 maxXP: widget.maxXP,
                               ),
                             ),
-                          ).then((value) {
-                            setState(() {
-                              showJumpToQuestionsButton = true;
-                              showContinuationButtons = false;
-                            });
+                          ).then((value) async {
+                            if (value['completed']) {
+                              if (!value.containsKey('incorrectQuestions')) {
+                                final Map<String, dynamic>
+                                    lessonCompletionResponse =
+                                    await markLessonCompletion(
+                                        lessonId: widget.conceptId,
+                                        attemptTime: value['attemptTime'],
+                                        timeToComplete: value['timeToComplete'],
+                                        xpGained: value['xpGained'],
+                                        accuracy: value['accuracy'],
+                                        bookId: value['bookId'],
+                                        report: value['lessonReport'],
+                                        correctlyAnswered:
+                                            value['correctlyAnswered'],
+                                        mistakesCorrected: 0);
+                                value['lessonCompletionResponse'] =
+                                    lessonCompletionResponse;
+                              }
+
+                              setState(() {
+                                questionsAttemptedDetails = value;
+                              });
+                            }
+                            if (skipAudioTutor) {
+                              setState(() {
+                                if (value['completed']) {
+                                  showJumpToQuestionsButton = false;
+                                  if (value['incorrectQuestions'].length > 0) {
+                                    showMistakeCorrectionButton = true;
+                                  } else {
+                                    showCheckResultButton = true;
+                                  }
+                                } else {
+                                  showJumpToQuestionsButton = true;
+                                }
+                              });
+                            } else {
+                              afterQuestionsConversation(value);
+                            }
                           });
                         },
                         buttonType: ChicletButtonTypes.roundedRectangle,
                         width: double.infinity,
                         height: 50,
                         buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                        backgroundColor: Color.fromRGBO(
-                            255, 217, 0, 1), // buttonColor: Colors.transparent,
+                        backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                         child: Text(
-                          "START STORY MODE",
+                          "START QUESTIONS",
                           style: GoogleFonts.raleway(
                             color: Colors.black,
                             fontSize: 16,
@@ -1089,226 +1650,182 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                           ),
                         ),
                       ),
-                    ChicletOutlinedAnimatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MCQQuestions(
-                              conceptId: widget.conceptId,
-                              conceptName: widget.conceptName,
-                              maxXP: widget.maxXP,
+                    ],
+                  )),
+
+            if (showMistakeCorrectionButton)
+              Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ChicletAnimatedButton(
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+
+                          setState(() {
+                            showJumpToQuestionsButton = false;
+                          });
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MistakesCorrectionScreen(
+                                    conceptName: conceptName,
+                                    conceptId: widget.conceptId,
+                                    totalXp:
+                                        questionsAttemptedDetails['totalXp'],
+                                    timeTaken:
+                                        questionsAttemptedDetails['timeTaken'],
+                                    accuracy:
+                                        questionsAttemptedDetails['accuracy'],
+                                    incorrectQuestions:
+                                        questionsAttemptedDetails[
+                                            'incorrectQuestions']),
+                              )).then((value) async {
+                            final Map<String, dynamic>
+                                lessonCompletionResponse =
+                                await markLessonCompletion(
+                                    lessonId: widget.conceptId,
+                                    attemptTime: questionsAttemptedDetails[
+                                        'attemptTime'],
+                                    timeToComplete:
+                                        questionsAttemptedDetails[
+                                            'timeToComplete'],
+                                    xpGained:
+                                        questionsAttemptedDetails['totalXp'],
+                                    accuracy:
+                                        questionsAttemptedDetails['accuracy'],
+                                    bookId: questionsAttemptedDetails['bookId'],
+                                    report: questionsAttemptedDetails['report'],
+                                    correctlyAnswered:
+                                        questionsAttemptedDetails[
+                                            'correctlyAnswered'],
+                                    mistakesCorrected: value);
+
+                            setState(() {
+                              questionsAttemptedDetails[
+                                      'lessonCompletionResponse'] =
+                                  lessonCompletionResponse;
+                            });
+                            if (skipAudioTutor) {
+                              setState(() {
+                                showMistakeCorrectionButton = false;
+                                showCheckResultButton = true;
+                              });
+                            } else {
+                              afterMistakesCorrectionConversation();
+                            }
+                          });
+                        },
+                        buttonType: ChicletButtonTypes.roundedRectangle,
+                        width: double.infinity,
+                        height: 50,
+                        buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                        backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                        child: Text(
+                          "CORRECT YOUR MISTAKES",
+                          style: GoogleFonts.raleway(
+                            color: Colors.black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )),
+            if (showCheckResultButton)
+              Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ChicletAnimatedButton(
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+
+                          setState(() {
+                            showJumpToQuestionsButton = false;
+                          });
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ConceptResultScreen(
+                                  conceptName: conceptName,
+                                  totalXp: questionsAttemptedDetails['totalXp'],
+                                  timeTaken:
+                                      questionsAttemptedDetails['timeTaken'],
+                                  accuracy:
+                                      questionsAttemptedDetails['accuracy'],
+                                  lessonCompletionResponse:
+                                      questionsAttemptedDetails[
+                                          'lessonCompletionResponse'],
+                                ),
+                              ));
+                        },
+                        buttonType: ChicletButtonTypes.roundedRectangle,
+                        width: double.infinity,
+                        height: 50,
+                        buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                        backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                        child: Text(
+                          "CHECK RESULTS",
+                          style: GoogleFonts.raleway(
+                            color: Colors.black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )),
+          ],
+        ),
+        !showContinuationButtons &&
+                !showJumpToQuestionsButton &&
+                !showMistakeCorrectionButton &&
+                !showCheckResultButton &&
+                !skipAudioTutor &&
+                !showAfterGreetingContinueButton
+            ? Positioned(
+                bottom: 20, left: 0, right: 0, child: _buildRecordingButton())
+            : Positioned(
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ChicletAnimatedButton(
+                          onPressed: () {
+                            setState(() {
+                              greetingDone = true;
+                              showAfterGreetingContinueButton = false;
+                            });
+                            startConversation();
+                          },
+                          buttonType: ChicletButtonTypes.roundedRectangle,
+                          width: double.infinity,
+                          height: 50,
+                          buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                          backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                          child: Text(
+                            "CONTINUE",
+                            style: GoogleFonts.raleway(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ).then((value) {
-                          if (skipAudioTutor) {
-                            setState(() {
-                              questionsAttemptedDetails = value;
-                              showContinuationButtons = false;
-                              if (value['completed']) {
-                                showJumpToQuestionsButton = false;
-                                if (value.containsKey('incorrectQuestions') &&
-                                    value['incorrectQuestions'].isNotEmpty) {
-                                  showMistakeCorrectionButton = true;
-                                } else {
-                                  showCheckResultButton = true;
-                                }
-                              } else {
-                                showJumpToQuestionsButton = true;
-                              }
-                            });
-                          } else {
-                            afterQuestionsConversation(value);
-                          }
-                        });
-                      },
-                      buttonType: ChicletButtonTypes.roundedRectangle,
-                      width: double.infinity,
-                      height: 50,
-                      borderColor: Colors.transparent,
-                      // buttonColor: Colors.transparent,
-                      backgroundColor: Colors.transparent,
-                      child: Text(
-                        "JUMP TO QUESTIONS",
-                        style: GoogleFonts.raleway(
-                          color: Colors.red,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
                         ),
-                      ),
-                    ),
-                  ],
-                )),
-
-          if (showJumpToQuestionsButton)
-            Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ChicletAnimatedButton(
-                      onPressed: () {
-                        setState(() {
-                          showJumpToQuestionsButton = false;
-                        });
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MCQQuestions(
-                              conceptId: widget.conceptId,
-                              conceptName: widget.conceptName,
-                              maxXP: widget.maxXP,
-                            ),
-                          ),
-                        ).then((value) {
-                          if (skipAudioTutor) {
-                            setState(() {
-                              questionsAttemptedDetails = value;
-                              if (value['completed']) {
-                                showJumpToQuestionsButton = false;
-                                if (value['incorrectQuestions'].length > 0) {
-                                  showMistakeCorrectionButton = true;
-                                } else {
-                                  showCheckResultButton = true;
-                                }
-                              } else {
-                                showJumpToQuestionsButton = true;
-                              }
-                            });
-                          } else {
-                            afterQuestionsConversation(value);
-                          }
-                        });
-                      },
-                      buttonType: ChicletButtonTypes.roundedRectangle,
-                      width: double.infinity,
-                      height: 50,
-                      buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                      backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                      child: Text(
-                        "START QUESTIONS",
-                        style: GoogleFonts.raleway(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                )),
-
-          if (showMistakeCorrectionButton)
-            Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ChicletAnimatedButton(
-                      onPressed: () {
-                        setState(() {
-                          showJumpToQuestionsButton = false;
-                        });
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MistakesCorrectionScreen(
-                                conceptName: conceptName,
-                                conceptId: widget.conceptId,
-                                totalXp: questionsAttemptedDetails['totalXp'],
-                                timeTaken:
-                                    questionsAttemptedDetails['timeTaken'],
-                                accuracy: questionsAttemptedDetails['accuracy'],
-                                incorrectQuestions: questionsAttemptedDetails[
-                                    'incorrectQuestions'],
-                                lessonCompletionResponse:
-                                    questionsAttemptedDetails[
-                                        'lessonCompletionResponse'],
-                              ),
-                            )).then((value) {
-                          if (skipAudioTutor) {
-                            setState(() {
-                              showMistakeCorrectionButton = false;
-                              showCheckResultButton = true;
-                            });
-                          } else {
-                            afterMistakesCorrectionConversation();
-                          }
-                        });
-                      },
-                      buttonType: ChicletButtonTypes.roundedRectangle,
-                      width: double.infinity,
-                      height: 50,
-                      buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                      backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                      child: Text(
-                        "CORRECT YOUR MISTAKES",
-                        style: GoogleFonts.raleway(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                )),
-          if (showCheckResultButton)
-            Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ChicletAnimatedButton(
-                      onPressed: () {
-                        setState(() {
-                          showJumpToQuestionsButton = false;
-                        });
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ConceptResultScreen(
-                                conceptName: conceptName,
-                                totalXp: questionsAttemptedDetails['totalXp'],
-                                timeTaken:
-                                    questionsAttemptedDetails['timeTaken'],
-                                accuracy: questionsAttemptedDetails['accuracy'],
-                                lessonCompletionResponse:
-                                    questionsAttemptedDetails[
-                                        'lessonCompletionResponse'],
-                              ),
-                            ));
-                      },
-                      buttonType: ChicletButtonTypes.roundedRectangle,
-                      width: double.infinity,
-                      height: 50,
-                      buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                      backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                      child: Text(
-                        "CHECK RESULTS",
-                        style: GoogleFonts.raleway(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                )),
-
-          if (!showContinuationButtons &&
-              !showJumpToQuestionsButton &&
-              !showMistakeCorrectionButton &&
-              !showCheckResultButton &&
-              !skipAudioTutor)
-            _buildRecordingButton(),
-
-          SizedBox(
-            height: 20,
-          )
-        ],
-      ),
+                      ],
+                    )),
+              ),
+      ]),
     );
   }
 }

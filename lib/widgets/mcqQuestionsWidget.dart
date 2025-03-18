@@ -283,25 +283,31 @@ class _MCQQuestionsState extends State<MCQQuestions> {
     } else {
       final timeTaken = _calculateTimeTaken();
       final accuracy = _calculateAccuracy();
-      final Map<String, dynamic> lessonCompletionResponse =
-          await markLessonCompletion(
-              lessonId: widget.conceptId,
-              attemptTime: _startTime.second,
-              timeToComplete: DateTime.now().difference(_startTime).inSeconds,
-              xpGained: _totalXp,
-              accuracy: accuracy,
-              bookId: bookId,
-              report: lessonReport,
-              correctlyAnswered: lessonQuestions['questions'].length -
-                  incorrectQuestions.length);
+      // final Map<String, dynamic> lessonCompletionResponse =
+      //     await markLessonCompletion(
+      //         lessonId: widget.conceptId,
+      //         attemptTime: _startTime.second,
+      //         timeToComplete: DateTime.now().difference(_startTime).inSeconds,
+      //         xpGained: _totalXp,
+      //         accuracy: accuracy,
+      //         bookId: bookId,
+      //         report: lessonReport,
+      //         correctlyAnswered: lessonQuestions['questions'].length -
+      //             incorrectQuestions.length);
       if (incorrectQuestions.isEmpty) {
         Navigator.pop(context, {
           "completed": true,
-          "lessonCompletionResponse": lessonCompletionResponse,
+          // "lessonCompletionResponse": lessonCompletionResponse,
+          "attemptTime": _startTime.second,
           "totalXp": _totalXp,
           "timeTaken": timeTaken,
           "accuracy": accuracy,
-          "totalQuestions": lessonQuestions['questions'].length
+          "totalQuestions": lessonQuestions['questions'].length,
+          "timeToComplete": DateTime.now().difference(_startTime).inSeconds,
+          "bookId": bookId,
+          "report": lessonReport,
+          "correctlyAnswered":
+              lessonQuestions['questions'].length - incorrectQuestions.length
         });
         // Navigator.pushAndRemoveUntil(
         //   context,
@@ -320,11 +326,18 @@ class _MCQQuestionsState extends State<MCQQuestions> {
         Navigator.pop(context, {
           "completed": true,
           "incorrectQuestions": incorrectQuestions,
-          "lessonCompletionResponse": lessonCompletionResponse,
+          // "lessonCompletionResponse": lessonCompletionResponse,
+          "attemptTime": _startTime.second,
+
           "totalXp": _totalXp,
           "timeTaken": timeTaken,
           "accuracy": accuracy,
-          "totalQuestions": lessonQuestions['questions'].length
+          "totalQuestions": lessonQuestions['questions'].length,
+          "timeToComplete": DateTime.now().difference(_startTime).inSeconds,
+          "bookId": bookId,
+          "report": lessonReport,
+          "correctlyAnswered":
+              lessonQuestions['questions'].length - incorrectQuestions.length
         });
 
         // Navigator.pushAndRemoveUntil(
@@ -612,7 +625,12 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 0.0, horizontal: 10),
                                       child: Text(
-                                        "MCQ",
+                                        lessonQuestions['questions']
+                                                        [_currentQuestionIndex]
+                                                    ['type'] ==
+                                                "Multiple Choice - Multiple Answers"
+                                            ? "MCA"
+                                            : "MCQ",
                                         style: GoogleFonts.raleway(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w800,

@@ -238,7 +238,7 @@ class AchievementDetailsWidget extends StatelessWidget {
               buttonColor: const Color.fromARGB(255, 187, 160, 2),
               backgroundColor: const Color.fromARGB(255, 255, 217, 0),
               child: Text(
-                "CLAIM REWARDS",
+                "CLAIM REWARD",
                 style: GoogleFonts.raleway(
                   color: Colors.black,
                   fontSize: 16,

@@ -8,8 +8,8 @@ Future<List<Map<String, dynamic>>> fetchChaptersV2(
         'https://glutaclass.com:8080/gluta/famV2/chapters?subject=$subject&standard=$standard';
 
     print('Fetching chapters from: $url'); // Debug log
-    final response =
-        await http.get(Uri.parse(url)).timeout(Duration(seconds: 10));
+    final response = await http.get(Uri.parse(url),
+        headers: {'Accept-Encoding': 'gzip'}).timeout(Duration(seconds: 10));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);

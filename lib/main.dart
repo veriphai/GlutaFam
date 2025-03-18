@@ -186,6 +186,7 @@ class MainPage extends StatelessWidget {
       // SocraticTutorScreenV3()
       // ConceptLearningScreenV2()
       // OnboardingScreenV4()
+      // StreakPopup(streakCount: 3, streakStartEpoch: 1741359449, streakGoal: 50)
       FeedScreen()
     ];
 

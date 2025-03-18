@@ -78,7 +78,6 @@ class MistakeCorrectionPopup extends StatelessWidget {
                   timeTaken: timeTaken,
                   accuracy: accuracy,
                   incorrectQuestions: incorrectQuestions,
-                  lessonCompletionResponse: lessonCompletionResponse,
                 ),
               ),
               (route) => false,

@@ -10,7 +10,8 @@ Future<Map<String, dynamic>> markLessonCompletion(
     required double accuracy,
     required String bookId,
     required int correctlyAnswered,
-    required List<Map<String, dynamic>> report}) async {
+    required List<Map<String, dynamic>> report,
+    required int mistakesCorrected}) async {
   try {
     const url = 'https://glutaclass.com:8080/gluta/famV2/lesson-completed';
 
@@ -27,7 +28,8 @@ Future<Map<String, dynamic>> markLessonCompletion(
       "bookId": bookId,
       "report": report,
       "type": "lesson",
-      "correctAnswers": correctlyAnswered
+      "correctAnswers": correctlyAnswered,
+      "mistakesCorrected": mistakesCorrected
     };
 
     // Construct the request

@@ -16,6 +16,7 @@ Future<Map<String, dynamic>> fetchCompletedConcepts(
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

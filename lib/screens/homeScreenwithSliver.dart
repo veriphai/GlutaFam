@@ -342,6 +342,10 @@ class _HomeScreenState extends State<HomeScreenSliver> {
         return ChapterSelection(
           chapters: chapters,
           activeChapter: activeChapter,
+          subjects: [],
+          selectedSubject: '',
+          standard: 8,
+          onSubjectSelect: (index, name) {},
           onChapterSelect: (index, chapterName) {
             // Handle the selected chapter
             print("Selected Chapter: $chapterName (Index: $index)");

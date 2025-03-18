@@ -1,12 +1,20 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-Future<List<Map<String, dynamic>>> fetchBooks({required int standard}) async {
+Future<List<Map<String, dynamic>>> fetchBooks(
+    {required int standard, String? stream}) async {
   try {
-    final url =
+    // Add userId to the query parameters if provided
+
+    String url =
         'https://glutaclass.com:8080/gluta/famV2/books?standard=$standard';
 
-    final response = await http.get(Uri.parse(url));
+    if (stream != null && stream.isNotEmpty) {
+      url += '&stream=$stream';
+    }
+
+    final response =
+        await http.get(Uri.parse(url), headers: {'Accept-Encoding': 'gzip'});
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);

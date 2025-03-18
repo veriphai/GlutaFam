@@ -162,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) {
         return AchievementDetailsWidget(achievement: achievement);
       },
-    );
+    ).then((_) => getAchievements());
   }
 
   void _showCollectionItemDetails(Map<String, dynamic> collectionItem) {

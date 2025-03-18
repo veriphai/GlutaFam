@@ -98,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       // final profileData = await getProfile();
       final profileData = await refreshProfile();
-      fetchData(profileData["standard"]);
+      fetchData(profileData["standard"], profileData["stream"]);
       prefs = await SharedPreferences.getInstance();
 
       setState(() {
@@ -128,14 +128,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> fetchData(int standard) async {
+  Future<void> fetchData(int standard, String stream) async {
     try {
+      final booksData = await fetchBooks(standard: standard, stream: stream);
+      _selectedSubject = booksData[0]["subject"];
       final chapterData =
           await fetchChaptersV2(standard: standard, subject: _selectedSubject);
       if (chapterData.isEmpty) {
         return;
       }
-      final booksData = await fetchBooks(standard: standard);
 
       final completedConceptsData =
           await fetchCompletedConcepts(bookId: booksData[0]["id"]);
@@ -145,13 +146,14 @@ class _HomeScreenState extends State<HomeScreen> {
         chapters = chapterData;
         chapters.sort((a, b) => a["chapterNo"].compareTo(b["chapterNo"]));
         books = booksData;
+        // _selectedSubject = booksData[0]["subject"];
         selectedBookId = booksData[0]["id"];
         completedConcepts =
             (completedConceptsData["completedConcepts"] as List<dynamic>)
                 .cast<String>();
-        conceptToStartFrom =
-            "crop_production_and_management_8_Science_Section_6_SubSection_7";
-        // conceptToStartFrom = completedConceptsData["conceptToStartFrom"];
+        // conceptToStartFrom =
+        //     "crop_production_and_management_8_Science_Section_6_SubSection_7";
+        conceptToStartFrom = completedConceptsData["conceptToStartFrom"];
         if (chapters.isNotEmpty && chapters[0]['topics'].isNotEmpty) {
           _activeTopic = chapters[0]['topics'][0]['name'];
           activeChapter = chapters[0]['name'];
@@ -281,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
               chapters = [];
             });
             prefs.setString("bookId", bookId);
-            fetchData(userProfile["standard"]);
+            fetchData(userProfile["standard"], userProfile["stream"]);
           },
         );
       },
@@ -346,9 +348,9 @@ class _HomeScreenState extends State<HomeScreen> {
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeInOut,
     );
-    // setState(() {
-    //   isLoading = false;
-    // });
+    setState(() {
+      _listOpacity = 1.0;
+    });
   }
 
   Future<void> scrollToTopic(int firstTopicIndex, int chapterIndex) async {
@@ -403,6 +405,9 @@ class _HomeScreenState extends State<HomeScreen> {
         return ChapterSelection(
           chapters: chapters,
           activeChapter: activeChapter,
+          subjects: books,
+          selectedSubject: _selectedSubject,
+          standard: userProfile["standard"],
           onChapterSelect: (index, chapterName) {
             // Handle the selected chapter
             print("Selected Chapter: $chapterName (Index: $index)");
@@ -421,16 +426,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         total + (chapter['topics'].length as int),
                   ); // Calculate cumulative topic index
 
-              final topicKey = _topicKeys[firstTopicIndex];
-
-              // Scroll to the position of the first topic
-              // final estimatedPosition =
-              //     firstTopicIndex * 200.0; // Approximate height per item
-              // _scrollController.animateTo(
-              //   estimatedPosition,
-              //   duration: const Duration(milliseconds: 500),
-              //   curve: Curves.easeInOut,
-              // );
               scrollToTopic(firstTopicIndex, index);
 
               // Update the active topic
@@ -441,6 +436,15 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             // Navigator.pop(context); // Close the bottom sheet
+          },
+          onSubjectSelect: (selected, bookId) {
+            setState(() {
+              _selectedSubject = selected;
+              selectedBookId = bookId;
+              chapters = [];
+            });
+            prefs.setString("bookId", bookId);
+            fetchData(userProfile["standard"], userProfile["stream"]);
           },
         );
       },
@@ -689,470 +693,554 @@ class _HomeScreenState extends State<HomeScreen> {
     return isLoading
         ? Scaffold(
             backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-            body: Center(
-              child: Shimmer.fromColors(
-                baseColor: Colors.grey[700]!,
-                highlightColor: Colors.grey[300]!,
-                child: Text(
-                  'Loading...',
-                  style: TextStyle(fontSize: 24),
+            body: Stack(
+              children: [
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Shimmer.fromColors(
+                      baseColor: Colors.grey[700]!,
+                      highlightColor: Colors.grey[300]!,
+                      child: Text(
+                        'Loading...',
+                        style: TextStyle(fontSize: 24),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ))
+              ],
+            ),
+          )
         : Scaffold(
             backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-            appBar: AppBar(
-                backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                title: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: Image.asset(
-                          'lib/assets/bookIcon.png',
-                          height: 24,
-                          width: 24,
-                        ),
-                        onPressed: () {
-                          HapticFeedback.lightImpact();
-                          _showSubjectSelectionSheet(context);
-                        },
-                      ),
-                      Row(children: [
-                        GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (_) => StreakScreen(
-                                  streakCount: userProfile["streakActive"]
-                                      ? userProfile["streakDetails"]
-                                          ["activeDays"]
-                                      : 0,
-                                  streakStartDate: userProfile["streakActive"]
-                                      ? DateTime.now().subtract(Duration(
-                                          days: userProfile["streakDetails"]
-                                                  ["activeDays"] -
-                                              1))
-                                      : DateTime.now(),
-                                  streakGoal: 7,
-                                  expiryToday: userProfile["streakActive"]
-                                      ? isToday(userProfile["streakDetails"]
-                                          ["expiry"])
-                                      : true,
-                                  streakActive: userProfile["streakActive"],
+            appBar: _listOpacity == 0
+                ? null
+                : AppBar(
+                    backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+                    elevation: 0,
+                    scrolledUnderElevation: 0,
+                    title: AnimatedOpacity(
+                        opacity: _listOpacity, // Use the opacity variable
+                        duration:
+                            Duration(milliseconds: 1), // Animation duration
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: Image.asset(
+                                  'lib/assets/bookIcon.png',
+                                  height: 24,
+                                  width: 24,
                                 ),
-                              );
-                            },
-                            child: !userProfile["streakActive"] ||
-                                    isToday(
-                                        userProfile["streakDetails"]["expiry"])
-                                ? Image.asset(
-                                    'lib/assets/inactiveStreakIcon.png',
-                                    height: 24,
-                                    width: 24,
-                                  )
-                                : Image.asset(
-                                    'lib/assets/streakIcon.png',
-                                    height: 24,
-                                    width: 24,
-                                  )),
-                        SizedBox(width: 5),
-                        Text(
-                            !userProfile["streakActive"]
-                                ? '0'
-                                : '${userProfile["streakDetails"]["activeDays"]}',
-                            style: TextStyle(color: Colors.white)),
-                      ]),
-                      GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (_) => ShopScreen(
-                                gems: creditsAvailable,
-                                onPowerUpPurchased: (powerup, credits) {
-                                  _applyTimedPowerUp(powerup, credits);
+                                onPressed: () {
+                                  HapticFeedback.lightImpact();
+                                  _showSubjectSelectionSheet(context);
                                 },
                               ),
-                            );
-                          },
-                          child: Row(
-                            children: [
-                              Image.asset(
-                                'lib/assets/gemIcon.png',
-                                height: 24,
-                                width: 24,
-                              ),
-                              SizedBox(width: 5),
-                              Text("$creditsAvailable",
-                                  style: TextStyle(color: Colors.white))
-                            ],
-                          )),
-                      GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            _showLifelinesSheet(context);
-                          },
-                          child: Row(children: [
-                            // Image.asset(
-                            //   'lib/assets/gemIcon.png',
-                            //   height: 24,
-                            //   width: 24,
-                            // ),
-                            Icon(
-                              Icons.favorite,
-                              color: Colors.red,
-                            ),
-                            SizedBox(width: 5),
-                            Text(
-                                unlimitedLifelines
-                                    ? "∞"
-                                    : "$lifelinesAvailable",
-                                style: TextStyle(color: Colors.white))
-                          ]))
-                    ])),
-            body: Stack(children: [
-              SizedBox(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: chapters.length,
-                  itemBuilder: (context, chapterIndex) {
-                    final chapter = chapters[chapterIndex];
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: chapter['topics']
-                          .asMap()
-                          .entries
-                          .map<Widget>((topicEntry) {
-                        final int topicIndex = topicEntry.key;
-                        final topic = topicEntry.value;
-                        final concepts = topic['lessons'];
-                        final globalKeyIndex = chapters
-                                .take(chapterIndex)
-                                .fold<int>(
-                                    0,
-                                    (total, chapter) =>
-                                        total +
-                                        (chapter['topics'].length as int)) +
-                            topicIndex;
-                        final buttonColour = buttonColours[
-                            (topic['seqNumber'] - 1) % buttonColours.length];
-
-                        // final buttonColour;
-                        // if (chapterIndex == 0 && topicIndex == 0) {
-                        //   buttonColour = buttonColours[topicIndex];
-                        // } else {
-                        //   int randomIndex = Random().nextInt(4) +
-                        //       1; // Generates a random number from 1 to 5
-                        //   buttonColour = buttonColours[randomIndex];
-                        // }
-                        return Padding(
-                          key: _topicKeys[globalKeyIndex],
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Divider with Topic Name
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 20, horizontal: 20),
-                                child: Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 20),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Divider(
-                                            color: Colors.grey,
-                                            thickness: 1,
-                                            endIndent:
-                                                10, // Space between divider and text
-                                          ),
+                              Row(children: [
+                                GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      showModalBottomSheet(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        backgroundColor: Colors.transparent,
+                                        builder: (_) => StreakScreen(
+                                          streakCount:
+                                              userProfile["streakActive"]
+                                                  ? userProfile["streakDetails"]
+                                                      ["activeDays"]
+                                                  : 0,
+                                          streakStartDate: userProfile[
+                                                  "streakActive"]
+                                              ? DateTime.now().subtract(Duration(
+                                                  days: userProfile[
+                                                              "streakDetails"]
+                                                          ["activeDays"] -
+                                                      1))
+                                              : DateTime.now(),
+                                          streakGoal: 7,
+                                          expiryToday: userProfile[
+                                                  "streakActive"]
+                                              ? isToday(
+                                                  userProfile["streakDetails"]
+                                                      ["expiry"])
+                                              : true,
+                                          streakActive:
+                                              userProfile["streakActive"],
                                         ),
-                                        Expanded(
-                                          child: Text(
-                                            topic['name'],
-                                            style: GoogleFonts.raleway(
-                                              color: Colors.grey,
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                            maxLines:
-                                                1, // Ensure single-line text
-                                            overflow: TextOverflow
-                                                .ellipsis, // Add "..." if text is too long
-                                            textAlign: TextAlign
-                                                .center, // Center the text
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Divider(
-                                            color: Colors.grey,
-                                            thickness: 1,
-                                            indent:
-                                                10, // Space between text and divider
-                                          ),
-                                        ),
-                                      ],
+                                      );
+                                    },
+                                    child: !userProfile["streakActive"] ||
+                                            isToday(userProfile["streakDetails"]
+                                                ["expiry"])
+                                        ? Image.asset(
+                                            'lib/assets/inactiveStreakIcon.png',
+                                            height: 24,
+                                            width: 24,
+                                          )
+                                        : Image.asset(
+                                            'lib/assets/streakIcon.png',
+                                            height: 24,
+                                            width: 24,
+                                          )),
+                                SizedBox(width: 5),
+                                Text(
+                                    !userProfile["streakActive"]
+                                        ? '0'
+                                        : '${userProfile["streakDetails"]["activeDays"]}',
+                                    style: TextStyle(color: Colors.white)),
+                              ]),
+                              GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (_) => ShopScreen(
+                                        gems: creditsAvailable,
+                                        onPowerUpPurchased: (powerup, credits) {
+                                          _applyTimedPowerUp(powerup, credits);
+                                        },
+                                      ),
+                                    );
+                                  },
+                                  child: Row(
+                                    children: [
+                                      Image.asset(
+                                        'lib/assets/gemIcon.png',
+                                        height: 24,
+                                        width: 24,
+                                      ),
+                                      SizedBox(width: 5),
+                                      Text("$creditsAvailable",
+                                          style: TextStyle(color: Colors.white))
+                                    ],
+                                  )),
+                              GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    _showLifelinesSheet(context);
+                                  },
+                                  child: Row(children: [
+                                    // Image.asset(
+                                    //   'lib/assets/gemIcon.png',
+                                    //   height: 24,
+                                    //   width: 24,
+                                    // ),
+                                    Icon(
+                                      Icons.favorite,
+                                      color: Colors.red,
                                     ),
-                                  ),
-                                ),
-                              ),
-                              // Concept Islands in a Stack with Alternating Pattern
-                              SizedBox(
-                                height: concepts.length * 100.0,
-                                child: Stack(
-                                  children: [
-                                    ...List.generate(concepts.length, (index) {
-                                      double topOffset = index * 100.0;
-                                      double screenWidth =
-                                          MediaQuery.of(context).size.width;
-                                      double leftOffset;
+                                    SizedBox(width: 5),
+                                    Text(
+                                        unlimitedLifelines
+                                            ? "∞"
+                                            : "$lifelinesAvailable",
+                                        style: TextStyle(color: Colors.white))
+                                  ]))
+                            ]))),
+            body: Stack(children: [
+              if (_listOpacity == 0)
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Shimmer.fromColors(
+                      baseColor: Colors.grey[700]!,
+                      highlightColor: Colors.grey[300]!,
+                      child: Text(
+                        'Loading...',
+                        style: TextStyle(fontSize: 24),
+                      ),
+                    ),
+                  ),
+                ),
+              AnimatedOpacity(
+                  opacity: _listOpacity, // Use the opacity variable
+                  duration: Duration(milliseconds: 1), // Animation duration
+                  child: Stack(children: [
+                    SizedBox(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        itemCount: chapters.length,
+                        itemBuilder: (context, chapterIndex) {
+                          final chapter = chapters[chapterIndex];
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: chapter['topics']
+                                .asMap()
+                                .entries
+                                .map<Widget>((topicEntry) {
+                              final int topicIndex = topicEntry.key;
+                              final topic = topicEntry.value;
+                              final concepts = topic['lessons'];
+                              final globalKeyIndex = chapters
+                                      .take(chapterIndex)
+                                      .fold<int>(
+                                          0,
+                                          (total, chapter) =>
+                                              total +
+                                              (chapter['topics'].length
+                                                  as int)) +
+                                  topicIndex;
+                              final buttonColour = buttonColours[
+                                  (topic['seqNumber'] - 1) %
+                                      buttonColours.length];
 
-                                      int globalConceptIndex = chapters
-                                              .take(chapterIndex)
-                                              .fold<int>(0, (total, chapter) {
-                                            return total +
-                                                ((chapter['topics'] as List)
+                              // final buttonColour;
+                              // if (chapterIndex == 0 && topicIndex == 0) {
+                              //   buttonColour = buttonColours[topicIndex];
+                              // } else {
+                              //   int randomIndex = Random().nextInt(4) +
+                              //       1; // Generates a random number from 1 to 5
+                              //   buttonColour = buttonColours[randomIndex];
+                              // }
+                              return Padding(
+                                key: _topicKeys[globalKeyIndex],
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 0, vertical: 0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Divider with Topic Name
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 20, horizontal: 20),
+                                      child: Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 20),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Divider(
+                                                  color: Colors.grey,
+                                                  thickness: 1,
+                                                  endIndent: 10,
+                                                ),
+                                              ),
+                                              Container(
+                                                constraints: BoxConstraints(
+                                                  maxWidth: MediaQuery.of(
+                                                              context)
+                                                          .size
+                                                          .width *
+                                                      0.7, // Limits text width
+                                                ),
+                                                child: Text(
+                                                  topic['name'],
+                                                  style: GoogleFonts.raleway(
+                                                    color: Colors.grey,
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                  maxLines: 3,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: Divider(
+                                                  color: Colors.grey,
+                                                  thickness: 1,
+                                                  indent:
+                                                      10, // Space between text and divider
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    // Concept Islands in a Stack with Alternating Pattern
+                                    SizedBox(
+                                      height: concepts.length * 100.0,
+                                      child: Stack(
+                                        children: [
+                                          ...List.generate(concepts.length,
+                                              (index) {
+                                            double topOffset = index * 100.0;
+                                            double screenWidth =
+                                                MediaQuery.of(context)
+                                                    .size
+                                                    .width;
+                                            double leftOffset;
+
+                                            int globalConceptIndex = chapters
+                                                    .take(chapterIndex)
+                                                    .fold<int>(0,
+                                                        (total, chapter) {
+                                                  return total +
+                                                      ((chapter['topics']
+                                                              as List)
+                                                          .fold<int>(
+                                                              0,
+                                                              (subTotal,
+                                                                      topic) =>
+                                                                  subTotal +
+                                                                  (topic['lessons']
+                                                                          as List)
+                                                                      .length));
+                                                }) +
+                                                (chapter['topics'] as List)
+                                                    .take(topicIndex)
                                                     .fold<int>(
                                                         0,
                                                         (subTotal, topic) =>
                                                             subTotal +
                                                             (topic['lessons']
                                                                     as List)
-                                                                .length));
-                                          }) +
-                                          (chapter['topics'] as List)
-                                              .take(topicIndex)
-                                              .fold<int>(
-                                                  0,
-                                                  (subTotal, topic) =>
-                                                      subTotal +
-                                                      (topic['lessons'] as List)
-                                                          .length) +
-                                          index;
+                                                                .length) +
+                                                index;
 
-                                      int topicConceptIndex =
-                                          index; // Resets per topic
+                                            int topicConceptIndex =
+                                                index; // Resets per topic
 
-                                      int wavePosition = topicConceptIndex % 6;
-                                      bool isLeft = wavePosition <
-                                          3; // First 3 go left, last 3 go right
+                                            int wavePosition =
+                                                topicConceptIndex % 6;
+                                            bool isLeft = wavePosition <
+                                                3; // First 3 go left, last 3 go right
 
-                                      int shift = [
-                                        50,
-                                        80,
-                                        120,
-                                        120,
-                                        80,
-                                        50
-                                      ][wavePosition];
+                                            int shift = [
+                                              50,
+                                              80,
+                                              120,
+                                              120,
+                                              80,
+                                              50
+                                            ][wavePosition];
 
-                                      leftOffset = isLeft
-                                          ? (screenWidth / 2) - shift
-                                          : (screenWidth / 2) -
-                                              shift +
-                                              60; // Shift right
-                                      final concept = concepts[index];
-                                      //current_lesson
-                                      final isLastCompleted =
-                                          concept['id'] == conceptToStartFrom;
-                                      final isCompleted = completedConcepts
-                                          .contains(concept['id']);
-                                      final isStartOfTopic = !isCompleted &&
-                                          concept['id'] != conceptToStartFrom &&
-                                          concept['id']
-                                              .toString()
-                                              .endsWith('_1');
+                                            leftOffset = isLeft
+                                                ? (screenWidth / 2) - shift
+                                                : (screenWidth / 2) -
+                                                    shift +
+                                                    60; // Shift right
+                                            final concept = concepts[index];
+                                            //current_lesson
+                                            final isLastCompleted =
+                                                concept['id'] ==
+                                                    conceptToStartFrom;
+                                            final isCompleted =
+                                                completedConcepts
+                                                    .contains(concept['id']);
+                                            final isStartOfTopic =
+                                                !isCompleted &&
+                                                    concept['id'] !=
+                                                        conceptToStartFrom &&
+                                                    concept['id']
+                                                        .toString()
+                                                        .endsWith('_1');
 
-                                      final isDisabled = !(isLastCompleted ||
-                                          isStartOfTopic ||
-                                          isCompleted);
-                                      final GlobalKey buttonKey = GlobalKey();
+                                            final isDisabled =
+                                                !(isLastCompleted ||
+                                                    isStartOfTopic ||
+                                                    isCompleted);
+                                            final GlobalKey buttonKey =
+                                                GlobalKey();
 
-                                      return Positioned(
-                                        top: topOffset,
-                                        left: leftOffset,
-                                        child: Stack(
-                                            alignment: Alignment.center,
-                                            children: [
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 30.0,
-                                                    left: 20,
-                                                    right:
-                                                        20), // Add space above the stack
-                                                child: ChicletAnimatedButton(
-                                                  key: buttonKey,
-                                                  onPressed: () {
-                                                    HapticFeedback
-                                                        .lightImpact();
-                                                    showOverlay(
-                                                        context,
-                                                        concept,
-                                                        buttonKey,
-                                                        isDisabled
+                                            return Positioned(
+                                              top: topOffset,
+                                              left: leftOffset,
+                                              child: Stack(
+                                                  alignment: Alignment.center,
+                                                  children: [
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .only(
+                                                          top: 30.0,
+                                                          left: 20,
+                                                          right:
+                                                              20), // Add space above the stack
+                                                      child:
+                                                          ChicletAnimatedButton(
+                                                        key: buttonKey,
+                                                        onPressed: () {
+                                                          HapticFeedback
+                                                              .lightImpact();
+                                                          showOverlay(
+                                                              context,
+                                                              concept,
+                                                              buttonKey,
+                                                              isDisabled
+                                                                  ? Color
+                                                                      .fromRGBO(
+                                                                          56,
+                                                                          70,
+                                                                          79,
+                                                                          1)
+                                                                  : buttonColour[
+                                                                      'background'],
+                                                              isCompleted,
+                                                              isDisabled);
+                                                        },
+                                                        buttonType:
+                                                            ChicletButtonTypes
+                                                                .oval,
+                                                        width: 70,
+                                                        height: 60,
+                                                        buttonHeight: 6,
+                                                        padding:
+                                                            EdgeInsets.all(0),
+                                                        buttonColor: isDisabled
                                                             ? Color.fromRGBO(
-                                                                56, 70, 79, 1)
-                                                            : buttonColour[
-                                                                'background'],
-                                                        isCompleted,
-                                                        isDisabled);
-                                                  },
-                                                  buttonType:
-                                                      ChicletButtonTypes.oval,
-                                                  width: 70,
-                                                  height: 60,
-                                                  buttonHeight: 6,
-                                                  padding: EdgeInsets.all(0),
-                                                  buttonColor: isDisabled
-                                                      ? Color.fromRGBO(
-                                                          42, 55, 63, 1)
-                                                      : isCompleted
-                                                          ? Colors.green
-                                                          : buttonColour[
-                                                              'button'],
-                                                  backgroundColor: isDisabled
-                                                      ? Color.fromRGBO(
-                                                          56, 70, 79, 1)
-                                                      : isCompleted
-                                                          ? Colors.green[200]
-                                                          : buttonColour[
-                                                              'background'],
-                                                  child: Shimmer.fromColors(
-                                                    enabled: isDisabled ||
-                                                            isCompleted
-                                                        ? false
-                                                        : true,
+                                                                42, 55, 63, 1)
+                                                            : isCompleted
+                                                                ? Colors.green
+                                                                : buttonColour[
+                                                                    'button'],
+                                                        backgroundColor:
+                                                            isDisabled
+                                                                ? Color
+                                                                    .fromRGBO(
+                                                                        56,
+                                                                        70,
+                                                                        79,
+                                                                        1)
+                                                                : isCompleted
+                                                                    ? Colors.green[
+                                                                        200]
+                                                                    : buttonColour[
+                                                                        'background'],
+                                                        child:
+                                                            Shimmer.fromColors(
+                                                          enabled: isDisabled ||
+                                                                  isCompleted
+                                                              ? false
+                                                              : true,
 
-                                                    baseColor: Colors.black,
-                                                    highlightColor:
-                                                        buttonColour[
-                                                            'background'],
-                                                    child: index == 0
-                                                        ? Icon(
-                                                            Icons
-                                                                .fast_forward_rounded,
-                                                            color: Colors.black,
-                                                            size: 40)
-                                                        : Icon(
-                                                            Icons.star_rounded,
-                                                            color: Colors.black,
-                                                            size: 40),
-                                                    // : concepts[index]['type'] == 'reward'
-                                                    //     ? Icon(Icons.card_giftcard,
-                                                    //         color: Colors.black, size: 40)
-                                                    //     : Icon(Icons.star_rounded,
-                                                    //         color: Colors.black,
-                                                    //         size: 40),
-                                                  ),
-                                                ),
-                                              ),
-                                              if (isLastCompleted)
-                                                _BouncingTextIndicator(
-                                                  text: "START",
-                                                  textColor: buttonColour[
-                                                      "background"],
-                                                  powerupType: activePowerup
-                                                          .isNotEmpty
-                                                      ? activePowerup["type"]
-                                                      : null,
-                                                ),
-                                              if (isStartOfTopic)
-                                                _BouncingTextIndicator(
-                                                    text: "JUMP HERE",
-                                                    textColor: buttonColour[
-                                                        "background"]),
-                                            ]),
-                                      );
-                                    })
+                                                          baseColor:
+                                                              Colors.black,
+                                                          highlightColor:
+                                                              buttonColour[
+                                                                  'background'],
+                                                          child: index == 0
+                                                              ? Icon(
+                                                                  Icons
+                                                                      .fast_forward_rounded,
+                                                                  color:
+                                                                      Colors
+                                                                          .black,
+                                                                  size: 40)
+                                                              : Icon(
+                                                                  Icons
+                                                                      .star_rounded,
+                                                                  color: Colors
+                                                                      .black,
+                                                                  size: 40),
+                                                          // : concepts[index]['type'] == 'reward'
+                                                          //     ? Icon(Icons.card_giftcard,
+                                                          //         color: Colors.black, size: 40)
+                                                          //     : Icon(Icons.star_rounded,
+                                                          //         color: Colors.black,
+                                                          //         size: 40),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    if (isLastCompleted)
+                                                      _BouncingTextIndicator(
+                                                        text: "START",
+                                                        textColor: buttonColour[
+                                                            "background"],
+                                                        powerupType:
+                                                            activePowerup
+                                                                    .isNotEmpty
+                                                                ? activePowerup[
+                                                                    "type"]
+                                                                : null,
+                                                      ),
+                                                    if (isStartOfTopic)
+                                                      _BouncingTextIndicator(
+                                                          text: "JUMP HERE",
+                                                          textColor:
+                                                              buttonColour[
+                                                                  "background"]),
+                                                  ]),
+                                            );
+                                          })
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 20,
-                right: 20,
-                child: ChicletAnimatedButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    _showChapterSelectionSheet(context);
-                  },
-                  height: 70,
-                  buttonHeight: 4,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  buttonColor: _activeButtonColour['button'],
-                  backgroundColor: _activeButtonColour['background'],
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment
-                              .start, // Ensures left alignment
-                          mainAxisAlignment: MainAxisAlignment.center,
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: 20,
+                      right: 20,
+                      child: ChicletAnimatedButton(
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          _showChapterSelectionSheet(context);
+                        },
+                        height: 85,
+
+                        // height: 100,
+                        buttonHeight: 4,
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        buttonColor: _activeButtonColour['button'],
+                        backgroundColor: _activeButtonColour['background'],
+                        child: Row(
                           children: [
-                            Text(
-                              activeChapter,
-                              style: GoogleFonts.raleway(
-                                color: Colors.black54,
-                                fontSize:
-                                    16, // Small size kept aligned to the left
-                                fontWeight: FontWeight.w700,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment
+                                    .start, // Ensures left alignment
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    activeChapter,
+                                    style: GoogleFonts.raleway(
+                                      color: Colors.black54,
+                                      fontSize:
+                                          16, // Small size kept aligned to the left
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  Text(
+                                    _activeTopic,
+                                    style: GoogleFonts.raleway(
+                                      color: Colors.black,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
-                            ),
-                            Text(
-                              _activeTopic,
-                              style: GoogleFonts.raleway(
-                                color: Colors.black,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 20,
-                left: 20,
-                child: ChicletAnimatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      _showChapterSelectionSheet(context);
-                    },
-                    buttonType: ChicletButtonTypes.circle,
-                    width: 80,
-                    height: 50,
-                    buttonHeight: 4,
-                    padding: EdgeInsets.all(0),
-                    buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                    backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                    child:
-                        Icon(Icons.menu_book, color: Colors.black, size: 30)),
-              )
+                    ),
+                    Positioned(
+                      bottom: 20,
+                      left: 20,
+                      child: ChicletAnimatedButton(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            _showChapterSelectionSheet(context);
+                          },
+                          buttonType: ChicletButtonTypes.circle,
+                          width: 80,
+                          height: 50,
+                          buttonHeight: 4,
+                          padding: EdgeInsets.all(0),
+                          buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                          backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                          child: Icon(Icons.menu_book,
+                              color: Colors.black, size: 30)),
+                    )
+                  ]))
             ]),
           );
   }

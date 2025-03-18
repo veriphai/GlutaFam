@@ -148,8 +148,10 @@ class StreakPopup extends StatelessWidget {
                     children: List.generate(7, (index) {
                       DateTime date =
                           streakStartDate.add(Duration(days: index));
-                      bool isFilled =
-                          date.isBefore(today) || date.isAtSameMomentAs(today);
+                      bool isToday = date.day == today.day &&
+                          date.month == today.month &&
+                          date.year == today.year;
+                      bool isFilled = date.isBefore(today) || isToday;
 
                       return Expanded(
                         child: Center(

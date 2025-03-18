@@ -19,17 +19,15 @@ class MistakesCorrectionScreen extends StatefulWidget {
   final String timeTaken;
   final double accuracy;
   final List<Map<String, dynamic>> incorrectQuestions;
-  final Map<String, dynamic> lessonCompletionResponse;
-  const MistakesCorrectionScreen(
-      {Key? key,
-      required this.conceptId,
-      required this.conceptName,
-      required this.totalXp,
-      required this.timeTaken,
-      required this.accuracy,
-      required this.incorrectQuestions,
-      required this.lessonCompletionResponse})
-      : super(key: key);
+  const MistakesCorrectionScreen({
+    Key? key,
+    required this.conceptId,
+    required this.conceptName,
+    required this.totalXp,
+    required this.timeTaken,
+    required this.accuracy,
+    required this.incorrectQuestions,
+  }) : super(key: key);
   @override
   _MistakesCorrectionScreenState createState() =>
       _MistakesCorrectionScreenState();
@@ -43,6 +41,7 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
   int conversationNo = 1;
   bool conversationCompleted = false;
   bool conversationStarted = false;
+  int mistakesCorrected = 0;
 
   bool isLoading = false;
 
@@ -90,6 +89,7 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
     print(allConversations);
     conversationNo++;
     setState(() => isLoading = false);
+    scrollToBottom();
   }
 
   void _nextQuestion() {
@@ -104,7 +104,7 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
       });
     } else {
       // Handle when all questions are completed
-      Navigator.pop(context, "completed");
+      Navigator.pop(context, mistakesCorrected);
       // Navigator.push(
       //   context,
       //   MaterialPageRoute(
@@ -242,10 +242,11 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
                     "role": "user",
                     "conversation": message,
                   });
+                  // scrollToBottom();
                 });
+                scrollToBottom();
 
                 // Scroll to the bottom after sending a new message
-                scrollToBottom();
 
                 final Map<String, dynamic> aiResponses =
                     await fetchQuestionMistakesConversation(
@@ -553,82 +554,147 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
                   ],
                 ),
               )),
+          // Expanded(
+          //   child: Column(
+          //     children: [
+          //       Padding(
+          //           padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          //           child: Row(
+          //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //             children: [
+          //               Text(
+          //                 "Question ${currentQuestionIndex + 1} of ${widget.incorrectQuestions.length}",
+          //                 style: GoogleFonts.raleway(
+          //                   color: Colors.grey,
+          //                   fontSize: 16,
+          //                 ),
+          //               ),
+          //               if (conversationStarted)
+          //                 ChicletAnimatedButton(
+          //                   onPressed: () {
+          //                     HapticFeedback.lightImpact();
+          //                     _nextQuestion();
+          //                   },
+          //                   buttonType: ChicletButtonTypes.roundedRectangle,
+          //                   height: 20,
+          //                   buttonHeight: 4,
+          //                   width: 80,
+          //                   padding: EdgeInsets.all(0),
+          //                   buttonColor: Color.fromRGBO(187, 160, 2, 1),
+          //                   backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+          //                   child: Text(
+          //                     "SKIP",
+          //                     style: GoogleFonts.arOneSans(
+          //                       color: Colors.black,
+          //                       fontSize: 12,
+          //                       fontWeight: FontWeight.w500,
+          //                     ),
+          //                   ),
+          //                 ),
+          //             ],
+          //           )),
+
+          //       buildQuestionCard(),
+          //       // Chat Area
+          //       if (isLoading)
+          //         Center(child: CircularProgressIndicator())
+          //       else
+          //         Expanded(
+          //             child: ListView.builder(
+          //           // Disable internal scrolling
+          //           itemCount: chatMessages.length,
+          //           controller: _scrollController,
+          //           itemBuilder: (context, index) {
+          //             final chat = chatMessages[index];
+          //             return Padding(
+          //               padding: const EdgeInsets.symmetric(
+          //                 vertical: 8.0,
+          //                 horizontal: 12.0,
+          //               ),
+          //               child: chat['role'] == "user"
+          //                   ? yourMessage(chat)
+          //                   : othersMessage(chat),
+          //             );
+          //           },
+          //         )),
+          //     ],
+          //   ),
+          // ),
+          // // Message Input and Next Button
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Question ${currentQuestionIndex + 1} of ${widget.incorrectQuestions.length}",
-                            style: GoogleFonts.raleway(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
+            child: ListView(
+              controller: _scrollController, // Keep scrolling enabled
+              children: [
+                // Question Card
+                Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Question ${currentQuestionIndex + 1} of ${widget.incorrectQuestions.length}",
+                          style: GoogleFonts.raleway(
+                            color: Colors.grey,
+                            fontSize: 16,
                           ),
-                          if (conversationStarted)
-                            ChicletAnimatedButton(
-                              onPressed: () {
-                                HapticFeedback.lightImpact();
-                                _nextQuestion();
-                              },
-                              buttonType: ChicletButtonTypes.roundedRectangle,
-                              height: 20,
-                              buttonHeight: 4,
-                              width: 80,
-                              padding: EdgeInsets.all(0),
-                              buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                              backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                              child: Text(
-                                "SKIP",
-                                style: GoogleFonts.arOneSans(
-                                  color: Colors.black,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                        ),
+                        if (conversationStarted)
+                          ChicletAnimatedButton(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              _nextQuestion();
+                            },
+                            buttonType: ChicletButtonTypes.roundedRectangle,
+                            height: 20,
+                            buttonHeight: 4,
+                            width: 80,
+                            padding: EdgeInsets.all(0),
+                            buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                            backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                            child: Text(
+                              "SKIP",
+                              style: GoogleFonts.arOneSans(
+                                color: Colors.black,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                        ],
-                      )),
-
-                  buildQuestionCard(),
-                  // Chat Area
-                  if (isLoading)
-                    Center(child: CircularProgressIndicator())
-                  else
-                    ListView.builder(
-                      shrinkWrap:
-                          true, // Allow the ListView to take only needed space
-                      physics:
-                          NeverScrollableScrollPhysics(), // Disable internal scrolling
-                      itemCount: chatMessages.length,
-                      controller: _scrollController,
-                      itemBuilder: (context, index) {
-                        final chat = chatMessages[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 8.0,
-                            horizontal: 12.0,
                           ),
-                          child: chat['role'] == "user"
-                              ? yourMessage(chat)
-                              : othersMessage(chat),
-                        );
-                      },
-                    ),
-                ],
-              ),
+                      ],
+                    )),
+                buildQuestionCard(),
+
+                // Chat Area
+                if (isLoading)
+                  Center(child: CircularProgressIndicator())
+                else
+                  ListView.builder(
+                    shrinkWrap: true, // Let it take only required space
+                    physics:
+                        NeverScrollableScrollPhysics(), // Prevent internal scrolling
+                    itemCount: chatMessages.length,
+                    itemBuilder: (context, index) {
+                      final chat = chatMessages[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8.0,
+                          horizontal: 12.0,
+                        ),
+                        child: chat['role'] == "user"
+                            ? yourMessage(chat)
+                            : othersMessage(chat),
+                      );
+                    },
+                  ),
+              ],
             ),
           ),
-          // Message Input and Next Button
           if (!isLoading && !conversationCompleted && conversationStarted)
             renderMessageBar(),
           if (conversationCompleted)
             ChicletAnimatedButton(
               onPressed: () {
+                mistakesCorrected += 1;
                 _nextQuestion();
               },
               buttonType: ChicletButtonTypes.roundedRectangle,
