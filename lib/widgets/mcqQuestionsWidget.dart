@@ -116,6 +116,7 @@ class _MCQQuestionsState extends State<MCQQuestions> {
       // Fetch questions if not provided
       fetchData();
     }
+    _totalXp = widget.maxXP;
     questionStartTime = DateTime.now();
     // Preload audio files
     _correctAudioPlayer.setSource(AssetSource('correct_answer.mp3')).then((_) {
@@ -216,7 +217,7 @@ class _MCQQuestionsState extends State<MCQQuestions> {
 
     if (isCorrect) {
       _playSound('correct_answer.mp3', isCorrect);
-      _totalXp += xpPerQuestion;
+      // _totalXp += xpPerQuestion;
       _correctStreak++;
 
       if (_correctStreak == 5 || _correctStreak == 10) {
@@ -236,6 +237,7 @@ class _MCQQuestionsState extends State<MCQQuestions> {
       }
     } else {
       _playSound('incorrect_answer.mp3', isCorrect);
+      _totalXp -= xpPerQuestion;
       _correctStreak = 0;
       if (!unlimitedLifelines) {
         setState(() {
@@ -265,8 +267,8 @@ class _MCQQuestionsState extends State<MCQQuestions> {
   }
 
   double _calculateAccuracy() {
-    final totalQuestions = lessonQuestions['questions'].length;
-    return (_totalXp / (totalQuestions * xpPerQuestion)) * 100;
+    // final totalQuestions = lessonQuestions['questions'].length;
+    return (_totalXp / widget.maxXP) * 100;
   }
 
   void _nextQuestion() async {
@@ -478,6 +480,13 @@ class _MCQQuestionsState extends State<MCQQuestions> {
     return lineCount > 1 ? 70 : 50;
   }
 
+  String sanitizeLatex(String input) {
+    return input
+        .replaceAll('ext', r'\text') // Tab + ext
+        .replaceAll('imes', r'\times'); // Tab + imes
+    // .replaceAll('ightarrow', r'\\rightarrow'); // Tab + imes
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -644,8 +653,10 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                                       bottom: 16.0, top: 8),
                                   child: MarkdownBody(
                                     selectable: false,
-                                    data: lessonQuestions['questions']
-                                        [_currentQuestionIndex]['question'],
+                                    data: sanitizeLatex(
+                                        lessonQuestions['questions']
+                                                [_currentQuestionIndex]
+                                            ['question']),
                                     builders: {
                                       'latex': LatexElementBuilder(
                                         textStyle: GoogleFonts.raleway(
@@ -733,7 +744,8 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                                             alignment: Alignment.centerLeft,
                                             child: MarkdownBody(
                                               selectable: false,
-                                              data: option['option'],
+                                              data: sanitizeLatex(
+                                                  option['option']),
                                               builders: {
                                                 'latex': LatexElementBuilder(
                                                   textStyle:

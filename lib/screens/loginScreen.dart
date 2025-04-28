@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

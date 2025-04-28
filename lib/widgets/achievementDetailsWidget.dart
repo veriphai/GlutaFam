@@ -1,4 +1,5 @@
 import 'package:chiclet/chiclet.dart';
+import 'package:eureka_app/newEvents/achievementScreenEvents.dart';
 import 'package:eureka_app/utils/achievements.dart';
 import 'package:eureka_app/utils/generateReferralLink.dart';
 import 'package:eureka_app/widgets/rewardScreen.dart';
@@ -47,6 +48,7 @@ class AchievementDetailsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    logAchievementScreenView(achievement['id']);
     final currentLevelIndex = achievement["currentLevel"] ?? 0;
     final levels = achievement["levels"] ?? [];
     final int adjustedLevelIndex =
@@ -75,6 +77,7 @@ class AchievementDetailsWidget extends StatelessWidget {
               IconButton(
                 onPressed: showShareButton
                     ? () {
+                        logAchievementSharedViaLink(achievement['id']);
                         _shareAchievement(context, level["criteria"]);
                       }
                     : null,
@@ -196,7 +199,7 @@ class AchievementDetailsWidget extends StatelessWidget {
           //   ],
           // ),
           Spacer(),
-          if (achievement["rewardAvailable"])
+          if (achievement["rewardAvailable"] && !friendsAchievement!)
             ChicletAnimatedButton(
               onPressed: () {
                 HapticFeedback.lightImpact();

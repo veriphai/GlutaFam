@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchPowerups.dart';
 import 'package:eureka_app/apis/markPowerupUsed.dart';
+import 'package:eureka_app/newEvents/shopScreenEvents.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/powerupService.dart';
 import 'package:flutter/material.dart';
@@ -63,6 +65,7 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   void initState() {
     super.initState();
+    logShopScreenView();
     powerUpService = PowerUpService();
     getPowerups();
 
@@ -77,6 +80,7 @@ class _ShopScreenState extends State<ShopScreen> {
     await powerUpService.addPowerUp(powerup);
     int updatedCredits = creditsAvailable;
     if (!alreadyBought) {
+      logPowerupPurchased(powerup['id']);
       updatedCredits = creditsAvailable - (powerup["credits"] as int);
       updateCredits(updatedCredits);
 
@@ -88,6 +92,8 @@ class _ShopScreenState extends State<ShopScreen> {
       await markPowerupUsed(powerupId: powerup["id"]);
       await getPowerups();
     }
+    logPowerupApplied(powerup['id']);
+
     widget.onPowerUpPurchased(powerup, updatedCredits);
 
     // Show confirmation
@@ -320,8 +326,8 @@ class _ShopScreenState extends State<ShopScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.network(
-                      powerup["image"],
+                    CachedNetworkImage(
+                      imageUrl: powerup["image"],
                       height: 80,
                       width: 80,
                     ),
@@ -371,8 +377,8 @@ class _ShopScreenState extends State<ShopScreen> {
                 ),
                 child: Row(
                   children: [
-                    Image.network(
-                      powerup["image"],
+                    CachedNetworkImage(
+                      imageUrl: powerup["image"],
                       height: 60,
                       width: 60,
                     ),
@@ -422,12 +428,13 @@ class _ShopScreenState extends State<ShopScreen> {
 
   void _showPowerUpDetails(BuildContext context, Map<String, dynamic> powerup,
       {bool available = false}) {
+    logPowerupClicked(powerup['id']);
     bool purchaseDisabled =
         available ? false : creditsAvailable < powerup["credits"];
     bool isPurchased = false;
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       isScrollControlled: true,
       builder: (BuildContext context) {
         return StatefulBuilder(
@@ -437,8 +444,8 @@ class _ShopScreenState extends State<ShopScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.network(
-                    powerup["image"],
+                  CachedNetworkImage(
+                    imageUrl: powerup["image"],
                     height: 150,
                     width: 150,
                   ),

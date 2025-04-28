@@ -19,6 +19,7 @@ Future<void> saveProfile({
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
       body: jsonEncode(profileData), // Use the passed profileData here
     );

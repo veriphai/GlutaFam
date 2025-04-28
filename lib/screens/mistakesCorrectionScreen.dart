@@ -3,6 +3,7 @@ import 'package:bubble_box/bubble_box.dart';
 import 'package:chat_bubbles/chat_bubbles.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/questionMistakesCorrection.dart';
+import 'package:eureka_app/newEvents/mistakeCorrectionScreenEvents.dart';
 import 'package:eureka_app/widgets/conceptResultScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -48,6 +49,7 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
   @override
   void initState() {
     super.initState();
+    logMistakeCorrectionScreenView(widget.conceptId);
     currentQuestionIndex = 0;
     chatMessages = [];
 
@@ -309,7 +311,7 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
       ),
       textDirection: TextDirection.ltr,
       maxLines: 2,
-    )..layout(maxWidth: maxWidth - 20); // Adjust padding for width
+    )..layout(maxWidth: maxWidth - 30); // Adjust padding for width
 
     int lineCount = textPainter.computeLineMetrics().length;
     return lineCount > 1 ? 60 : 40;
@@ -475,6 +477,11 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
                   Expanded(
                     child: ChicletAnimatedButton(
                       onPressed: () {
+                        logMistakeCorrectionStatusPerQuestion(
+                            widget.conceptId,
+                            widget.incorrectQuestions[currentQuestionIndex]
+                                ['id'],
+                            false);
                         _nextQuestion();
                       },
                       buttonType: ChicletButtonTypes.roundedRectangle,
@@ -503,10 +510,15 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Mistake Correction",
-          style: GoogleFonts.raleway(
-              fontWeight: FontWeight.w700, color: Colors.white),
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            "Mistake Correction",
+            style: GoogleFonts.raleway(
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
         ),
         backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       ),
@@ -642,6 +654,11 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
                           ChicletAnimatedButton(
                             onPressed: () {
                               HapticFeedback.lightImpact();
+                              logMistakeCorrectionStatusPerQuestion(
+                                  widget.conceptId,
+                                  widget.incorrectQuestions[
+                                      currentQuestionIndex]['id'],
+                                  false);
                               _nextQuestion();
                             },
                             buttonType: ChicletButtonTypes.roundedRectangle,
@@ -695,6 +712,10 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
             ChicletAnimatedButton(
               onPressed: () {
                 mistakesCorrected += 1;
+                logMistakeCorrectionStatusPerQuestion(
+                    widget.conceptId,
+                    widget.incorrectQuestions[currentQuestionIndex]['id'],
+                    true);
                 _nextQuestion();
               },
               buttonType: ChicletButtonTypes.roundedRectangle,

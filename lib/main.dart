@@ -1,37 +1,22 @@
-import 'dart:ffi';
-
+import 'package:eureka_app/apis/fetchRewardDetails.dart';
 import 'package:eureka_app/apis/updateFCMToken.dart';
 import 'package:eureka_app/events/genericEvents.dart';
-import 'package:eureka_app/popups/streakPopup.dart';
-import 'package:eureka_app/screens/conceptLearningScreen.dart';
-import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
-import 'package:eureka_app/screens/landingScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
-import 'package:eureka_app/screens/leaderboardScreen.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/classSelection.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
-import 'package:eureka_app/screens/onboardingScreenV3.dart';
-import 'package:eureka_app/screens/onboardingScreenV4.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/screens/progressReportScreen.dart';
-import 'package:eureka_app/screens/quizzesScreen.dart';
-import 'package:eureka_app/screens/socraticTutorScreen.dart';
-import 'package:eureka_app/screens/socraticTutorScreenV2.dart';
-import 'package:eureka_app/screens/socraticTutorScreenV3.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
-import 'package:eureka_app/widgets/achievementDetailsWidget.dart';
 import 'package:eureka_app/widgets/achievementDetailsWidgetV2.dart';
-import 'package:eureka_app/widgets/conversationScreen.dart';
+import 'package:eureka_app/widgets/collectionDetailsWidget.dart';
 import 'package:eureka_app/widgets/customBottomBar.dart';
-import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
 import 'package:eureka_app/widgets/questsScreen.dart';
 import 'package:eureka_app/widgets/weeklyLeaderboardContent.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -163,31 +148,33 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainPage extends StatelessWidget {
-  final int? initialIndex; // Optional index parameter
+class MainPage extends StatefulWidget {
+  final int? initialIndex;
 
   const MainPage({Key? key, this.initialIndex}) : super(key: key);
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  late int currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.initialIndex ?? 0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    int currentIndex = initialIndex ?? context.watch<MyAppState>().currentIndex;
-
-    // Define your screens
     final screens = [
       HomeScreen(),
       WeeklyLeaderboardContent(),
-      // ClassSelectionPage(),
-      // QuizzesScreen(),
       ProgressReportScreen(),
-      // ConversationScreen(),
-      // Chapterscreen(),
       ProfileScreen(),
       QuestsScreen(),
-      // SocraticTutorScreen()
-      // SocraticTutorScreenV3()
-      // ConceptLearningScreenV2()
-      // OnboardingScreenV4()
-      // StreakPopup(streakCount: 3, streakStartEpoch: 1741359449, streakGoal: 50)
-      FeedScreen()
+      FeedScreen(),
     ];
 
     return Scaffold(
@@ -195,6 +182,9 @@ class MainPage extends StatelessWidget {
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: currentIndex,
         onTap: (index) {
+          setState(() {
+            currentIndex = index;
+          });
           context.read<MyAppState>().setIndex(index);
           HapticFeedback.lightImpact();
         },
@@ -286,6 +276,10 @@ void handleDeeplinks(SharedPreferences prefs, Uri deepLink) {
     // Navigate to the ProfileScreen
     navigateToAchievementDetails(achievementId, levelCriteria);
   }
+  if (deepLink.path == '/collection' &&
+      deepLink.queryParameters.containsKey('collectionItemId')) {
+    String collectionItemId = deepLink.queryParameters['collectionItemId']!;
+  }
 }
 
 // Function to navigate to ProfileScreen
@@ -311,6 +305,21 @@ void navigateToAchievementDetails(String achievementId, String levelCriteria) {
       builder: (context) => AchievementDetailsWidgetV2(
         achievementId: achievementId,
         levelCriteria: levelCriteriaInt,
+      ),
+    ),
+  );
+}
+
+void navigateToCollectionItem(String collectionItemId) async {
+  // Use Navigator to push the ProfileScreen with the userId
+  Map<String, dynamic> rewardData =
+      await fetchRewardDetails(rewardId: collectionItemId);
+  Navigator.push(
+    navigatorKey.currentContext!,
+    MaterialPageRoute(
+      builder: (context) => CollectionDetailsWidget(
+        collectionItem: rewardData,
+        feedOwner: false,
       ),
     ),
   );

@@ -87,8 +87,7 @@ class _ActionButtonState extends State<ActionButton> {
   }
 
   void _viewProfile(BuildContext context, Map<String, dynamic> feed) {
-    final userId =
-        feed['feedData']['followedId'] ?? feed['feedData']['receiverId'];
+    final userId = feed['feedData']['friendId'];
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -105,8 +104,10 @@ class _ActionButtonState extends State<ActionButton> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            CollectionDetailsWidget(collectionItem: rewardData),
+        builder: (context) => CollectionDetailsWidget(
+            collectionItem: rewardData,
+            feedOwner: feed["feedOwner"],
+            feedOwnerName: feed["name"]),
       ),
     );
   }
@@ -139,7 +140,7 @@ class _ActionButtonState extends State<ActionButton> {
       },
       buttonType: ChicletButtonTypes.roundedRectangle,
       height: 50,
-      width: 150,
+      width: 160,
       padding: const EdgeInsets.all(0),
       borderColor: borderColor,
       // buttonColor: borderColor,

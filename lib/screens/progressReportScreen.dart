@@ -1,6 +1,7 @@
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchBooks.dart';
 import 'package:eureka_app/apis/fetchProgressReport.dart';
+import 'package:eureka_app/newEvents/progressReportEvents.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/widgets/chapterWiseProgressReport.dart';
@@ -64,11 +65,13 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   @override
   void initState() {
     super.initState();
+    logProgressReportScreenView();
     fetchProfile().then((_) => getBooks().then((_) => getProgressReport()));
   }
 
   void _showChapterReportSheet(
       BuildContext context, Map<String, dynamic> chapter) {
+    logChapterProgressButtonClick(chapter['_id']);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -80,6 +83,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   }
 
   void _showSubjectSelectionSheet(BuildContext context) {
+    logSubjectSelectionButtonClick();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -89,6 +93,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
           selectedSubject: selectedSubject,
           books: books,
           onSubjectSelect: (selected, bookId) async {
+            logSubjectSelected(selected);
             setState(() {
               selectedSubject = selected;
               selectedBookId = bookId;
@@ -224,6 +229,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                                             .startsWith('+')
                                         ? friend["id"].replaceFirst('+', '%2B')
                                         : friend["id"];
+                                    logFriendProgressReportViewed(friend["id"]);
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -289,10 +295,15 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Progress Report",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              "Progress Report",
+              style: GoogleFonts.raleway(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700),
+            )),
         scrolledUnderElevation: 0,
         actions: [
           Padding(
@@ -378,21 +389,23 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${overallProgress['chaptersCompleted']} lessons completed',
+                        overallProgress['chaptersCompleted'] == 1
+                            ? '${overallProgress['chaptersCompleted']} lesson completed'
+                            : '${overallProgress['chaptersCompleted']} lessons completed',
                         style: GoogleFonts.raleway(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                         ),
                       ),
-                      Text(
-                        '${overallProgress['completionPercentage']}% subject completed',
-                        style: GoogleFonts.raleway(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
+                      // Text(
+                      //   '${overallProgress['completionPercentage']}% subject completed',
+                      //   style: GoogleFonts.raleway(
+                      //     fontSize: 16,
+                      //     fontWeight: FontWeight.w700,
+                      //     color: Colors.white,
+                      //   ),
+                      // ),
                       Text(
                         '${overallProgress['totalXP']} XP gained',
                         style: GoogleFonts.raleway(
@@ -459,6 +472,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                       child: ChicletAnimatedButton(
                         onPressed: () {
                           HapticFeedback.lightImpact();
+                          logCompareProgressReportButtonClicked();
                           _showCompareWithFriendsSheet(context);
                           // _showFriendSelectionBottomSheet();
 
@@ -565,7 +579,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
           ),
         ),
         subtitle: Text(
-          "${(chapter['progress']['accuracy'] as num).toStringAsFixed(0)}% Accuracy  ${chapter['progress']['topicCompleted']} lessons Completed",
+          "${(chapter['progress']['accuracy'] as num).toStringAsFixed(0)}% Accuracy  ${chapter['progress']['topicCompleted']} ${chapter['progress']['topicCompleted'] == 1 ? 'lesson' : 'lessons'} Completed",
           style: GoogleFonts.raleway(
               color: Colors.white, fontWeight: FontWeight.w500),
         ),

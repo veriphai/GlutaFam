@@ -30,7 +30,7 @@ class WebSocketService {
     }
     channel.stream.listen((message) {
       if (onMessageReceived != null) {
-        print(message);
+        // print(message);
         onMessageReceived!(message);
       }
     }, onError: (error) {

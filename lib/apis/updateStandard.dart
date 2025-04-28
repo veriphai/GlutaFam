@@ -19,6 +19,7 @@ Future<String> updateStandard({required int standard, String? stream}) async {
     final response = await http.post(Uri.parse(url), headers: {
       'Authorization': 'Bearer $authToken', // Use the stored auth token
       'Content-Type': 'application/json',
+      'Accept-Encoding': 'gzip'
     });
 
     if (response.statusCode == 200) {

@@ -135,8 +135,8 @@ class _HomeScreenState extends State<HomeScreenSliver> {
       }
       final booksData = await fetchBooks(standard: standard);
 
-      final completedConceptsData =
-          await fetchCompletedConcepts(bookId: booksData[0]["id"]);
+      final completedConceptsData = await fetchCompletedConcepts(
+          bookId: booksData[0]["id"], subject: _selectedSubject);
       await prefs.setString("bookId", booksData[0]["id"]);
 
       setState(() {

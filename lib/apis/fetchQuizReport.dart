@@ -15,6 +15,7 @@ Future<Map<String, dynamic>> fetchQuizReport({required String quizId}) async {
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

@@ -20,6 +20,7 @@ Future<List<Map<String, dynamic>>> fetchAchievements(
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

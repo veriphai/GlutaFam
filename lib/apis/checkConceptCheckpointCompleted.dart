@@ -27,6 +27,7 @@ Future<Map<String, dynamic>> checkConceptCheckpointCompleted(
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
       body: json.encode(body),
     );

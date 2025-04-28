@@ -18,6 +18,7 @@ Future<Map<String, dynamic>> claimAndGetReward(
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

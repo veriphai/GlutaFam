@@ -45,12 +45,12 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
             ),
             _buildNavItem(
               imagePath: 'lib/assets/leaderboardIcon.png',
-              label: 'Explore',
+              label: 'Leaderboard',
               isActive: widget.currentIndex == 1,
             ),
             _buildNavItem(
-              imagePath: 'lib/assets/audioLessonsIcon.png',
-              label: 'Community',
+              imagePath: 'lib/assets/progressReportIcon.png',
+              label: 'Progress Report',
               isActive: widget.currentIndex == 2,
             ),
             _buildNavItem(
@@ -60,12 +60,12 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
             ),
             _buildNavItem(
               imagePath: 'lib/assets/questIcon.png',
-              label: 'Ranking',
+              label: 'Quests',
               isActive: widget.currentIndex == 4,
             ),
             _buildNavItem(
               imagePath: 'lib/assets/feedIcon.png',
-              label: 'Ranking',
+              label: 'Feeds',
               isActive: widget.currentIndex == 5,
             ),
           ],

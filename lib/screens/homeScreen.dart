@@ -2,11 +2,13 @@ import 'package:bubble_box/bubble_box.dart';
 import 'package:eureka_app/apis/fetchBooks.dart';
 import 'package:eureka_app/apis/fetchChaptersV2.dart';
 import 'package:eureka_app/apis/fetchCompletedConcepts.dart';
+import 'package:eureka_app/newEvents/homeScreenEvents.dart';
 import 'package:eureka_app/popups/genericPopupWidget.dart';
 import 'package:eureka_app/popups/popUpManager.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:eureka_app/utils/cachingUtils.dart';
 import 'package:eureka_app/widgets/chapterSelection.dart';
 import 'package:eureka_app/widgets/lifelinesWidget.dart';
 import 'package:eureka_app/widgets/shopScreen.dart';
@@ -45,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late SharedPreferences prefs;
   int xpMultiplier = 1;
   bool unlimitedLifelines = false;
-  int totalXPForConcept = 45;
+  int totalXPForConcept = 135;
 
   String? selectedConceptId;
 
@@ -98,8 +100,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       // final profileData = await getProfile();
       final profileData = await refreshProfile();
-      fetchData(profileData["standard"], profileData["stream"]);
       prefs = await SharedPreferences.getInstance();
+
+      fetchData(profileData["standard"], profileData["stream"], true);
 
       setState(() {
         userProfile = profileData;
@@ -118,6 +121,17 @@ class _HomeScreenState extends State<HomeScreen> {
       bool unlimitedHeartsEnabled =
           prefs.getBool("unlimitedLifelines") ?? false;
 
+      double powerupStartTime = prefs.getDouble("powerupStartTime") ?? 0;
+      int currentTimeInSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      bool has15MinutesPassed =
+          (currentTimeInSeconds - powerupStartTime) >= 900;
+      if (has15MinutesPassed) {
+        unlimitedHeartsEnabled = false;
+        xpMultiplier = 1;
+        prefs.setBool("unlimitedLifelines", false);
+      }
+
       setState(() {
         creditsAvailable = creditsFromCache ?? 0;
         lifelinesAvailable = lifelinesFromCache ?? 0;
@@ -128,26 +142,33 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> fetchData(int standard, String stream) async {
+  Future<void> fetchData(
+      int standard, String stream, bool updateSelectedSubject) async {
     try {
-      final booksData = await fetchBooks(standard: standard, stream: stream);
-      _selectedSubject = booksData[0]["subject"];
-      final chapterData =
-          await fetchChaptersV2(standard: standard, subject: _selectedSubject);
+      final booksData =
+          await getBooksWithCache(standard: standard, stream: stream);
+      if (selectedBookId == "") {
+        selectedBookId = booksData[0]["id"];
+        prefs.setString("bookId", booksData[0]["id"]);
+      }
+      if (_selectedSubject == "") {
+        _selectedSubject = booksData[0]["subject"];
+      }
+      final chapterData = await getChaptersWithCache(
+          standard: standard, subject: _selectedSubject);
       if (chapterData.isEmpty) {
         return;
       }
 
-      final completedConceptsData =
-          await fetchCompletedConcepts(bookId: booksData[0]["id"]);
-      await prefs.setString("bookId", booksData[0]["id"]);
+      final completedConceptsData = await fetchCompletedConcepts(
+          bookId: selectedBookId, subject: _selectedSubject);
 
       setState(() {
         chapters = chapterData;
         chapters.sort((a, b) => a["chapterNo"].compareTo(b["chapterNo"]));
         books = booksData;
         // _selectedSubject = booksData[0]["subject"];
-        selectedBookId = booksData[0]["id"];
+
         completedConcepts =
             (completedConceptsData["completedConcepts"] as List<dynamic>)
                 .cast<String>();
@@ -158,9 +179,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _activeTopic = chapters[0]['topics'][0]['name'];
           activeChapter = chapters[0]['name'];
           _activeButtonColour = buttonColours[0];
-          if (conceptToStartFrom == "") {
-            conceptToStartFrom = chapters[0]['topics'][0]['lessons'][0]["id"];
-          }
+          // if (conceptToStartFrom == "") {
+          //   conceptToStartFrom = chapters[0]['topics'][0]['lessons'][0]["id"];
+          // }
           addSequentialNumbers(chapters);
           _topicKeys = List.generate(
             chapters.fold<int>(0,
@@ -172,11 +193,17 @@ class _HomeScreenState extends State<HomeScreen> {
         _scrollController.addListener(_onScroll);
       });
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollToConcept(conceptToStartFrom);
-        }
-      });
+      if (conceptToStartFrom != "") {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollToConcept(conceptToStartFrom);
+          }
+        });
+      } else {
+        setState(() {
+          _listOpacity = 1.0;
+        });
+      }
     } catch (error) {
       setState(() {
         isLoading = false;
@@ -188,6 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    logHomeScreenView();
     fetchProfile().then((_) {
       fetchCreditsAndLifelines();
     });
@@ -271,19 +299,20 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       builder: (BuildContext context) {
         return SubjectSelection(
           selectedSubject: _selectedSubject,
           books: books,
           onSubjectSelect: (selected, bookId) {
+            logSubjectSelected(selected);
             setState(() {
               _selectedSubject = selected;
               selectedBookId = bookId;
               chapters = [];
             });
             prefs.setString("bookId", bookId);
-            fetchData(userProfile["standard"], userProfile["stream"]);
+            fetchData(userProfile["standard"], userProfile["stream"], false);
           },
         );
       },
@@ -411,7 +440,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onChapterSelect: (index, chapterName) {
             // Handle the selected chapter
             print("Selected Chapter: $chapterName (Index: $index)");
-
+            logChapterSelected(chapters[index]['id']);
             // Get the first topic of the selected chapter
             final topics = (chapters[index]['topics'] as List<dynamic>)
                 .map((topic) => topic as Map<String, dynamic>)
@@ -438,13 +467,14 @@ class _HomeScreenState extends State<HomeScreen> {
             // Navigator.pop(context); // Close the bottom sheet
           },
           onSubjectSelect: (selected, bookId) {
+            logSubjectSelectedFromChaptersList(selected);
             setState(() {
               _selectedSubject = selected;
               selectedBookId = bookId;
               chapters = [];
             });
             prefs.setString("bookId", bookId);
-            fetchData(userProfile["standard"], userProfile["stream"]);
+            fetchData(userProfile["standard"], userProfile["stream"], false);
           },
         );
       },
@@ -568,6 +598,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           return;
                         }
                         HapticFeedback.lightImpact();
+                        logConceptStart(concept['id']);
                         currentOverlayEntry?.remove();
                         currentOverlayEntry = null;
                         Navigator.push(
@@ -641,6 +672,8 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       creditsAvailable = credits;
     });
+    prefs.setDouble(
+        "powerupStartTime", DateTime.now().millisecondsSinceEpoch / 1000);
     if (powerup['validity'] == 1) {
       _applyPowerUp(powerup);
       return;
@@ -658,14 +691,20 @@ class _HomeScreenState extends State<HomeScreen> {
             showEventPopup(context,
                 {"powerupEnded": true, "powerupName": "XP Multiplier"});
           } else if (powerup['type'] == 'LIFELINE_BOOST') {
+            // setState(() {
+            //   unlimitedLifelines = false;
+            // });
             unlimitedLifelines = false;
-            toggleUnlimitedLifelines(prefs, unlimitedLifelines);
+            toggleUnlimitedLifelines(prefs, false);
             showEventPopup(context,
                 {"powerupEnded": true, "powerupName": "Unlimited Hearts"});
           } else if (powerup['type'] == 'GOD_MODE') {
             xpMultiplier = 1;
+            // setState(() {
+            //   unlimitedLifelines = false;
+            // });
             unlimitedLifelines = false;
-            toggleUnlimitedLifelines(prefs, unlimitedLifelines);
+            toggleUnlimitedLifelines(prefs, false);
             showEventPopup(
                 context, {"powerupEnded": true, "powerupName": "God Mode"});
           }
@@ -736,12 +775,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onPressed: () {
                                   HapticFeedback.lightImpact();
                                   _showSubjectSelectionSheet(context);
+                                  logSubjectSelectionButtonClick();
                                 },
                               ),
                               Row(children: [
                                 GestureDetector(
                                     onTap: () {
                                       HapticFeedback.lightImpact();
+                                      logStreakButtonClick();
                                       showModalBottomSheet(
                                         context: context,
                                         isScrollControlled: true,
@@ -795,6 +836,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               GestureDetector(
                                   onTap: () {
                                     HapticFeedback.lightImpact();
+                                    logShopButtonClick();
                                     showModalBottomSheet(
                                       context: context,
                                       isScrollControlled: true,
@@ -822,6 +864,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               GestureDetector(
                                   onTap: () {
                                     HapticFeedback.lightImpact();
+                                    logLifelinesButtonClick();
                                     _showLifelinesSheet(context);
                                   },
                                   child: Row(children: [
@@ -1061,6 +1104,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         onPressed: () {
                                                           HapticFeedback
                                                               .lightImpact();
+                                                          logConceptClicked(
+                                                              concept['id']);
                                                           showOverlay(
                                                               context,
                                                               concept,
@@ -1180,6 +1225,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           HapticFeedback.lightImpact();
                           _showChapterSelectionSheet(context);
+                          logTopicButtonClick(_activeTopic);
                         },
                         height: 85,
 
@@ -1229,6 +1275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () {
                             HapticFeedback.lightImpact();
                             _showChapterSelectionSheet(context);
+                            logChapterSelectionButtonClick();
                           },
                           buttonType: ChicletButtonTypes.circle,
                           width: 80,

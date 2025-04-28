@@ -14,28 +14,28 @@ class LandingScreenWeb extends StatefulWidget {
 class _LandingScreenWebState extends State<LandingScreenWeb> {
   final List<Map<String, String>> onboardingData = [
     {
-      "topText": "Reading NCERT is now",
-      "secondTopText": "exciting.",
+      "topText": "Every student deserves",
+      "secondTopText": "a personal tutor.",
       "imagePath": "lib/assets/on-1.png",
-      "bottomText": "Interactive audio guides",
-      "bottomMidText": "explain as you read.",
-      "bottomBoldText": "audio lessons"
+      "bottomText": "Our AI tutor teaches concepts",
+      "bottomMidText": "step by step in real time.",
+      "bottomBoldText": "Just like your favorite teacher."
     },
     {
-      "topText": "Have a doubt? Ask our AI",
-      "secondTopText": "tutor anytime.",
+      "topText": "Learning isn't one-size-fits-all.",
+      "secondTopText": "So we personalize it.",
       "imagePath": "lib/assets/on-2.png",
-      "bottomText": "Instant answers, just like",
-      "bottomMidText": "a real teacher.",
-      "bottomBoldText": "AI tutor-led simulations"
+      "bottomText": "We understand your interests",
+      "bottomMidText": "and explain concepts accordingly.",
+      "bottomBoldText": "Interest-led learning"
     },
     {
-      "topText": "Revise effectively with AI",
-      "secondTopText": "quizzes.",
+      "topText": "Quizzes? More like",
+      "secondTopText": "quests.",
       "imagePath": "lib/assets/on-3.png",
-      "bottomText": "Answer aloud and get",
-      "bottomMidText": "immediate feedback.",
-      "bottomBoldText": "CER framework"
+      "bottomText": "Streaks, XP, quests –",
+      "bottomMidText": "learning feels like a game.",
+      "bottomBoldText": "Gamification that works"
     }
   ];
 
@@ -59,13 +59,13 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       body: SingleChildScrollView(
         child: Column(
           children: [
             // Top Bar
             Container(
-              color: Colors.black,
+              color: Color.fromRGBO(19, 31, 36, 1),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -194,7 +194,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        "Interest-led Audio Lessons",
+                        "A Personal AI Tutor That Listens,",
                         textAlign: TextAlign.center,
                         style: GoogleFonts.raleway(
                           fontSize: 36,
@@ -203,7 +203,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                         ),
                       ),
                       Text(
-                        "for Your Curriculum",
+                        "Understands, and Adapts to You",
                         textAlign: TextAlign.center,
                         style: GoogleFonts.raleway(
                           fontSize: 36,

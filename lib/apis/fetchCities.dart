@@ -14,6 +14,7 @@ Future<List<dynamic>> fetchCities({required String state}) async {
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

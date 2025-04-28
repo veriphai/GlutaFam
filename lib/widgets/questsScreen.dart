@@ -917,14 +917,16 @@ class _QuestsScreenState extends State<QuestsScreen> {
         backgroundColor: Colors.orange,
         scrolledUnderElevation: 0,
         elevation: 0,
-        title: Text(
-          "Quests",
-          style: GoogleFonts.raleway(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              "Quests",
+              style: GoogleFonts.raleway(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+            )),
       ),
       body: isLoading
           ? Center(

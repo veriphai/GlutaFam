@@ -14,6 +14,7 @@ Future<void> updateLifelines({
     final response = await http.post(Uri.parse(url), headers: {
       'Authorization': 'Bearer $authToken',
       'Content-Type': 'application/json',
+      'Accept-Encoding': 'gzip'
     });
 
     if (response.statusCode == 200) {

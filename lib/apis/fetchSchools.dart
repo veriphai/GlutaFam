@@ -16,6 +16,7 @@ Future<List<Map<String, dynamic>>> fetchSchools(
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

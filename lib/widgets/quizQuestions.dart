@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:eureka_app/apis/fetchLessonQuestions.dart';
 import 'package:eureka_app/apis/markLessonCompletion.dart';

@@ -97,14 +97,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  Text(
-                    "5100 XP", // Placeholder for XP
-                    style: GoogleFonts.arOneSans(
-                      color: Colors.white60,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+                  // Text(
+                  //   "5100 XP", // Placeholder for XP
+                  //   style: GoogleFonts.arOneSans(
+                  //     color: Colors.white60,
+                  //     fontSize: 14,
+                  //     fontWeight: FontWeight.w400,
+                  //   ),
+                  // ),
                 ],
               ),
             ),
@@ -130,14 +130,16 @@ class _FriendsScreenState extends State<FriendsScreen> {
         iconTheme: IconThemeData(
           color: Colors.grey,
         ),
-        title: Text(
-          "Friends",
-          style: GoogleFonts.raleway(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: Align(
+            alignment: Alignment.centerLeft, // This forces left alignment
+            child: Text(
+              "Friends",
+              style: GoogleFonts.raleway(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            )),
       ),
       body: isLoading
           ? Center(

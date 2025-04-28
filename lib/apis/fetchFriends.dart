@@ -19,6 +19,7 @@ Future<List<Map<String, dynamic>>> fetchFriends({String? friendsId}) async {
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

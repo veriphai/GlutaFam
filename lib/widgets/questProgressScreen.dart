@@ -47,7 +47,7 @@ class QuestProgressScreen extends StatelessWidget {
     int completedQuestsCount = countCompletedQuests();
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       body: Column(
         children: [
           Spacer(),

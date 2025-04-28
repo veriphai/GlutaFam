@@ -182,7 +182,8 @@ class _LeaderboardPopupState extends State<LeaderboardPopup> {
                   SizedBox(
                     width: 20,
                   ),
-                  Text(
+                  Expanded(
+                      child: Text(
                     entry.containsKey("name") ? entry["name"] : "Dummy",
                     style: TextStyle(
                       color: entry["rank"] == userRank
@@ -191,7 +192,9 @@ class _LeaderboardPopupState extends State<LeaderboardPopup> {
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
-                  ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  )),
                 ]),
                 trailing: Text(
                   "${entry["points"]} XP",

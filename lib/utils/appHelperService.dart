@@ -98,7 +98,7 @@ Future<Map<String, dynamic>> getProfile() async {
 
   await prefs.setString(profileKey, json.encode(profileData));
   updateLifelines(prefs, profileData["lifelines"]);
-  updateCredits(profileData["credits"]);
+  updateCreditsInCache(profileData["credits"]);
 
   return profileData;
 }
@@ -113,11 +113,15 @@ void toggleUnlimitedLifelines(SharedPreferences prefs, bool enabled) async {
   await prefs.setBool(lifelinesKey, enabled);
 }
 
-void updateCredits(int credits) async {
+void updateCreditsInCache(int credits) async {
   final prefs = await SharedPreferences.getInstance();
   const String creditsKey = "credits";
   await prefs.setInt(creditsKey, credits);
-  updateCreditsAPI(credits: credits);
+}
+
+void updateCredits(int credits) async {
+  updateCreditsInCache(credits);
+  await updateCreditsAPI(credits: credits);
 }
 
 Future<int> getCredits() async {
@@ -134,7 +138,8 @@ Future<Map<String, dynamic>> refreshProfile() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString(profileKey, json.encode(profileData));
   updateLifelines(prefs, profileData["lifelines"]);
-  updateCredits(profileData["credits"]);
+  updateCreditsInCache(profileData["credits"]);
+  // updateCredits(profileData["credits"]);
 
   return profileData;
 }

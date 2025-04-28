@@ -14,6 +14,7 @@ Future<List<dynamic>> fetchStates() async {
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

@@ -4,6 +4,7 @@ import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchChatResponse.dart';
 import 'package:eureka_app/apis/fetchLessonStory.dart';
 import 'package:eureka_app/main.dart';
+import 'package:eureka_app/newEvents/storyScreenEvents.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
@@ -98,6 +99,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
   @override
   void initState() {
     super.initState();
+    logStoryScreenView(widget.conceptId);
     fetchProfile();
     fetchLessonStoryConversation().then((_) {
       characters = assignSequentialAvatars(conversations);
@@ -379,6 +381,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   conceptName: widget.conceptName,
                   query: message,
                 );
+                logDoubtAsked(widget.conceptId);
 
                 if (aiResponses.isNotEmpty) {
                   setState(() {
@@ -457,6 +460,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   void handleRaiseHandClick() {
     HapticFeedback.lightImpact();
+    logHandRaiseButtonClick(widget.conceptId);
     setState(() {
       isChatMode = true;
     });
@@ -665,7 +669,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -686,7 +690,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                "Your Total XP will be reduced by 20.",
+                "Your Total XP will be reduced by 45.",
                 style: GoogleFonts.raleway(
                   color: Colors.grey[400],
                   fontSize: 14,
@@ -723,16 +727,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       onPressed: () {
                         Navigator.pop(context); // Close the sheet
                         // Navigate to MCQQuestions screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MCQQuestions(
-                              conceptId: widget.conceptId,
-                              conceptName: widget.conceptName,
-                              maxXP: widget.maxXP - 20,
-                            ),
-                          ),
-                        );
+                        Navigator.pop(context, "notCompleted");
                       },
                       buttonType: ChicletButtonTypes.roundedRectangle,
                       height: 50,
@@ -752,7 +747,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                             ),
                           ),
                           Text(
-                            "  -20",
+                            "  -45",
                             style: GoogleFonts.arOneSans(
                               color: Colors.red,
                               fontSize: 16,
@@ -876,16 +871,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                   child: Icon(
                                 Icons.fast_forward,
                                 color: Colors.black,
-                              ))
-                              // child: Text(
-                              //   "SKIP  -15 XP",
-                              //   style: GoogleFonts.arOneSans(
-                              //     color: Colors.black,
-                              //     fontSize: 12,
-                              //     fontWeight: FontWeight.w500,
-                              //   ),
-                              // ),
-                              ),
+                                size: 20,
+                              ))),
                         ],
                       ),
                     ),

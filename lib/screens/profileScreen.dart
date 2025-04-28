@@ -6,6 +6,7 @@ import 'package:eureka_app/apis/fetchFriendSuggestions.dart';
 import 'package:eureka_app/apis/addFriend.dart';
 import 'package:eureka_app/apis/updateAvatar.dart';
 import 'package:eureka_app/apis/updateStandard.dart';
+import 'package:eureka_app/newEvents/profileScreenEvents.dart';
 import 'package:eureka_app/screens/achievementsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/friendsScreen.dart';
@@ -110,6 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    logProfileScreenView();
     fetchProfile();
     getAchievements();
     getFriendSuggestions();
@@ -171,7 +173,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isScrollControlled: true,
       backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       builder: (context) {
-        return CollectionDetailsWidget(collectionItem: collectionItem);
+        return CollectionDetailsWidget(
+          collectionItem: collectionItem,
+          feedOwner: true,
+        );
       },
     );
   }
@@ -280,6 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             GestureDetector(
                                 onTap: () {
                                   HapticFeedback.lightImpact();
+                                  logClassSelectionClicked();
                                   _showClassSelectionBottomSheet();
                                 },
                                 child: Row(children: [
@@ -320,6 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             GestureDetector(
                               onTap: () {
+                                logViewFriendsClicked();
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -353,6 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: ChicletAnimatedButton(
                                 onPressed: () {
                                   HapticFeedback.lightImpact();
+                                  logAddFriendsClicked();
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -396,6 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ChicletAnimatedButton(
                               onPressed: () {
                                 HapticFeedback.lightImpact();
+                                logShareProfileClicked();
                                 _shareProfileLink(context);
                               },
                               buttonType: ChicletButtonTypes.roundedRectangle,
@@ -500,6 +509,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 GestureDetector(
                                   onTap: () {
                                     HapticFeedback.lightImpact();
+                                    logViewAllAchievementsClicked();
                                     // Navigate to the AchievementsPage
                                     Navigator.push(
                                       context,
@@ -546,6 +556,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 return GestureDetector(
                                     onTap: () {
                                       HapticFeedback.lightImpact();
+                                      logAchievementClicked(achievement['id']);
                                       _showAchievementDetails(achievement);
                                     },
                                     child: Row(
@@ -800,6 +811,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 HapticFeedback.lightImpact();
                                 await addFriend(
                                     friendId: friendSuggestion["id"]);
+                                logFriendAddedFromSuggestions(
+                                    friendSuggestion["id"]);
                                 setState(() {
                                   friendsCount += 1;
                                   friends.add(friendSuggestion["id"]);
@@ -931,6 +944,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
+        logCollectionItemClicked(item['id']);
         _showCollectionItemDetails(item);
       },
       child: Column(
@@ -1018,6 +1032,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                             await updateStandard(
                                 standard: standardValue, stream: stream);
+                            logClassUpdated(standard, stream ?? '');
 
                             // Close the bottom sheet
                             Navigator.pop(context);

@@ -1,0 +1,138 @@
+import 'package:eureka_app/apis/logEventsApi.dart';
+
+void logAITutorScreenView(String conceptId) {
+  logEvent(
+    eventName: "tutor_sv",
+    screenName: "AITutorScreen",
+    eventType: "screen_view",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logAITutorMenuButtonClick(String conceptId) {
+  logEvent(
+    eventName: "tutor_menu_clicked",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logAITutorGreetingCompleted(String conceptId) {
+  logEvent(
+    eventName: "tutor_greeting_completed",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logAITutorCheckpointStart(String checkpointId, String conceptId) {
+  logEvent(
+    eventName: "tutor_checkpoint_start",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {"checkpointId": checkpointId, "conceptId": conceptId},
+  );
+}
+
+void logStoryModeButtonClickFromMenu(String checkpointId, String conceptId) {
+  logEvent(
+    eventName: "story_mode_clicked_from_menu",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"checkpointId": checkpointId, "conceptId": conceptId},
+  );
+}
+
+void logQuestionsButtonClickFromMenu(String checkpointId, String conceptId) {
+  logEvent(
+    eventName: "questions_clicked_from_menu",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"checkpointId": checkpointId, "conceptId": conceptId},
+  );
+}
+
+//after completion of first checkpoint
+void logStoryModeButtonClick(String checkpointId, String conceptId) {
+  logEvent(
+    eventName: "story_mode_clicked",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"checkpointId": checkpointId, "conceptId": conceptId},
+  );
+}
+
+//after completion of first checkpoint
+void logQuestionsButtonClick(String checkpointId, String conceptId) {
+  logEvent(
+    eventName: "questions_clicked",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"checkpointId": checkpointId, "conceptId": conceptId},
+  );
+}
+
+void logCheckpointImageClick(String checkpointId, String conceptId) {
+  logEvent(
+    eventName: "checkpoint_image_clicked",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"checkpointId": checkpointId, "conceptId": conceptId},
+  );
+}
+
+void logMistakeCorrectionButtonClick(String conceptId) {
+  logEvent(
+    eventName: "mistake_correction_clicked",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logCheckResultsButtonClick(String conceptId) {
+  logEvent(
+    eventName: "check_results_clicked",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logStoryModeCompleted(String conceptId) {
+  logEvent(
+    eventName: "story_mode_completed",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logStoryModeNotCompleted(String conceptId) {
+  logEvent(
+    eventName: "story_mode_not_completed",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logQuestionsCompleted(String conceptId) {
+  logEvent(
+    eventName: "questions_completed",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logQuestionsNotCompleted(String conceptId) {
+  logEvent(
+    eventName: "questions_not_completed",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {"conceptId": conceptId},
+  );
+}

@@ -7,7 +7,8 @@ Future<Map<String, dynamic>> fetchLessonStory(
     final url =
         'https://glutaclass.com:8080/gluta/famV2/lesson-story?lessonId=$lessonId';
 
-    final response = await http.get(Uri.parse(url));
+    final response =
+        await http.get(Uri.parse(url), headers: {'Accept-Encoding': 'gzip'});
 
     if (response.statusCode == 200) {
       return json.decode(response.body);

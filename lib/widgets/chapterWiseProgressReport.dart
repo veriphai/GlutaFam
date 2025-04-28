@@ -118,21 +118,23 @@ class _ChapterProgressReportState extends State<ChapterProgressReport> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${progress['topicCompleted']} topics completed',
+                      progress['topicCompleted'] == 1
+                          ? '${progress['topicCompleted']} lesson completed'
+                          : '${progress['topicCompleted']} lessons completed',
                       style: GoogleFonts.raleway(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),
-                    Text(
-                      '${progress['completionPercentage']}% chapter completed',
-                      style: GoogleFonts.raleway(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
+                    // Text(
+                    //   '${progress['completionPercentage']}% chapter completed',
+                    //   style: GoogleFonts.raleway(
+                    //     fontSize: 16,
+                    //     fontWeight: FontWeight.w700,
+                    //     color: Colors.white,
+                    //   ),
+                    // ),
                     Text(
                       '${progress['totalXP']} XP gained',
                       style: GoogleFonts.raleway(
@@ -265,7 +267,7 @@ class _ChapterProgressReportState extends State<ChapterProgressReport> {
           ),
         ),
         subtitle: Text(
-          "${(topic['progress']['accuracy'] as num).toStringAsFixed(0)}% Accuracy  ${topic['progress']['lessonCompleted']} lessons completed",
+          "${(topic['progress']['accuracy'] as num).toStringAsFixed(0)}% Accuracy  ${topic['progress']['lessonCompleted']} ${topic['progress']['lessonCompleted'] == 1 ? 'lesson' : 'lessons'} Completed",
           style: GoogleFonts.raleway(
             color: Colors.white,
             fontWeight: FontWeight.w500,

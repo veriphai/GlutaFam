@@ -143,9 +143,11 @@ class PersonalStreakContent extends StatelessWidget {
                             SizedBox(
                               width: 20,
                             ),
-                            Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                            Expanded(
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
                                   Text(
                                     'Do a lesson today to extend your streak',
                                     style: GoogleFonts.raleway(
@@ -153,6 +155,9 @@ class PersonalStreakContent extends StatelessWidget {
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
                                     ),
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
                                   ),
                                   SizedBox(height: 10),
                                   GestureDetector(
@@ -169,7 +174,7 @@ class PersonalStreakContent extends StatelessWidget {
                                       ),
                                     ),
                                   )
-                                ]),
+                                ])),
                           ]),
                         ),
 

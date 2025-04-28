@@ -8,7 +8,8 @@ Future<Map<String, dynamic>?> fetchChapterQuestions(
     final url =
         'https://glutaclass.com:8080/gluta/fam/fetch-chapter-questions?chapterId=$chapterId';
 
-    final response = await http.get(Uri.parse(url));
+    final response =
+        await http.get(Uri.parse(url), headers: {'Accept-Encoding': 'gzip'});
 
     if (response.statusCode == 200) {
       return json.decode(response.body);

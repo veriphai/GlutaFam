@@ -219,18 +219,21 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Color.fromRGBO(19, 31, 36, 1),
-          title: Text(
-            "Find My Friends",
-            style: GoogleFonts.raleway(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
           iconTheme: IconThemeData(
             color: Colors.grey,
           ),
-          // centerTitle: true,
+          centerTitle: false, // good to keep for Android
+          title: Align(
+            alignment: Alignment.centerLeft, // This forces left alignment
+            child: Text(
+              "Find My Friends",
+              style: GoogleFonts.raleway(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ),
         backgroundColor: Color.fromRGBO(19, 31, 36, 1),
         body: isLoading

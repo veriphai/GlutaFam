@@ -415,7 +415,7 @@ class _OtpPageState extends State<OtpPage> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => ClassSelectionPage(
+                                builder: (context) => OnboardingScreenV4(
                                     deviceId: widget.deviceId,
                                     platform: widget.platform,
                                     userIP: widget.userIP)));

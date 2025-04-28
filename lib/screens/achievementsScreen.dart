@@ -1,3 +1,4 @@
+import 'package:eureka_app/apis/fetchAchievements.dart';
 import 'package:eureka_app/utils/achievements.dart';
 import 'package:eureka_app/widgets/achievementDetailsWidget.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ class AchievementsPage extends StatefulWidget {
 }
 
 class _AchievementsPageState extends State<AchievementsPage> {
+  late List<Map<String, dynamic>> achievementsList;
   void _showAchievementDetails(Map<String, dynamic> achievement) {
     showModalBottomSheet(
       context: context,
@@ -24,7 +26,29 @@ class _AchievementsPageState extends State<AchievementsPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => AchievementDetailsWidget(achievement: achievement),
-    );
+    ).then((_) => getAchievements());
+  }
+
+  Future<void> getAchievements() async {
+    try {
+      final data = await fetchAchievements();
+      // final userProfile = await refreshProfile();
+
+      setState(() {
+        achievementsList = data;
+        // isLoading = false;
+      });
+    } catch (error) {
+      print("Error fetching achievements: $error");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      achievementsList = widget.achievements;
+    });
   }
 
   @override
@@ -69,9 +93,9 @@ class _AchievementsPageState extends State<AchievementsPage> {
                   mainAxisSpacing: 50,
                   childAspectRatio: 1,
                 ),
-                itemCount: widget.achievements.length,
+                itemCount: achievementsList.length,
                 itemBuilder: (context, index) {
-                  final achievement = widget.achievements[index];
+                  final achievement = achievementsList[index];
                   final currentLevelIndex = achievement["currentLevel"] ?? 0;
                   final levels = achievement["levels"] ?? [];
                   final int adjustedLevelIndex = currentLevelIndex > 0

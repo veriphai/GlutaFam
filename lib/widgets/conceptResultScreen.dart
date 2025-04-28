@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ConceptResultScreen extends StatefulWidget {
   final String conceptName;
@@ -56,6 +57,10 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
   }
 
   void handleClaimXPClick(int xpEarned, BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    int credits = prefs.getInt("credits") ?? 0;
+    int updatedCredits = credits + 100;
+    updateCredits(updatedCredits);
     bool isStreakExtended = widget.lessonCompletionResponse["streakExtended"];
     bool isLeaderboardUpdated =
         widget.lessonCompletionResponse["leaderboardUpdated"];
@@ -96,9 +101,9 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
         },
       ); // ✅ Waits until LeaderboardPopup is closed
     }
+    _navigateToQuestUpdateScreen(context, xpEarned);
 
     // Once all modals are closed, navigate to Quest Update screen
-    _navigateToQuestUpdateScreen(context, xpEarned);
   }
 
   // void showEventPopup(BuildContext context, int xpEarned) {
@@ -173,6 +178,12 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
           (route) => false,
         );
       }
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => MainPage()),
+        (route) => false,
+      );
     }
   }
 
@@ -204,27 +215,16 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // GIF
-                  // SizedBox(
-                  //   height: 200,
-                  //   width: 200,
-                  //   child: Lottie.asset(
-                  //     'lib/assets/animations/confetti.json',
-                  //     fit: BoxFit.cover,
-                  //     // repeat: false,
-                  //   ),
-                  // ),
-
                   Stack(
                     alignment: Alignment.center,
                     children: [
                       // Top Left Confetti
                       Positioned(
                         top: -20, // Move slightly above the screen
-                        left: -20, // Move slightly outside the screen
+                        left: 0, // Move slightly outside the screen
                         child: SizedBox(
-                          height: 150, // Increase size for better visibility
-                          width: 150,
+                          height: 200, // Increase size for better visibility
+                          width: 200,
                           child: Lottie.asset(
                             'lib/assets/animations/confetti.json',
                             fit: BoxFit.cover,
@@ -234,11 +234,11 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
 
                       // Top Right Confetti
                       Positioned(
-                        top: 50,
-                        right: 100,
+                        top: -20,
+                        right: 0,
                         child: SizedBox(
-                          height: 100,
-                          width: 100,
+                          height: 200,
+                          width: 200,
                           child: Lottie.asset(
                             'lib/assets/animations/confetti.json',
                             fit: BoxFit.cover,
@@ -248,13 +248,15 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
 
                       // Main Center Animation
                       SizedBox(
-                        height: 50,
-                        width: 50,
-                        child: Lottie.asset(
-                          'lib/assets/animations/lovelyCat.json',
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                          width: double.infinity,
+                          child: SizedBox(
+                            height: 200,
+                            width: 200,
+                            child: Lottie.asset(
+                              'lib/assets/animations/lovelyCat.json',
+                              fit: BoxFit.contain,
+                            ),
+                          )),
                     ],
                   ),
 

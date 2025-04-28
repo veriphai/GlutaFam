@@ -19,6 +19,7 @@ Future<String> markLessonStart(
       headers: {
         'Authorization': 'Bearer $authToken', // Use the stored auth token
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
       body: json.encode(body),
     );

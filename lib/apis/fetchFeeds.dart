@@ -15,6 +15,7 @@ Future<List<Map<String, dynamic>>> fetchFeeds() async {
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

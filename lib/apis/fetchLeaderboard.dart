@@ -16,6 +16,7 @@ Future<Map<String, dynamic>> fetchLeaderboard(
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -137,7 +138,7 @@ class _SubjectTile extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         image: DecorationImage(
-                          image: NetworkImage(imagePath),
+                          image: CachedNetworkImageProvider(imagePath),
                           fit: BoxFit.cover,
                         ),
                       ),

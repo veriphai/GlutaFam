@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:eureka_app/apis/fetchLeaderboard.dart';
 import 'package:eureka_app/apis/fetchLeaderboardResult.dart';
 import 'package:eureka_app/apis/markLeaderboardResultSeen.dart';
+import 'package:eureka_app/newEvents/leaderboardScreenEvents.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
@@ -40,7 +41,7 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
       });
       if (!profileData["leaderboardResultSeen"]) {
         final leaderboardResultData = await fetchLeaderboardResult();
-
+        logLeaderboardResultScreenView();
         await showModalBottomSheet(
           context: context,
           isScrollControlled: true,
@@ -99,6 +100,7 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
   @override
   void initState() {
     super.initState();
+    logLeaderboardScreenView();
     fetchProfile();
     getLeaderboardData();
   }
@@ -366,6 +368,7 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                       return GestureDetector(
                           onTap: () {
                             HapticFeedback.lightImpact();
+                            logProfileOpened(entry["userId"]);
                             if (isCurrentUser) {
                               Navigator.push(
                                 context,
@@ -424,7 +427,8 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                                 SizedBox(
                                   width: 20,
                                 ),
-                                Text(
+                                Expanded(
+                                    child: Text(
                                   entry.containsKey("name")
                                       ? entry["name"]
                                       : "Dummy",
@@ -435,7 +439,9 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
                                   ),
-                                ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )),
                               ]),
                               trailing: Text(
                                 "${entry["points"]} XP",

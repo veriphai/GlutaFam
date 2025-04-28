@@ -66,21 +66,18 @@ class _RewardScreenState extends State<RewardScreen>
   }
 
   void _startVibrationEffect() {
-    int duration = 50; // Start with a short vibration
-    int step = 5; // Increase duration by 50ms each step
-    int totalDuration = 4000; // Total 4 seconds
+    int elapsed = 0;
+    int interval = 50;
+    int totalDuration = 2000;
 
     Future.doWhile(() async {
-      if (!isChestOpening) return false; // Stop when chest animation ends
+      if (!isChestOpening || elapsed >= totalDuration) return false;
 
-      HapticFeedback.mediumImpact(); // Vibration effect
-      await Future.delayed(Duration(milliseconds: duration));
+      HapticFeedback.mediumImpact();
+      await Future.delayed(Duration(milliseconds: interval));
+      elapsed += interval;
 
-      if (duration > 0) {
-        duration -= step;
-      }
-
-      return true; // Keep looping
+      return true;
     });
   }
 

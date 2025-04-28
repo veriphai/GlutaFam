@@ -14,6 +14,7 @@ Future<Map<String, dynamic>> fetchPowerups() async {
       headers: {
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
+        'Accept-Encoding': 'gzip'
       },
     );
 
