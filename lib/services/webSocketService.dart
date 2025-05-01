@@ -3,15 +3,19 @@ import 'package:web_socket_channel/io.dart';
 
 class WebSocketService {
   //sweden central
-  final String websocketUrl =
-      "wss://catch-m7iq5tw8-swedencentral.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-mini-realtime-preview&api-key=42Or9XVPOllnKWMkmE60EIFvfwPySSZEAoksDOckYW7bszRPaFcRJQQJ99BBACfhMk5XJ3w3AAAAACOGfq96";
-  final String websocketUrlForOpenai =
+  // final String websocketUrl =
+  //     "wss://catch-m7iq5tw8-swedencentral.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-mini-realtime-preview&api-key=42Or9XVPOllnKWMkmE60EIFvfwPySSZEAoksDOckYW7bszRPaFcRJQQJ99BBACfhMk5XJ3w3AAAAACOGfq96";
+
+  final String websocketUrlForOpenaiMini =
       "wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview-2024-12-17";
+
+  final String websocketUrlForOpenai =
+      "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview";
   // final String websocketUrl =
   //     "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-mini-realtime-preview&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
 
-  // final String websocketUrl =
-  //     "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-realtime-preview-2&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
+  final String websocketUrl =
+      "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-realtime-preview-2&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
 
   late IOWebSocketChannel channel;
   Function(String)? onMessageReceived;
@@ -19,9 +23,10 @@ class WebSocketService {
 
   void connect() {
     if (useOpenAI) {
+      print("URL for websocket : $websocketUrlForOpenaiMini");
       String openaiKey =
           "sk-proj-DsGnxcYNvrHwGSHmsw9FT3BlbkFJosc9TOPpFiRh16bimbuw";
-      channel = IOWebSocketChannel.connect(websocketUrlForOpenai, headers: {
+      channel = IOWebSocketChannel.connect(websocketUrlForOpenaiMini, headers: {
         "Authorization": "Bearer $openaiKey",
         "OpenAI-Beta": "realtime=v1",
       });

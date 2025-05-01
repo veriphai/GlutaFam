@@ -542,7 +542,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
                         width: availableWidth * progress,
                         height: 16.0,
                         decoration: BoxDecoration(
-                          color: Colors.green,
+                          color: Color.fromRGBO(255, 217, 0, 1),
                           borderRadius: BorderRadius.circular(16.0),
                         ),
                       ),

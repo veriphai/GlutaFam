@@ -554,7 +554,8 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
                                 width: availableWidth * getProgress(),
                                 height: 16.0,
                                 decoration: BoxDecoration(
-                                  color: getProgressBarColor(getProgress()),
+                                  color: Color.fromRGBO(255, 217, 0, 1),
+                                  // color: getProgressBarColor(getProgress()),
                                   borderRadius: BorderRadius.circular(16.0),
                                 ),
                               ),

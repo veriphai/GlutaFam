@@ -1,3 +1,4 @@
+import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import "package:flutter/material.dart";
@@ -112,7 +113,7 @@ class _SignupscreenState extends State<Signupscreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Set background to black
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1), // Set background to black
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -193,14 +194,14 @@ class _SignupscreenState extends State<Signupscreen> {
                       hintText: "Enter Phone Number",
                       hintStyle: GoogleFonts.raleway(color: Colors.grey[600]),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide(
                           color: Colors.orange,
                           width: 2,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide(
                           color: Colors.orange,
                           width: 2,
@@ -238,33 +239,30 @@ class _SignupscreenState extends State<Signupscreen> {
                         )
                       : Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(100),
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 58,
-                              child: ElevatedButton(
-                                onPressed:
-                                    _isLoading ? null : _verifyPhoneNumber,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Color.fromRGBO(255, 217, 0, 1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(100),
-                                  ),
-                                ),
-                                child: Text(
-                                  "Continue",
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                  ),
-                                ),
+                          child: ChicletAnimatedButton(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              _isLoading ? null : _verifyPhoneNumber();
+                              // Navigator.pop(context); // Go back to the chapter
+                            },
+                            //
+                            buttonType: ChicletButtonTypes.roundedRectangle,
+                            height: 50,
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(8),
+                            // borderRadius: 12,
+                            buttonColor: const Color.fromRGBO(187, 160, 2, 1),
+                            backgroundColor:
+                                const Color.fromRGBO(255, 217, 0, 1),
+                            child: Text(
+                              'CONTINUE',
+                              style: GoogleFonts.raleway(
+                                color: Colors.black,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                          ),
-                        ),
+                          )),
                 ]),
               ),
             ],

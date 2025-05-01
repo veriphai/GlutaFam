@@ -1,4 +1,5 @@
 import "dart:async";
+import "package:chiclet/chiclet.dart";
 import "package:eureka_app/apis/authApi.dart";
 import "package:eureka_app/screens/ncertPodcasts/classSelection.dart";
 import "package:eureka_app/screens/onboardingScreenV4.dart";
@@ -244,7 +245,7 @@ class _OtpPageState extends State<OtpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: true,
@@ -298,14 +299,14 @@ class _OtpPageState extends State<OtpPage> {
                           contentPadding: const EdgeInsets.only(
                               left: 20, top: 16, bottom: 16),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             borderSide: const BorderSide(
                               color: Colors.orange,
                               width: 2,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                             borderSide: const BorderSide(
                               color: Colors.orange,
                               width: 2,
@@ -341,33 +342,58 @@ class _OtpPageState extends State<OtpPage> {
                           : Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 0.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(100),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  height: 58,
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading ? null : _verifyOtp,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Color.fromRGBO(255, 217, 0, 1),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(100),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      "Confirm",
-                                      style: GoogleFonts.raleway(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black,
-                                      ),
-                                    ),
+                              child: ChicletAnimatedButton(
+                                onPressed: () {
+                                  HapticFeedback.lightImpact();
+                                  _isLoading ? null : _verifyOtp();
+                                  // Navigator.pop(context); // Go back to the chapter
+                                },
+                                //
+                                buttonType: ChicletButtonTypes.roundedRectangle,
+                                height: 50,
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(8),
+                                // borderRadius: 12,
+                                buttonColor:
+                                    const Color.fromRGBO(187, 160, 2, 1),
+                                backgroundColor:
+                                    const Color.fromRGBO(255, 217, 0, 1),
+                                child: Text(
+                                  'CONFIRM',
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.black,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
+                              )
+                              // ClipRRect(
+                              //   borderRadius: BorderRadius.circular(100),
+                              //   child: SizedBox(
+                              //     width: double.infinity,
+                              //     height: 58,
+                              //     child: ElevatedButton(
+                              //       onPressed: _isLoading ? null : _verifyOtp,
+                              //       style: ElevatedButton.styleFrom(
+                              //         backgroundColor:
+                              //             Color.fromRGBO(255, 217, 0, 1),
+                              //         shape: RoundedRectangleBorder(
+                              //           borderRadius:
+                              //               BorderRadius.circular(100),
+                              //         ),
+                              //       ),
+                              //       child: Text(
+                              //         "Confirm",
+                              //         style: GoogleFonts.raleway(
+                              //           fontSize: 20,
+                              //           fontWeight: FontWeight.w700,
+                              //           color: Colors.black,
+                              //         ),
+                              //       ),
+                              //     ),
+                              //   ),
+                              // ),
                               ),
-                            ),
                     ],
                   ),
                 ),

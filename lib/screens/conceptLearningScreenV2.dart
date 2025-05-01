@@ -93,6 +93,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   bool allCheckpointsCompleted = false;
   List<int> completedCheckpointIndexes = [];
   bool isMuted = false;
+  String userPrompt =
+      "You are a world-class, real-time AI tutor designed to teach students in Grades 6–10 with unmatched clarity, patience, and adaptability.\n\n🎭 ROLE CLARITY:\n- You are not just a content explainer. You are a deeply thoughtful, emotionally intelligent *Socratic tutor*.\n- You teach by asking questions, building from the student’s existing ideas, and guiding discovery — never by dumping information.\n- You are kind, curious, and humble — you treat the student like a peer in thought, not a passive listener.\n\n🎯 CORE OBJECTIVE:\nYour job is to ensure the student *deeply understands* the concept through guided conversation, starting from zero assumptions.\nNever assume prior knowledge. Never rush to explain. *Earn every concept.*\n\n🧠 TEACHING PROCESS (STRUCTURE TO FOLLOW):\n\n1. 🔍 *Start With Conversation, Not Concepts*\n   - Begin with a natural, real-world question that might connect to the concept (e.g., a feeling, memory, oddity, or daily habit).\n   - Use curiosity hooks, story recall, “have you ever” questions, or sense-based prompts.\n\n2. 🔄 *Pivot Smoothly If Needed*\n   - If the first anchor doesn’t land (e.g. short response), gently pivot to another.\n   - You may try body-related cues, personal habits, games, feelings, or mistakes.\n\n3. 🎯 *Once Anchor Is Found → Route to Teaching Technique*\n   - Based on the student’s response, choose the best-fit teaching method:\n     - First-principles breakdown\n     - Real-world analogy\n     - Story-based concept reveal\n     - Mental model or system analogy\n     - Socratic puzzle-solving\n     - Interest-aligned example\n   - Deliver the concept through *conversation*, not lecture.\n\n4. 🧪 *Use Micro-Check Questions Midway*\n   - Ask the student to predict, explain, or rephrase in their own words\n   - Use “what if” challenges, small scenario questions, or quick recaps\n\n5. 🧽 *Explain Every Term*\n   - Never assume a word is understood. Define everything the moment it appears.\n   - Examples: “enzyme”, “ion”, “valency”, “haemoglobin”, “emulsify”, “digest”\n\n6. ✅ *Wrap Up With Reflection*\n   - Ask the student to explain the concept back to you in their words\n   - Offer a quick “myth” or “what if” to lock the learning\n   - Then ask if they’d like to:\n     - Go deeper\n     - Do a challenge\n     - Or stop for now\n\n⚠️ WHAT NOT TO DO:\n- ❌ Don’t deliver textbook-style explanations\n- ❌ Don’t assume they’ve heard a term before\n- ❌ Don’t lecture or list without engagement\n- ❌ Don’t ask multiple questions at once\n\nBegin by engaging the student naturally and warmly.\nYou do not know what they know yet — so start with curiosity.";
 
   late List<Map<String, dynamic>> conceptCheckpoints;
 
@@ -104,8 +106,64 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
       // final profileData = await getProfile();
 
+      // conceptDetails = {
+      //   "_id":
+      //       "transportation_in_animals_and_plants_7_Science_Section_1_SubSection_1",
+      //   "name": "Blood Circulation and Its Components",
+      //   "conceptCheckpoints": [
+      //     {
+      //       "id": "50dc1229-fef7-4222-9b9e-4818fddc3f0d",
+      //       "order": 1,
+      //       "learningObjective": [
+      //         "Understand the purpose of the circulatory system in transporting food, water, oxygen, and removing wastes.",
+      //         "Identify the components of the circulatory system (heart and blood vessels).",
+      //         "Describe the function of arteries and veins in blood transport.",
+      //         "Explain how the heart and blood vessels work together to sustain life."
+      //       ],
+      //       "blackboardText":
+      //           "### Board 1: Circulatory System\n\nCirculatory System\n\n- **Purpose:\n  - Transport food, water, and oxygen to different parts of the body.\n  - Remove wastes from the body.\n\n- **Components:\n  - **Heart:* Pumps blood throughout the body.\n  - *Blood Vessels:\n    - **Arteries:* Carry blood away from the heart (shown in red).\n    - *Veins:* Carry blood towards the heart (shown in blue).\n\n- *Function:*\n  - Together, the heart and blood vessels form the circulatory system, which ensures that all body parts receive the necessary substances for survival.",
+      //     },
+      //     {
+      //       "id": "c3e070da-3278-4b7b-b709-debe48aa11f1",
+      //       "order": 2,
+      //       "learningObjective": [
+      //         "Define blood and explain its role in the circulatory system.",
+      //         "Identify the functions of blood in transporting nutrients, oxygen, and waste products.",
+      //         "Understand the composition of blood, including plasma and blood cells.",
+      //         "Distinguish between plasma and blood cells and their respective functions."
+      //       ],
+      //       "blackboardText":
+      //           "### *Board 2: What is Blood\n\nBlood\n\n- **Definition:\n  - Blood is the fluid that flows inside blood vessels.\n\n- **Functions of Blood:\n  - **Transport:\n    - Carries digested food from the small intestine to various parts of the body.\n    - Delivers oxygen from the lungs to the body's cells.\n    - Transports waste products to areas where they can be removed from the body.\n\n- **Composition:\n  - **Plasma:* The liquid part of blood that carries cells and nutrients.\n  - *Blood Cells:* Suspended within the plasma, performing various functions.",
+      //     },
+      //     {
+      //       "id": "a5fc068c-4429-431d-a450-0d530e3e456e",
+      //       "order": 3,
+      //       "learningObjective": [
+      //         "Understand the structure and function of red blood cells (RBCs).",
+      //         "Explain the role of haemoglobin in oxygen transport.",
+      //         "Describe the importance of haemoglobin in giving blood its red color.",
+      //         "Relate the presence of haemoglobin to efficient oxygen delivery in the body."
+      //       ],
+      //       "blackboardText":
+      //           "### Board 3: Red Blood Cells and Haemoglobin\n\nRed Blood Cells (RBC) & Haemoglobin\n\n- **Red Blood Cells (RBC):\n  - Contain a red pigment called **haemoglobin.\n\n- **Haemoglobin:\n  - **Function:* Binds with oxygen in the lungs and transports it to all parts of the body and cells.\n  - *Importance:* Essential for efficient oxygen delivery to cells.\n  - *Color:* Gives blood its red color.\n\n- *Why Blood is Red:*\n  - The presence of haemoglobin in RBCs makes blood appear red.",
+      //     },
+      //     {
+      //       "id": "e384b653-7653-41aa-9e0a-7bb75e0a6bdd",
+      //       "order": 4,
+      //       "learningObjective": [
+      //         "Understand the function of white blood cells in fighting infections.",
+      //         "Explain the role of platelets in blood clotting and wound healing.",
+      //         "Relate the example of Boojho's injury to illustrate the function of platelets.",
+      //         "Describe how the immune system and clotting mechanism work together to protect the body."
+      //       ],
+      //       "blackboardText":
+      //           "### *Board 4: White Blood Cells and Platelets\n\nWhite Blood Cells (WBC) & Platelets\n\n- **White Blood Cells (WBC):\n  - **Function:* Fight against germs and protect the body from infections.\n\n- *Platelets:\n  - **Function:* Help in blood clotting to stop bleeding.\n  - *Example:* When you get a cut, platelets form a dark red clot to plug the wound and stop the bleeding.\n\n- *Example Scenario:\n  - Boojho injured his knee.\n    - **Observation:* Blood flowed out from the cut.\n    - *After Some Time:* Bleeding stopped as a dark red clot formed, thanks to platelets.",
+      //     }
+      //   ]
+      // };
+
       setState(() {
-        conceptCheckpoints = (conceptDetails["conceptCheckpoints"] as List)
+        conceptCheckpoints = (conceptDetails?["conceptCheckpoints"] as List)
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
         isConceptCheckpointLoading = false;
@@ -141,7 +199,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     // webSocketService = WebSocketServiceForOpenai();
 
     webSocketService.onMessageReceived = onMessageReceived;
-    webSocketService.useOpenAI = false;
+    webSocketService.useOpenAI = true;
     webSocketService.connect();
     _recorder = FlutterSoundRecorder();
 
@@ -664,7 +722,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
           conceptCheckpoints[currentCheckpointIndex]['id'], widget.conceptId);
 
       String contentText =
-          "Concept to teach: ${widget.conceptName}. Moving to next checkpoint of the concept. Checkpoint ${currentCheckpointIndex + 1}: ${conceptCheckpoints[currentCheckpointIndex]}";
+          "Concept to teach: ${widget.conceptName}. Moving to next checkpoint of the concept. Checkpoint ${currentCheckpointIndex + 1}: ${conceptCheckpoints[currentCheckpointIndex]}. Dont ask  the same questions from the sample conversation given in checkpoint, use it as a reference only for asking questions but make sure that the questions are simple and are socratic like the ones given in sample conversation for the checkpoint. You are an ideal class 7 teacher teaching blood circulatory system to a student who has never studied it before and you are a socratic tutor who has interactive style of teaching so the student is never bored.";
 
       conversationItemCreationForUser(contentText);
     } else {
@@ -833,7 +891,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     webSocketService.sendMessage(startMessage);
 
     String contentText =
-        "Concept to teach: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}";
+        " Concept being taught: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}.";
     logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId);
     conversationItemCreationForUser(contentText);
   }
