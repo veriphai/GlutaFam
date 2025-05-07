@@ -19,7 +19,7 @@ class SocraticTutorHelper {
   SocraticTutorHelper() {
     // Initialize WebSocket and other components in the constructor
     webSocketService = WebSocketService();
-    webSocketService.onMessageReceived = onMessageReceived;
+    // webSocketService.onMessageReceived = onMessageReceived;
     webSocketService.connect();
     updateSessionPrompt();
   }

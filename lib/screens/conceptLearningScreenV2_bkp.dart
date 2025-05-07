@@ -211,7 +211,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     webSocketService = WebSocketService();
     // webSocketService = WebSocketServiceForOpenai();
 
-    webSocketService.onMessageReceived = onMessageReceived;
+    // webSocketService.onMessageReceived = onMessageReceived;
     webSocketService.useOpenAI = false;
     webSocketService.connect();
     _recorder = FlutterSoundRecorder();

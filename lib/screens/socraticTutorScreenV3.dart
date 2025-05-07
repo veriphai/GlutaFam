@@ -90,7 +90,7 @@ class _SocraticTutorScreenState extends State<SocraticTutorScreenV3> {
     super.initState();
     player = FlutterSoundPlayer();
     webSocketService = WebSocketService();
-    webSocketService.onMessageReceived = onMessageReceived;
+    // webSocketService.onMessageReceived = onMessageReceived;
     webSocketService.connect();
     _recorder = FlutterSoundRecorder();
 

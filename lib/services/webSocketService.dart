@@ -9,17 +9,21 @@ class WebSocketService {
   final String websocketUrlForOpenaiMini =
       "wss://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview-2024-12-17";
 
+  final String websocketUrlForGemini =
+      "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+
   final String websocketUrlForOpenai =
       "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview";
-  // final String websocketUrl =
-  //     "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-mini-realtime-preview&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
-
   final String websocketUrl =
-      "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-realtime-preview-2&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
+      "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-mini-realtime-preview&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
+
+  // final String websocketUrl =
+  //     "wss://ai-whisper2392942797736.openai.azure.com/openai/realtime?api-version=2024-10-01-preview&deployment=gpt-4o-realtime-preview-2&api-key=2f9f3ba9fac54b2fbe42b457f10e852a";
 
   late IOWebSocketChannel channel;
-  Function(String)? onMessageReceived;
+  Function(dynamic)? onMessageReceived;
   bool useOpenAI = false;
+  bool useGemini = false;
 
   void connect() {
     if (useOpenAI) {
@@ -30,6 +34,12 @@ class WebSocketService {
         "Authorization": "Bearer $openaiKey",
         "OpenAI-Beta": "realtime=v1",
       });
+    } else if (useGemini) {
+      print("URL for websocket : $websocketUrlForGemini");
+      String geminiKey = "AIzaSyD50eOpqFEhQWIAuyhj55pYscgoqT0Yrrk";
+      // String geminiKey = "AIzaSyDMkADjdD6cu9jMy_vPAH-lFx1xE4HoUPY"; //Dagar's key
+      String updatedUrl = "$websocketUrlForGemini?key=$geminiKey";
+      channel = IOWebSocketChannel.connect(updatedUrl);
     } else {
       channel = IOWebSocketChannel.connect(websocketUrl);
     }
@@ -41,7 +51,12 @@ class WebSocketService {
     }, onError: (error) {
       print("WebSocket error: $error");
     }, onDone: () {
-      print("WebSocket connection closed");
+      String stringToAppend = useGemini
+          ? "Gemini"
+          : useOpenAI
+              ? "openai"
+              : "microsoft";
+      print("WebSocket connection closed: $stringToAppend ");
     });
   }
 

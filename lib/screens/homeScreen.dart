@@ -910,206 +910,254 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemCount: chapters.length,
                         itemBuilder: (context, chapterIndex) {
                           final chapter = chapters[chapterIndex];
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: chapter['topics']
-                                .asMap()
-                                .entries
-                                .map<Widget>((topicEntry) {
-                              final int topicIndex = topicEntry.key;
-                              final topic = topicEntry.value;
-                              final concepts = topic['lessons'];
-                              final globalKeyIndex = chapters
-                                      .take(chapterIndex)
-                                      .fold<int>(
-                                          0,
-                                          (total, chapter) =>
-                                              total +
-                                              (chapter['topics'].length
-                                                  as int)) +
-                                  topicIndex;
-                              final buttonColour = buttonColours[
-                                  (topic['seqNumber'] - 1) %
-                                      buttonColours.length];
+                          return Column(children: [
+                            Padding(
+                                padding: const EdgeInsets.only(top: 40),
+                                child: Text(
+                                  chapter['name'],
+                                  style: GoogleFonts.raleway(
+                                    color: Color.fromRGBO(255, 217, 0, 1),
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                )),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: chapter['topics']
+                                  .asMap()
+                                  .entries
+                                  .map<Widget>((topicEntry) {
+                                final int topicIndex = topicEntry.key;
+                                final topic = topicEntry.value;
+                                final concepts = topic['lessons'];
+                                final globalKeyIndex = chapters
+                                        .take(chapterIndex)
+                                        .fold<int>(
+                                            0,
+                                            (total, chapter) =>
+                                                total +
+                                                (chapter['topics'].length
+                                                    as int)) +
+                                    topicIndex;
+                                final buttonColour = buttonColours[
+                                    (topic['seqNumber'] - 1) %
+                                        buttonColours.length];
 
-                              // final buttonColour;
-                              // if (chapterIndex == 0 && topicIndex == 0) {
-                              //   buttonColour = buttonColours[topicIndex];
-                              // } else {
-                              //   int randomIndex = Random().nextInt(4) +
-                              //       1; // Generates a random number from 1 to 5
-                              //   buttonColour = buttonColours[randomIndex];
-                              // }
-                              return Padding(
-                                key: _topicKeys[globalKeyIndex],
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 0, vertical: 0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Divider with Topic Name
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 20, horizontal: 20),
-                                      child: Center(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 20),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: Divider(
-                                                  color: Colors.grey,
-                                                  thickness: 1,
-                                                  endIndent: 10,
-                                                ),
-                                              ),
-                                              Container(
-                                                constraints: BoxConstraints(
-                                                  maxWidth: MediaQuery.of(
-                                                              context)
-                                                          .size
-                                                          .width *
-                                                      0.7, // Limits text width
-                                                ),
-                                                child: Text(
-                                                  topic['name'],
-                                                  style: GoogleFonts.raleway(
+                                // final buttonColour;
+                                // if (chapterIndex == 0 && topicIndex == 0) {
+                                //   buttonColour = buttonColours[topicIndex];
+                                // } else {
+                                //   int randomIndex = Random().nextInt(4) +
+                                //       1; // Generates a random number from 1 to 5
+                                //   buttonColour = buttonColours[randomIndex];
+                                // }
+                                return Padding(
+                                  key: _topicKeys[globalKeyIndex],
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 0, vertical: 0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Divider with Topic Name
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 0, horizontal: 20),
+                                        child: Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 20),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Divider(
                                                     color: Colors.grey,
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.w700,
+                                                    thickness: 1,
+                                                    endIndent: 10,
                                                   ),
-                                                  maxLines: 3,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  textAlign: TextAlign.center,
                                                 ),
-                                              ),
-                                              Expanded(
-                                                child: Divider(
-                                                  color: Colors.grey,
-                                                  thickness: 1,
-                                                  indent:
-                                                      10, // Space between text and divider
+                                                Container(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth: MediaQuery.of(
+                                                                context)
+                                                            .size
+                                                            .width *
+                                                        0.7, // Limits text width
+                                                  ),
+                                                  child: Text(
+                                                    topic['name'],
+                                                    style: GoogleFonts.raleway(
+                                                      color: Colors.grey,
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                    maxLines: 3,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    textAlign: TextAlign.center,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                                Expanded(
+                                                  child: Divider(
+                                                    color: Colors.grey,
+                                                    thickness: 1,
+                                                    indent:
+                                                        10, // Space between text and divider
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    // Concept Islands in a Stack with Alternating Pattern
-                                    SizedBox(
-                                      height: concepts.length * 100.0,
-                                      child: Stack(
-                                        children: [
-                                          ...List.generate(concepts.length,
-                                              (index) {
-                                            double topOffset = index * 100.0;
-                                            double screenWidth =
-                                                MediaQuery.of(context)
-                                                    .size
-                                                    .width;
-                                            double leftOffset;
+                                      // Concept Islands in a Stack with Alternating Pattern
+                                      SizedBox(
+                                        height: concepts.length * 100.0,
+                                        child: Stack(
+                                          children: [
+                                            ...List.generate(concepts.length,
+                                                (index) {
+                                              double topOffset = index * 100.0;
+                                              double screenWidth =
+                                                  MediaQuery.of(context)
+                                                      .size
+                                                      .width;
+                                              double leftOffset;
 
-                                            int globalConceptIndex = chapters
-                                                    .take(chapterIndex)
-                                                    .fold<int>(0,
-                                                        (total, chapter) {
-                                                  return total +
-                                                      ((chapter['topics']
-                                                              as List)
-                                                          .fold<int>(
-                                                              0,
-                                                              (subTotal,
-                                                                      topic) =>
-                                                                  subTotal +
-                                                                  (topic['lessons']
-                                                                          as List)
-                                                                      .length));
-                                                }) +
-                                                (chapter['topics'] as List)
-                                                    .take(topicIndex)
-                                                    .fold<int>(
-                                                        0,
-                                                        (subTotal, topic) =>
-                                                            subTotal +
-                                                            (topic['lessons']
-                                                                    as List)
-                                                                .length) +
-                                                index;
+                                              int globalConceptIndex = chapters
+                                                      .take(chapterIndex)
+                                                      .fold<int>(0,
+                                                          (total, chapter) {
+                                                    return total +
+                                                        ((chapter['topics'] as List).fold<
+                                                                int>(
+                                                            0,
+                                                            (subTotal, topic) =>
+                                                                subTotal +
+                                                                (topic['lessons']
+                                                                        as List)
+                                                                    .length));
+                                                  }) +
+                                                  (chapter['topics'] as List)
+                                                      .take(topicIndex)
+                                                      .fold<int>(
+                                                          0,
+                                                          (subTotal, topic) =>
+                                                              subTotal +
+                                                              (topic['lessons']
+                                                                      as List)
+                                                                  .length) +
+                                                  index;
 
-                                            int topicConceptIndex =
-                                                index; // Resets per topic
+                                              int topicConceptIndex =
+                                                  index; // Resets per topic
 
-                                            int wavePosition =
-                                                topicConceptIndex % 6;
-                                            bool isLeft = wavePosition <
-                                                3; // First 3 go left, last 3 go right
+                                              int wavePosition =
+                                                  topicConceptIndex % 6;
+                                              bool isLeft = wavePosition <
+                                                  3; // First 3 go left, last 3 go right
 
-                                            int shift = [
-                                              50,
-                                              80,
-                                              120,
-                                              120,
-                                              80,
-                                              50
-                                            ][wavePosition];
+                                              int shift = [
+                                                50,
+                                                80,
+                                                120,
+                                                120,
+                                                80,
+                                                50
+                                              ][wavePosition];
 
-                                            leftOffset = isLeft
-                                                ? (screenWidth / 2) - shift
-                                                : (screenWidth / 2) -
-                                                    shift +
-                                                    60; // Shift right
-                                            final concept = concepts[index];
-                                            //current_lesson
-                                            final isLastCompleted =
-                                                concept['id'] ==
-                                                    conceptToStartFrom;
-                                            final isCompleted =
-                                                completedConcepts
-                                                    .contains(concept['id']);
-                                            final isStartOfTopic =
-                                                !isCompleted &&
-                                                    concept['id'] !=
-                                                        conceptToStartFrom &&
-                                                    concept['id']
-                                                        .toString()
-                                                        .endsWith('_1');
+                                              leftOffset = isLeft
+                                                  ? (screenWidth / 2) - shift
+                                                  : (screenWidth / 2) -
+                                                      shift +
+                                                      60; // Shift right
+                                              final concept = concepts[index];
+                                              //current_lesson
+                                              final isLastCompleted =
+                                                  concept['id'] ==
+                                                      conceptToStartFrom;
+                                              final isCompleted =
+                                                  completedConcepts
+                                                      .contains(concept['id']);
+                                              final isStartOfTopic =
+                                                  !isCompleted &&
+                                                      concept['id'] !=
+                                                          conceptToStartFrom &&
+                                                      concept['id']
+                                                          .toString()
+                                                          .endsWith('_1');
 
-                                            final isDisabled =
-                                                !(isLastCompleted ||
-                                                    isStartOfTopic ||
-                                                    isCompleted);
-                                            final GlobalKey buttonKey =
-                                                GlobalKey();
+                                              final isDisabled =
+                                                  !(isLastCompleted ||
+                                                      isStartOfTopic ||
+                                                      isCompleted);
+                                              final GlobalKey buttonKey =
+                                                  GlobalKey();
 
-                                            return Positioned(
-                                              top: topOffset,
-                                              left: leftOffset,
-                                              child: Stack(
-                                                  alignment: Alignment.center,
-                                                  children: [
-                                                    Padding(
-                                                      padding: const EdgeInsets
-                                                          .only(
-                                                          top: 30.0,
-                                                          left: 20,
-                                                          right:
-                                                              20), // Add space above the stack
-                                                      child:
-                                                          ChicletAnimatedButton(
-                                                        key: buttonKey,
-                                                        onPressed: () {
-                                                          HapticFeedback
-                                                              .lightImpact();
-                                                          logConceptClicked(
-                                                              concept['id']);
-                                                          showOverlay(
-                                                              context,
-                                                              concept,
-                                                              buttonKey,
+                                              return Positioned(
+                                                top: topOffset,
+                                                left: leftOffset,
+                                                child: Stack(
+                                                    alignment: Alignment.center,
+                                                    children: [
+                                                      Padding(
+                                                        padding: const EdgeInsets
+                                                            .only(
+                                                            top: 30.0,
+                                                            left: 20,
+                                                            right:
+                                                                20), // Add space above the stack
+                                                        child:
+                                                            ChicletAnimatedButton(
+                                                          key: buttonKey,
+                                                          onPressed: () {
+                                                            HapticFeedback
+                                                                .lightImpact();
+                                                            logConceptClicked(
+                                                                concept['id']);
+                                                            showOverlay(
+                                                                context,
+                                                                concept,
+                                                                buttonKey,
+                                                                isDisabled
+                                                                    ? Color
+                                                                        .fromRGBO(
+                                                                            56,
+                                                                            70,
+                                                                            79,
+                                                                            1)
+                                                                    : buttonColour[
+                                                                        'background'],
+                                                                isCompleted,
+                                                                isDisabled);
+                                                          },
+                                                          buttonType:
+                                                              ChicletButtonTypes
+                                                                  .oval,
+                                                          width: 70,
+                                                          height: 60,
+                                                          buttonHeight: 6,
+                                                          padding:
+                                                              EdgeInsets.all(0),
+                                                          buttonColor:
+                                                              isDisabled
+                                                                  ? Color
+                                                                      .fromRGBO(
+                                                                          42,
+                                                                          55,
+                                                                          63,
+                                                                          1)
+                                                                  : isCompleted
+                                                                      ? Colors
+                                                                          .green
+                                                                      : buttonColour[
+                                                                          'button'],
+                                                          backgroundColor:
                                                               isDisabled
                                                                   ? Color
                                                                       .fromRGBO(
@@ -1117,103 +1165,76 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                           70,
                                                                           79,
                                                                           1)
-                                                                  : buttonColour[
-                                                                      'background'],
-                                                              isCompleted,
-                                                              isDisabled);
-                                                        },
-                                                        buttonType:
-                                                            ChicletButtonTypes
-                                                                .oval,
-                                                        width: 70,
-                                                        height: 60,
-                                                        buttonHeight: 6,
-                                                        padding:
-                                                            EdgeInsets.all(0),
-                                                        buttonColor: isDisabled
-                                                            ? Color.fromRGBO(
-                                                                42, 55, 63, 1)
-                                                            : isCompleted
-                                                                ? Colors.green
-                                                                : buttonColour[
-                                                                    'button'],
-                                                        backgroundColor:
-                                                            isDisabled
-                                                                ? Color
-                                                                    .fromRGBO(
-                                                                        56,
-                                                                        70,
-                                                                        79,
-                                                                        1)
-                                                                : isCompleted
-                                                                    ? Colors.green[
-                                                                        200]
-                                                                    : buttonColour[
-                                                                        'background'],
-                                                        child:
-                                                            Shimmer.fromColors(
-                                                          enabled: isDisabled ||
-                                                                  isCompleted
-                                                              ? false
-                                                              : true,
+                                                                  : isCompleted
+                                                                      ? Colors.green[
+                                                                          200]
+                                                                      : buttonColour[
+                                                                          'background'],
+                                                          child: Shimmer
+                                                              .fromColors(
+                                                            enabled: isDisabled ||
+                                                                    isCompleted
+                                                                ? false
+                                                                : true,
 
-                                                          baseColor:
-                                                              Colors.black,
-                                                          highlightColor:
-                                                              buttonColour[
-                                                                  'background'],
-                                                          child: index == 0
-                                                              ? Icon(
-                                                                  Icons
-                                                                      .fast_forward_rounded,
-                                                                  color:
-                                                                      Colors
-                                                                          .black,
-                                                                  size: 40)
-                                                              : Icon(
-                                                                  Icons
-                                                                      .star_rounded,
-                                                                  color: Colors
-                                                                      .black,
-                                                                  size: 40),
-                                                          // : concepts[index]['type'] == 'reward'
-                                                          //     ? Icon(Icons.card_giftcard,
-                                                          //         color: Colors.black, size: 40)
-                                                          //     : Icon(Icons.star_rounded,
-                                                          //         color: Colors.black,
-                                                          //         size: 40),
+                                                            baseColor:
+                                                                Colors.black,
+                                                            highlightColor:
+                                                                buttonColour[
+                                                                    'background'],
+                                                            child: index == 0
+                                                                ? Icon(
+                                                                    Icons
+                                                                        .fast_forward_rounded,
+                                                                    color: Colors
+                                                                        .black,
+                                                                    size: 40)
+                                                                : Icon(
+                                                                    Icons
+                                                                        .star_rounded,
+                                                                    color: Colors
+                                                                        .black,
+                                                                    size: 40),
+                                                            // : concepts[index]['type'] == 'reward'
+                                                            //     ? Icon(Icons.card_giftcard,
+                                                            //         color: Colors.black, size: 40)
+                                                            //     : Icon(Icons.star_rounded,
+                                                            //         color: Colors.black,
+                                                            //         size: 40),
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                    if (isLastCompleted)
-                                                      _BouncingTextIndicator(
-                                                        text: "START",
-                                                        textColor: buttonColour[
-                                                            "background"],
-                                                        powerupType:
-                                                            activePowerup
-                                                                    .isNotEmpty
-                                                                ? activePowerup[
-                                                                    "type"]
-                                                                : null,
-                                                      ),
-                                                    if (isStartOfTopic)
-                                                      _BouncingTextIndicator(
-                                                          text: "JUMP HERE",
+                                                      if (isLastCompleted)
+                                                        _BouncingTextIndicator(
+                                                          text: "START",
                                                           textColor:
                                                               buttonColour[
-                                                                  "background"]),
-                                                  ]),
-                                            );
-                                          })
-                                        ],
+                                                                  "background"],
+                                                          powerupType:
+                                                              activePowerup
+                                                                      .isNotEmpty
+                                                                  ? activePowerup[
+                                                                      "type"]
+                                                                  : null,
+                                                        ),
+                                                      if (isStartOfTopic)
+                                                        _BouncingTextIndicator(
+                                                            text: "JUMP HERE",
+                                                            textColor:
+                                                                buttonColour[
+                                                                    "background"]),
+                                                    ]),
+                                              );
+                                            })
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          );
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            )
+                          ]);
                         },
                       ),
                     ),

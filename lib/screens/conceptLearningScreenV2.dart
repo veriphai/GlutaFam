@@ -1,3 +1,5 @@
+//final updated code
+
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
@@ -54,6 +56,7 @@ class ConceptLearningScreenV2 extends StatefulWidget {
 
 class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   late WebSocketService webSocketService;
+  late WebSocketService webSocketForRealTimeTranscription;
   // late WebSocketServiceForOpenai webSocketService;
 
   String conversationText = "";
@@ -93,74 +96,19 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   bool allCheckpointsCompleted = false;
   List<int> completedCheckpointIndexes = [];
   bool isMuted = false;
+  String base64AudioString = "";
   String userPrompt =
       "You are a world-class, real-time AI tutor designed to teach students in Grades 6–10 with unmatched clarity, patience, and adaptability.\n\n🎭 ROLE CLARITY:\n- You are not just a content explainer. You are a deeply thoughtful, emotionally intelligent *Socratic tutor*.\n- You teach by asking questions, building from the student’s existing ideas, and guiding discovery — never by dumping information.\n- You are kind, curious, and humble — you treat the student like a peer in thought, not a passive listener.\n\n🎯 CORE OBJECTIVE:\nYour job is to ensure the student *deeply understands* the concept through guided conversation, starting from zero assumptions.\nNever assume prior knowledge. Never rush to explain. *Earn every concept.*\n\n🧠 TEACHING PROCESS (STRUCTURE TO FOLLOW):\n\n1. 🔍 *Start With Conversation, Not Concepts*\n   - Begin with a natural, real-world question that might connect to the concept (e.g., a feeling, memory, oddity, or daily habit).\n   - Use curiosity hooks, story recall, “have you ever” questions, or sense-based prompts.\n\n2. 🔄 *Pivot Smoothly If Needed*\n   - If the first anchor doesn’t land (e.g. short response), gently pivot to another.\n   - You may try body-related cues, personal habits, games, feelings, or mistakes.\n\n3. 🎯 *Once Anchor Is Found → Route to Teaching Technique*\n   - Based on the student’s response, choose the best-fit teaching method:\n     - First-principles breakdown\n     - Real-world analogy\n     - Story-based concept reveal\n     - Mental model or system analogy\n     - Socratic puzzle-solving\n     - Interest-aligned example\n   - Deliver the concept through *conversation*, not lecture.\n\n4. 🧪 *Use Micro-Check Questions Midway*\n   - Ask the student to predict, explain, or rephrase in their own words\n   - Use “what if” challenges, small scenario questions, or quick recaps\n\n5. 🧽 *Explain Every Term*\n   - Never assume a word is understood. Define everything the moment it appears.\n   - Examples: “enzyme”, “ion”, “valency”, “haemoglobin”, “emulsify”, “digest”\n\n6. ✅ *Wrap Up With Reflection*\n   - Ask the student to explain the concept back to you in their words\n   - Offer a quick “myth” or “what if” to lock the learning\n   - Then ask if they’d like to:\n     - Go deeper\n     - Do a challenge\n     - Or stop for now\n\n⚠️ WHAT NOT TO DO:\n- ❌ Don’t deliver textbook-style explanations\n- ❌ Don’t assume they’ve heard a term before\n- ❌ Don’t lecture or list without engagement\n- ❌ Don’t ask multiple questions at once\n\nBegin by engaging the student naturally and warmly.\nYou do not know what they know yet — so start with curiosity.";
-
+  bool responseStarted = false;
+  bool responseCompleted = false;
+  int responseDelayRetries = 0;
+  String lastMessageAudio = "";
   late List<Map<String, dynamic>> conceptCheckpoints;
 
   Future<void> getConceptDetails() async {
     try {
       Map<String, dynamic>? conceptDetails =
           await fetchConceptDetails(conceptId: widget.conceptId);
-      // await fetchConceptDetails(conceptId: "thrust_and_pressure_concept_1");
-
-      // final profileData = await getProfile();
-
-      // conceptDetails = {
-      //   "_id":
-      //       "transportation_in_animals_and_plants_7_Science_Section_1_SubSection_1",
-      //   "name": "Blood Circulation and Its Components",
-      //   "conceptCheckpoints": [
-      //     {
-      //       "id": "50dc1229-fef7-4222-9b9e-4818fddc3f0d",
-      //       "order": 1,
-      //       "learningObjective": [
-      //         "Understand the purpose of the circulatory system in transporting food, water, oxygen, and removing wastes.",
-      //         "Identify the components of the circulatory system (heart and blood vessels).",
-      //         "Describe the function of arteries and veins in blood transport.",
-      //         "Explain how the heart and blood vessels work together to sustain life."
-      //       ],
-      //       "blackboardText":
-      //           "### Board 1: Circulatory System\n\nCirculatory System\n\n- **Purpose:\n  - Transport food, water, and oxygen to different parts of the body.\n  - Remove wastes from the body.\n\n- **Components:\n  - **Heart:* Pumps blood throughout the body.\n  - *Blood Vessels:\n    - **Arteries:* Carry blood away from the heart (shown in red).\n    - *Veins:* Carry blood towards the heart (shown in blue).\n\n- *Function:*\n  - Together, the heart and blood vessels form the circulatory system, which ensures that all body parts receive the necessary substances for survival.",
-      //     },
-      //     {
-      //       "id": "c3e070da-3278-4b7b-b709-debe48aa11f1",
-      //       "order": 2,
-      //       "learningObjective": [
-      //         "Define blood and explain its role in the circulatory system.",
-      //         "Identify the functions of blood in transporting nutrients, oxygen, and waste products.",
-      //         "Understand the composition of blood, including plasma and blood cells.",
-      //         "Distinguish between plasma and blood cells and their respective functions."
-      //       ],
-      //       "blackboardText":
-      //           "### *Board 2: What is Blood\n\nBlood\n\n- **Definition:\n  - Blood is the fluid that flows inside blood vessels.\n\n- **Functions of Blood:\n  - **Transport:\n    - Carries digested food from the small intestine to various parts of the body.\n    - Delivers oxygen from the lungs to the body's cells.\n    - Transports waste products to areas where they can be removed from the body.\n\n- **Composition:\n  - **Plasma:* The liquid part of blood that carries cells and nutrients.\n  - *Blood Cells:* Suspended within the plasma, performing various functions.",
-      //     },
-      //     {
-      //       "id": "a5fc068c-4429-431d-a450-0d530e3e456e",
-      //       "order": 3,
-      //       "learningObjective": [
-      //         "Understand the structure and function of red blood cells (RBCs).",
-      //         "Explain the role of haemoglobin in oxygen transport.",
-      //         "Describe the importance of haemoglobin in giving blood its red color.",
-      //         "Relate the presence of haemoglobin to efficient oxygen delivery in the body."
-      //       ],
-      //       "blackboardText":
-      //           "### Board 3: Red Blood Cells and Haemoglobin\n\nRed Blood Cells (RBC) & Haemoglobin\n\n- **Red Blood Cells (RBC):\n  - Contain a red pigment called **haemoglobin.\n\n- **Haemoglobin:\n  - **Function:* Binds with oxygen in the lungs and transports it to all parts of the body and cells.\n  - *Importance:* Essential for efficient oxygen delivery to cells.\n  - *Color:* Gives blood its red color.\n\n- *Why Blood is Red:*\n  - The presence of haemoglobin in RBCs makes blood appear red.",
-      //     },
-      //     {
-      //       "id": "e384b653-7653-41aa-9e0a-7bb75e0a6bdd",
-      //       "order": 4,
-      //       "learningObjective": [
-      //         "Understand the function of white blood cells in fighting infections.",
-      //         "Explain the role of platelets in blood clotting and wound healing.",
-      //         "Relate the example of Boojho's injury to illustrate the function of platelets.",
-      //         "Describe how the immune system and clotting mechanism work together to protect the body."
-      //       ],
-      //       "blackboardText":
-      //           "### *Board 4: White Blood Cells and Platelets\n\nWhite Blood Cells (WBC) & Platelets\n\n- **White Blood Cells (WBC):\n  - **Function:* Fight against germs and protect the body from infections.\n\n- *Platelets:\n  - **Function:* Help in blood clotting to stop bleeding.\n  - *Example:* When you get a cut, platelets form a dark red clot to plug the wound and stop the bleeding.\n\n- *Example Scenario:\n  - Boojho injured his knee.\n    - **Observation:* Blood flowed out from the cut.\n    - *After Some Time:* Bleeding stopped as a dark red clot formed, thanks to platelets.",
-      //     }
-      //   ]
-      // };
 
       setState(() {
         conceptCheckpoints = (conceptDetails?["conceptCheckpoints"] as List)
@@ -187,20 +135,40 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     }
   }
 
+  void startWebsocket() {
+    webSocketService = WebSocketService();
+    // webSocketService = WebSocketServiceForOpenai();
+
+    // webSocketService.useOpenAI = false;
+    webSocketService.useGemini = true;
+    if (webSocketService.useGemini) {
+      webSocketService.onMessageReceived = onMessageReceivedForGemini;
+    } else {
+      webSocketService.onMessageReceived = onMessageReceived;
+    }
+    webSocketService.connect();
+  }
+
+  void startWebsocketForTranscription() {
+    webSocketForRealTimeTranscription = WebSocketService();
+    // webSocketService = WebSocketServiceForOpenai();
+
+    // webSocketService.useOpenAI = false;
+
+    webSocketForRealTimeTranscription.onMessageReceived = onMessageReceived;
+    webSocketForRealTimeTranscription.connect();
+  }
+
   @override
   void initState() {
     super.initState();
     logAITutorScreenView(widget.conceptId);
     studentName = widget.name;
     _scrollController = ScrollController();
-
+    startWebsocket();
+    // startWebsocketForTranscription();
     player = FlutterSoundPlayer();
-    webSocketService = WebSocketService();
-    // webSocketService = WebSocketServiceForOpenai();
 
-    webSocketService.onMessageReceived = onMessageReceived;
-    webSocketService.useOpenAI = true;
-    webSocketService.connect();
     _recorder = FlutterSoundRecorder();
 
     _initializeRecorder();
@@ -209,11 +177,16 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     // getConceptDetails();
     getConceptDetails().then((_) {
       fetchAITutorPrompts().then((_) {
-        greetingAndIntroConversation();
+        if (webSocketService.useGemini) {
+          sessionConnect();
+          // startSessionForRealTimeTranscription();
+        } else {
+          greetingAndIntroConversation();
+        }
       });
     });
     // greetingAndIntroConversation();
-    _startResponseMonitor();
+    // _startResponseMonitor();
   }
 
   void _startResponseMonitor() {
@@ -221,12 +194,23 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       if (lastResponseTime != null) {
         Duration elapsed = DateTime.now().difference(lastResponseTime!);
 
-        if (elapsed.inSeconds > 5 && responseStreaming && !skipAudioTutor) {
+        if (elapsed.inSeconds > 5 &&
+            responseStreaming &&
+            responseStarted &&
+            !responseCompleted &&
+            !skipAudioTutor) {
           // Change threshold if needed
           print("⚠️ Response delay detected: ${elapsed.inSeconds} seconds");
-
-          // Take action - either stop WebSocket or notify user
-          _handleResponseDelay();
+          responseDelayRetries += 1;
+          if (responseDelayRetries > 4) {
+            _handleResponseDelay();
+          } else {
+            print("message sent after response delay");
+            responseStreaming = false;
+            responseStarted = false;
+            lastResponseTime = DateTime.now();
+            sendAudioResponseForGemini(lastMessageAudio);
+          }
         }
       }
     });
@@ -599,11 +583,185 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     return Uint8List(numSamples * 2);
   }
 
-  Future<void> onMessageReceived(String message) async {
-    final data = jsonDecode(message);
+  Future<void> onMessageReceivedForGemini(dynamic message) async {
     print("respones received");
-    if (data['type'] == 'response.audio_transcript.delta') {
+    print("responseStreaming top level: $responseStreaming");
+
+    final stringMessage = utf8.decode(message);
+
+    final Map<String, dynamic> data = jsonDecode(stringMessage);
+
+    if (data.containsKey("setupComplete")) {
+      if (!greetingDone) {
+        greetingAndIntroConversationForGemini();
+      } else {
+        startConversationWithGemini();
+      }
+      return;
+    } else if (data.containsKey("serverContent")) {
+      Map<String, dynamic> serverContent = data["serverContent"];
+      if (serverContent.containsKey("generationComplete") &&
+          serverContent["generationComplete"]) {
+        print("Conversation complete");
+        // String text = await transcribeBase64Audio(base64AudioString);
+        // setState(() {
+        //   base64AudioString = "";
+        // });
+        responseStreaming = false;
+        responseCompleted = true;
+        conversationText = "";
+        Uint8List silence = generateSilence(durationMs: 1000); // 300ms silence
+        player.foodSink?.add(FoodData(silence));
+        setState(() {
+          _isLoading = false;
+          if (conversations.isNotEmpty &&
+              conversations.last['role'] == 'streaming') {
+            conversations.last['role'] = 'assistant';
+          }
+        });
+        if (!showContinuationButtons &&
+            !showJumpToQuestionsButton &&
+            !showMistakeCorrectionButton &&
+            !showCheckResultButton) {
+          if (greetingDone) {
+            checkConceptCompleted();
+          } else {
+            checkGreetingCompleted();
+          }
+        }
+      } else if (serverContent.containsKey("turnComplete") &&
+          serverContent["turnComplete"]) {
+        lastResponseTime = DateTime.now();
+
+        return;
+      } else if (serverContent.containsKey("modelTurn")) {
+        //case for text response
+        // print(
+        //     "Conversation: ${serverContent["modelTurn"]["parts"][0]["text"]}");
+
+        // for audio response
+        responseStreaming = true;
+        responseStarted = true;
+        print("responseStreaming: $responseStreaming");
+        lastResponseTime = DateTime.now();
+
+        // print(serverContent["modelTurn"]["parts"][0]["inlineData"]["mimeType"]);
+
+        // Append conversation text
+        String base64Audio =
+            serverContent["modelTurn"]["parts"][0]["inlineData"]["data"] ?? "";
+        if (base64Audio.isNotEmpty && _isPlayerReady && !isMuted) {
+          base64AudioString += base64Audio;
+          // transcribeBase64Audio(base64Audio);
+          Uint8List rawData = base64Decode(base64Audio);
+          // Send the chunk into the audio stream
+          player.foodSink?.add(FoodData(rawData));
+        }
+      } else if (serverContent.containsKey("outputTranscription")) {
+        String deltaText = serverContent["outputTranscription"]["text"] ?? "";
+        setState(() {
+          conversationText += deltaText;
+        });
+        setState(() {
+          if (userCurrentResponse.isNotEmpty) {
+            if ((conversations.isNotEmpty &&
+                conversations.last['role'] == 'streaming')) {
+              conversations.insert(conversations.length - 1, {
+                "text": userCurrentResponse,
+                "role": "user",
+              });
+            } else {
+              conversations.add({
+                "text": userCurrentResponse,
+                "role": "user",
+              });
+            }
+            userCurrentResponse = "";
+          }
+          if (conversations.isNotEmpty &&
+              conversations.last['role'] == 'streaming') {
+            // Update the current streaming message
+            conversations.last['text'] =
+                (conversations.last['text'] ?? '') + deltaText;
+          } else {
+            // Add a new streaming message
+            conversations.add({'text': deltaText, 'role': 'streaming'});
+          }
+          _scrollToBottom();
+        });
+      }
+    } else {
+      print(data);
+    }
+  }
+
+  Future<File> convertRawPCMToWAV(Uint8List pcmData,
+      {int sampleRate = 24000, int numChannels = 1, int byteRate = 2}) async {
+    int bytePerSample = byteRate; // 2 bytes = 16 bits
+    int totalAudioLen = pcmData.length;
+    int totalDataLen = totalAudioLen + 36;
+    int byteRateTotal = sampleRate * numChannels * bytePerSample;
+
+    final header = BytesBuilder();
+    header.add(ascii.encode('RIFF'));
+    header.add(_intToBytes(totalDataLen, 4));
+    header.add(ascii.encode('WAVE'));
+    header.add(ascii.encode('fmt '));
+    header.add(_intToBytes(16, 4)); // Subchunk1Size for PCM
+    header.add(_intToBytes(1, 2)); // AudioFormat = 1 (PCM)
+    header.add(_intToBytes(numChannels, 2));
+    header.add(_intToBytes(sampleRate, 4));
+    header.add(_intToBytes(byteRateTotal, 4));
+    header.add(_intToBytes(numChannels * bytePerSample, 2)); // BlockAlign
+    header.add(_intToBytes(bytePerSample * 8, 2)); // BitsPerSample
+    header.add(ascii.encode('data'));
+    header.add(_intToBytes(totalAudioLen, 4));
+
+    // Combine header + PCM data
+    final wavData = BytesBuilder();
+    wavData.add(header.toBytes());
+    wavData.add(pcmData);
+
+    final tempDir = await getTemporaryDirectory();
+    final wavFile = File("${tempDir.path}/converted_audio.wav");
+    await wavFile.writeAsBytes(wavData.toBytes(), flush: true);
+    return wavFile;
+  }
+
+  List<int> _intToBytes(int value, int byteCount) {
+    final bytes = <int>[];
+    for (int i = 0; i < byteCount; i++) {
+      bytes.add((value >> (8 * i)) & 0xFF);
+    }
+    return bytes;
+  }
+
+  Future<String> transcribeBase64Audio(String base64Audio) async {
+    try {
+      // Decode base64 to bytes
+      Uint8List bytes = base64Decode(base64Audio);
+
+      // Write to temp file
+      File wavFile = await convertRawPCMToWAV(bytes);
+
+      // Proceed with transcription
+      String text = await transcribeAudio(wavFile);
+      print("Transcript: $text");
+      return text;
+    } catch (e) {
+      print("Error in transcribeBase64Audio: $e");
+    }
+    return "";
+  }
+
+  Future<void> onMessageReceived(dynamic message) async {
+    final data = jsonDecode(message);
+    print("respones received GPT");
+
+    if (data['type'] == 'response.text.delta') {
+      // if (data['type'] == 'response.audio_transcript.delta') {
       String deltaText = data['delta'] ?? "";
+      print("detta text : $deltaText");
 
       setState(() {
         conversationText += deltaText;
@@ -636,6 +794,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         _scrollToBottom();
       });
     } else if (data['type'] == 'response.audio.delta') {
+      print("audio respones");
       responseStreaming = true;
       lastResponseTime = DateTime.now();
 
@@ -650,14 +809,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       print("Conversation complete");
       responseStreaming = false;
       conversationText = "";
-      // if (data['response']['output'].length > 0) {
-      //   conversations.add({
-      //     "text": data['response']['output'][0]['content'][0]["transcript"],
-      //     "role": "assistant"
-      //   });
-      // }
-      Uint8List silence = generateSilence(durationMs: 1500); // 300ms silence
-      player.foodSink?.add(FoodData(silence));
+      // Uint8List silence = generateSilence(durationMs: 1500); // 300ms silence
+      // player.foodSink?.add(FoodData(silence));
       setState(() {
         _isLoading = false;
         if (conversations.isNotEmpty &&
@@ -692,7 +845,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         conversations: conversations,
         conceptName: widget.conceptName,
         greeting: !greetingDone);
-    bool greetingsCompleted = result['greetingsCompleted'] ?? false;
+    // bool greetingsCompleted = result['greetingsCompleted'] ?? false;
+    bool greetingsCompleted = true;
 
     if (greetingsCompleted) {
       // greetingDone = true;
@@ -708,7 +862,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     String contentText =
         "There are 2 available options to continue from here. 1.Continue learning with Tutor \n 2.Jump to questions. Ask user to choose one of the option";
 
-    conversationItemCreationForUser(contentText);
+    // conversationItemCreationForUser(contentText);
+    sendConversationItemToGemini(contentText);
+
     setState(() {
       showContinuationButtons = true;
     });
@@ -724,11 +880,13 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       String contentText =
           "Concept to teach: ${widget.conceptName}. Moving to next checkpoint of the concept. Checkpoint ${currentCheckpointIndex + 1}: ${conceptCheckpoints[currentCheckpointIndex]}. Dont ask  the same questions from the sample conversation given in checkpoint, use it as a reference only for asking questions but make sure that the questions are simple and are socratic like the ones given in sample conversation for the checkpoint. You are an ideal class 7 teacher teaching blood circulatory system to a student who has never studied it before and you are a socratic tutor who has interactive style of teaching so the student is never bored.";
 
-      conversationItemCreationForUser(contentText);
+      // conversationItemCreationForUser(contentText);
+      sendConversationItemToGemini(contentText);
     } else {
       String contentText = "Start from where we have left";
 
-      conversationItemCreationForUser(contentText);
+      // conversationItemCreationForUser(contentText);
+      sendConversationItemToGemini(contentText);
     }
   }
 
@@ -736,7 +894,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     String contentText =
         "Now all checkpoints have been completed. Ask user to move to questions so test their understanding.";
 
-    conversationItemCreationForUser(contentText);
+    // conversationItemCreationForUser(contentText);
+    sendConversationItemToGemini(contentText);
+
     setState(() {
       showJumpToQuestionsButton = true;
     });
@@ -771,7 +931,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       String contentText =
           "Now there are 3 available options to continue from here. 1.Continue learning with Tutor \n 2.Proceed with story mode \n 3.Jump to questions. Ask user to choose one of the option";
 
-      conversationItemCreationForUser(contentText);
+      // conversationItemCreationForUser(contentText);
+      sendConversationItemToGemini(contentText);
       setState(() {
         showContinuationButtons = true;
       });
@@ -810,7 +971,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     setState(() {
       storyModeStatus = completionStatus;
     });
-    conversationItemCreationForUser(contentText);
+    // conversationItemCreationForUser(contentText);
+    sendConversationItemToGemini(contentText);
   }
 
   void afterQuestionsConversation(Map<String, dynamic> questionCompletion) {
@@ -845,7 +1007,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     // setState(() {
     //   questionsAttemptedDetails = questionCompletion;
     // });
-    conversationItemCreationForUser(contentText);
+    // conversationItemCreationForUser(contentText);
+    sendConversationItemToGemini(contentText);
   }
 
   void afterMistakesCorrectionConversation() {
@@ -855,7 +1018,28 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       showMistakeCorrectionButton = false;
       showCheckResultButton = true;
     });
-    conversationItemCreationForUser(contentText);
+    // conversationItemCreationForUser(contentText);
+    sendConversationItemToGemini(contentText);
+  }
+
+  void startSessionForRealTimeTranscription() {
+    final startMessage = {
+      "event_id": "event_1234_greeting",
+      "type": "session.update",
+      "session": {
+        "instructions":
+            "You are a world class transcript writer who generate text transcripts in english for various types of audios. I am streaming an audio response, and as the response get streamed, I would be giving you chunks of that audio, and you have to provide me  the text transcript of it, nothing else."
+        // "You are a teacher guiding a student to deeply understand a concept. Begin with a warm greeting and a very small introduction to what we are studying, just the topic. Never end your conversation with a question or you will die. Keep the intro very short and crisp, and dont explain anything at all. Keep all our conversation short so that the discussion can be mnore engaging."
+        // "You are a Socratic teacher teaching a concept to a student. Follow these steps: \n 1. Begin with a warm greeting, just like a teacher starting a class. \n2. Wait for the student to respond to the greeting. \n3. Provide a very brief introduction (20-30 words) about the concept you are going to teach, and dont ask any questions while introducing the topic. \n4. Do not end the introduction with a question. \n5. Use the student's name and the concept name (which will be provided) while introducing the topic.",
+      }
+    };
+
+    webSocketForRealTimeTranscription.sendMessage(startMessage);
+
+    // String contentText =
+    //     "Student's name:$studentName \n Concept to teach: ${widget.conceptName}.";
+
+    // conversationItemCreationForUser(contentText);
   }
 
   void greetingAndIntroConversation() {
@@ -877,6 +1061,83 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     conversationItemCreationForUser(contentText);
   }
 
+  void sessionConnect() {
+    final sessionCreateMessage = {
+      "setup": {
+        // "model": "models/gemini-2.0-flash-live-preview-04-09",
+
+        "model": "models/gemini-2.0-flash-live-001",
+        "generationConfig": {
+          "responseModalities": ["AUDIO"],
+          "speechConfig": {"languageCode": "en-IN"}
+        },
+        "systemInstruction": {
+          "parts": [
+            {"text": greetingPrompt}
+          ]
+        },
+        "realtimeInputConfig": {
+          "automaticActivityDetection": {"disabled": true}
+        },
+        "outputAudioTranscription": {},
+        "contextWindowCompression": {"slidingWindow": {}}
+      }
+    };
+    webSocketService.sendMessage(sessionCreateMessage);
+  }
+
+  void sessionConnectForLEssonStart() {
+    final sessionCreateMessage = {
+      "setup": {
+        "model": "models/gemini-2.0-flash-live-001",
+        "generationConfig": {
+          "responseModalities": ["AUDIO"],
+          "speechConfig": {"languageCode": "en-IN"}
+        },
+        "systemInstruction": {
+          "parts": [
+            {"text": aiTutorPrompt}
+          ]
+        },
+        "realtimeInputConfig": {
+          "automaticActivityDetection": {"disabled": true}
+        },
+        "outputAudioTranscription": {},
+        "contextWindowCompression": {"slidingWindow": {}}
+      }
+    };
+    webSocketService.sendMessage(sessionCreateMessage);
+  }
+
+  void greetingAndIntroConversationForGemini() {
+    String contentText =
+        "Student's name:$studentName \n Concept to teach: ${widget.conceptName}.";
+
+    sendConversationItemToGemini(contentText);
+  }
+
+  void sendConversationItemToGemini(String content) {
+    final startMessage = {
+      "clientContent": {
+        "turns": {
+          "role": "user",
+          "parts": [
+            {"text": content}
+          ]
+        },
+        "turn_complete": true
+      }
+    };
+    webSocketService.sendMessage(startMessage);
+  }
+
+  void startConversationWithGemini() {
+    String contentText =
+        " Concept being taught: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}. Once all the learning objectives in the given checkpoint are completed, ask student to continue with next checkpoint.";
+    logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId);
+    sendConversationItemToGemini(contentText);
+  }
+
   void startConversation() {
     final startMessage = {
       "event_id": "event_123",
@@ -896,6 +1157,16 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     conversationItemCreationForUser(contentText);
   }
 
+  void _scheduleLoadingReset() {
+    Future.delayed(Duration(seconds: 5), () {
+      if (mounted && _isLoading && !responseStreaming) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
   Future<void> _toggleRecording() async {
     if (_isLoading) {
       return;
@@ -910,7 +1181,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         print('Audio path: $_audioPath');
         final fileData = await File(_audioPath!).readAsBytes();
         final base64Audio = base64Encode(fileData);
-        sendAudioResponse(base64Audio);
+        // sendAudioResponse(base64Audio);
+        responseCompleted = false;
+        responseStarted = false;
+        sendAudioResponseForGemini(base64Audio);
+
         transcribeAudio(File(_audioPath!)).then((transcribedText) {
           userCurrentResponse = transcribedText;
           print("User Response: $userCurrentResponse");
@@ -932,6 +1207,70 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     }
   }
 
+  void sendAudioResponseForGemini(String base64Audio) async {
+    setState(() {
+      originalConversation = true;
+      _isLoading = true;
+      lastMessageAudio = base64Audio;
+    });
+    // final audioMessage = {
+    //   "realtimeInput": {
+    //     "mediaChunks": [
+    //       {
+    //         "mimeType": "audio/pcm;rate=24000",
+    //         "data": base64Audio,
+    //       }
+    //     ]
+    //   }
+    // };
+    final activityStartMessage = {
+      "realtimeInput": {"activityStart": {}}
+    };
+    webSocketService.sendMessage(activityStartMessage);
+    // await Future.delayed(Duration(milliseconds: 500));
+
+    final audioMessage = {
+      "realtimeInput": {
+        "audio": {"mimeType": "audio/pcm;rate=24000", "data": base64Audio}
+      }
+    };
+    webSocketService.sendMessage(audioMessage);
+    // await Future.delayed(Duration(milliseconds: 500));
+
+    final activityEndMessage = {
+      "realtimeInput": {"activityEnd": {}}
+    };
+    webSocketService.sendMessage(activityEndMessage);
+
+    // final audioMessage = {
+    //   "type": "conversation.item.create",
+    //   "item": {
+    //     "type": "message",
+    //     "role": "user",
+    //     "content": [
+    //       {
+    //         "type": "input_audio",
+    //         "audio": base64Audio,
+    //       },
+    //       {
+    //         "type": "input_text",
+    //         "text":
+    //             "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"
+    //       }
+    //     ]
+    //   }
+    // };
+
+    // webSocketService.sendMessage(audioMessage);
+    Future.delayed(Duration(seconds: 15), () {
+      if (!responseStreaming && !responseCompleted && !responseStarted) {
+        print("message sent again as response generation didnt start");
+        lastResponseTime = DateTime.now();
+        sendAudioResponseForGemini(base64Audio);
+      }
+    });
+  }
+
   void sendAudioResponse(String base64Audio) {
     setState(() {
       originalConversation = true;
@@ -946,24 +1285,25 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
           {
             "type": "input_audio",
             "audio": base64Audio,
-          },
-          {
-            "type": "input_text",
-            "text":
-                "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"
           }
+          // },
+          // {
+          //   "type": "input_text",
+          //   "text":
+          //       "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"
+          // }
         ]
       }
     };
 
-    webSocketService.sendMessage(audioMessage);
+    webSocketForRealTimeTranscription.sendMessage(audioMessage);
     final responseRequest = {
       "type": "response.create",
       "response": {
-        "modalities": ["text", "audio"]
+        "modalities": ["text"]
       }
     };
-    webSocketService.sendMessage(responseRequest);
+    webSocketForRealTimeTranscription.sendMessage(responseRequest);
   }
 
   Widget _buildRecordingButton() {
@@ -973,6 +1313,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
           onPressed: () {
             HapticFeedback.lightImpact();
             _toggleRecording();
+            // _scheduleLoadingReset();
           },
           buttonType: ChicletButtonTypes.roundedRectangle,
           width: 50,
@@ -1105,7 +1446,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       builder: (context) {
         return Dialog(
           insetPadding: EdgeInsets.all(16),
-
           backgroundColor:
               Color.fromRGBO(19, 31, 36, 1), // Make background transparent
           child: GestureDetector(
@@ -2107,7 +2447,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                       !showMistakeCorrectionButton &&
                       !showCheckResultButton &&
                       !skipAudioTutor &&
-                      !responseStreaming &&
+                      // !responseStreaming &&
                       !showAfterGreetingContinueButton &&
                       !showCheckpointContinueButton)
                     Positioned(
@@ -2143,7 +2483,10 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                         greetingDone = true;
                                         showAfterGreetingContinueButton = false;
                                       });
-                                      startConversation();
+                                      webSocketService.disconnect();
+                                      startWebsocket();
+                                      sessionConnectForLEssonStart();
+                                      // startConversation();
                                     },
                                     buttonType:
                                         ChicletButtonTypes.roundedRectangle,

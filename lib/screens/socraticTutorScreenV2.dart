@@ -128,7 +128,7 @@ For h(x) = 1/x, let’s check what happens as x approaches 0:
     super.initState();
     player = FlutterSoundPlayer();
     webSocketService = WebSocketService();
-    webSocketService.onMessageReceived = onMessageReceived;
+    // webSocketService.onMessageReceived = onMessageReceived;
     webSocketService.connect();
     _recorder = FlutterSoundRecorder();
 

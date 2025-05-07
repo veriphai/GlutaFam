@@ -162,22 +162,22 @@ String fetchLeague(int league) {
 }
 
 Future<Map<String, dynamic>> getQuests() async {
-  const String questsKey = "quests";
+  // const String questsKey = "quests";
 
-  final prefs = await SharedPreferences.getInstance();
+  // final prefs = await SharedPreferences.getInstance();
 
-  // Check if profile exists in SharedPreferences
-  if (prefs.containsKey(questsKey)) {
-    final questsString = prefs.getString(questsKey);
-    if (questsString != null) {
-      // Return profile from SharedPreferences
-      return json.decode(questsString);
-    }
-  }
+  // // Check if profile exists in SharedPreferences
+  // if (prefs.containsKey(questsKey)) {
+  //   final questsString = prefs.getString(questsKey);
+  //   if (questsString != null) {
+  //     // Return profile from SharedPreferences
+  //     return json.decode(questsString);
+  //   }
+  // }
 
   final quests = await fetchQuests();
 
-  await prefs.setString(questsKey, json.encode(quests));
+  // await prefs.setString(questsKey, json.encode(quests));
 
   return quests;
 }

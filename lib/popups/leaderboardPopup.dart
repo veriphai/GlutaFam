@@ -184,7 +184,9 @@ class _LeaderboardPopupState extends State<LeaderboardPopup> {
                   ),
                   Expanded(
                       child: Text(
-                    entry.containsKey("name") ? entry["name"] : "Dummy",
+                    entry.containsKey("name")
+                        ? entry["name"].split(" ")[0]
+                        : "Dummy",
                     style: TextStyle(
                       color: entry["rank"] == userRank
                           ? Color.fromRGBO(255, 217, 0, 1)
