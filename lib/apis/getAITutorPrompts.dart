@@ -19,7 +19,9 @@ Future<Map<String, dynamic>> getAITutorPrompts() async {
     );
 
     if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
+      final utf8DecodedBody = utf8.decode(response.bodyBytes);
+
+      final Map<String, dynamic> data = json.decode(utf8DecodedBody);
       return data;
     } else {
       throw Exception(

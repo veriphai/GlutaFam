@@ -22,13 +22,16 @@ Future<Map<String, dynamic>> fetchQuests() async {
       final Map<String, dynamic> data = json.decode(response.body);
 
       return {
-        "dailyQuests": (data["dailyQuests"] as List)
+        "dailyQuests": (data["dailyQuests"] as List? ?? [])
+            .where((e) => e != null)
             .map((e) => e as Map<String, dynamic>)
             .toList(),
-        "friendQuest": (data["friendQuest"] as List)
+        "friendQuest": (data["friendQuest"] as List? ?? [])
+            .where((e) => e != null)
             .map((e) => e as Map<String, dynamic>)
             .toList(),
-        "monthlyQuest": (data["monthlyQuest"] as List)
+        "monthlyQuest": (data["monthlyQuest"] as List? ?? [])
+            .where((e) => e != null)
             .map((e) => e as Map<String, dynamic>)
             .toList(),
       };

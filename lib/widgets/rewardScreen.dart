@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/claimAndGetReward.dart';
 import 'package:eureka_app/main.dart';
+import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -88,6 +90,10 @@ class _RewardScreenState extends State<RewardScreen>
       rewardData = reward;
       isLoading = false;
     });
+    if (reward["type"] == "GEMS") {
+      int gemsQuantity = int.parse(reward["name"].split(" ")[0]);
+      addCredits(gemsQuantity);
+    }
   }
 
   @override
@@ -126,8 +132,8 @@ class _RewardScreenState extends State<RewardScreen>
                           offset: Offset(0, _positionAnimation.value),
                           child: Transform.scale(
                             scale: _scaleAnimation.value,
-                            child: Image.network(
-                              rewardData["image"] ?? "",
+                            child: CachedNetworkImage(
+                              imageUrl: rewardData["image"] ?? "",
                               height: 150,
                               width: 150,
                               fit: BoxFit.cover,

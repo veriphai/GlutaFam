@@ -119,6 +119,11 @@ void updateCreditsInCache(int credits) async {
   await prefs.setInt(creditsKey, credits);
 }
 
+void addCredits(int credits) async {
+  int existingCredits = await getCredits();
+  updateCredits(existingCredits + credits);
+}
+
 void updateCredits(int credits) async {
   updateCreditsInCache(credits);
   await updateCreditsAPI(credits: credits);

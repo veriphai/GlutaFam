@@ -911,19 +911,63 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, chapterIndex) {
                           final chapter = chapters[chapterIndex];
                           return Column(children: [
+                            // Padding(
+                            //     padding: const EdgeInsets.only(top: 40),
+                            //     child: Text(
+                            //       chapter['name'],
+                            //       style: GoogleFonts.raleway(
+                            //         color: Color.fromRGBO(255, 217, 0, 1),
+                            //         fontSize: 24,
+                            //         fontWeight: FontWeight.w700,
+                            //       ),
+                            //       maxLines: 3,
+                            //       overflow: TextOverflow.ellipsis,
+                            //       textAlign: TextAlign.center,
+                            //     )),
                             Padding(
-                                padding: const EdgeInsets.only(top: 40),
-                                child: Text(
-                                  chapter['name'],
-                                  style: GoogleFonts.raleway(
-                                    color: Color.fromRGBO(255, 217, 0, 1),
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                )),
+                              padding: const EdgeInsets.only(
+                                  top: 40, left: 0, right: 0),
+                              child: Container(
+                                width: double
+                                    .infinity, // <-- this makes it expand horizontally
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Color.fromRGBO(
+                                      21, 40, 48, 1), // Optional background
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.keyboard_double_arrow_down,
+                                          color:
+                                              Color.fromRGBO(255, 217, 0, 1)),
+                                      SizedBox(
+                                        width: 16,
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          chapter['name'],
+                                          style: GoogleFonts.raleway(
+                                            color:
+                                                Color.fromRGBO(255, 217, 0, 1),
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 16,
+                                      ),
+                                      Icon(Icons.keyboard_double_arrow_down,
+                                          color:
+                                              Color.fromRGBO(255, 217, 0, 1)),
+                                    ]),
+                              ),
+                            ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisAlignment: MainAxisAlignment.center,

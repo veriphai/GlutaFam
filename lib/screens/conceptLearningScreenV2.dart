@@ -22,12 +22,14 @@ import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/utils/socraticTutorHelper.dart';
 import 'package:eureka_app/widgets/conceptResultScreen.dart';
 import 'package:eureka_app/widgets/conversationScreen.dart';
+import 'package:eureka_app/widgets/languageAndVoiceSelection.dart';
 import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -35,6 +37,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ConceptLearningScreenV2 extends StatefulWidget {
@@ -91,6 +94,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   bool showCheckpointContinueButton = false;
   late String greetingPrompt;
   late String aiTutorPrompt;
+  late String aiTutorPromptHinglish;
   bool isConceptCheckpointLoading = true;
   int xpGained = 0;
   bool allCheckpointsCompleted = false;
@@ -104,6 +108,27 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   int responseDelayRetries = 0;
   String lastMessageAudio = "";
   late List<Map<String, dynamic>> conceptCheckpoints;
+  String previousSessionHandle = "";
+  bool sessionResumed = false;
+  bool goAwayEventReceived = false;
+  String selectedLanguage = "en-US";
+  String selectedVoice = "Puck";
+  Map<String, String> languageOptions = {
+    "en-US": "English",
+    "hi-IN": "Hinglish"
+  };
+  Map<String, String> voiceOptions = {
+    "Puck": "Puck",
+    "Charon": "Charon",
+    "Kore": "Kore",
+    "Fenrir": "Fenrir",
+    "Aoede": "Aoede",
+    "Leda": "Leda",
+    "Orus": "Orus",
+    "Zephyr": "Zephyr"
+  };
+
+  late final prefs;
 
   Future<void> getConceptDetails() async {
     try {
@@ -129,6 +154,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       setState(() {
         greetingPrompt = aiTutorPrompts['aiTutorGreetings'];
         aiTutorPrompt = aiTutorPrompts['aiTutorPrompt'];
+        aiTutorPromptHinglish = aiTutorPrompts['aiTutorPromptHinglish'];
       });
     } catch (error) {
       print("Error fetching concept details: $error");
@@ -159,6 +185,16 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     webSocketForRealTimeTranscription.connect();
   }
 
+  void setLanguageAndVoice() async {
+    prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey("aiTutorLanguage")) {
+      selectedLanguage = prefs.getString("aiTutorLanguage") ?? "en-US";
+    }
+    if (prefs.containsKey("aiTutorVoice")) {
+      selectedVoice = prefs.getString("aiTutorVoice") ?? "Puck";
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -166,6 +202,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     studentName = widget.name;
     _scrollController = ScrollController();
     startWebsocket();
+    setLanguageAndVoice();
     // startWebsocketForTranscription();
     player = FlutterSoundPlayer();
 
@@ -294,49 +331,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                       ),
                     ),
                   SizedBox(height: 12),
-                  if (storyModeStatus.isEmpty)
-                    ChicletOutlinedAnimatedButton(
-                      onPressed: () {
-                        player.stopPlayer();
-                        HapticFeedback.lightImpact();
-                        logStoryModeButtonClickFromMenu(
-                            conceptCheckpoints[currentCheckpointIndex]['id'],
-                            widget.conceptId);
-                        Navigator.pop(context);
-                        setState(() {
-                          showCheckpointContinueButton = false;
-                          showAfterGreetingContinueButton = false;
-                        });
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ConversationScreen(
-                              conceptId: widget.conceptId,
-                              conceptName: widget.conceptName,
-                              maxXP: widget.maxXP,
-                            ),
-                          ),
-                        ).then((value) {
-                          _initPlayer();
-                          afterStoryConversation(value);
-                        });
-                      },
-                      buttonType: ChicletButtonTypes.roundedRectangle,
-                      width: double.infinity,
-                      height: 50,
-                      borderColor: Colors.transparent,
-                      // buttonColor: Colors.transparent,
-                      backgroundColor: Colors.transparent,
-                      child: Text(
-                        "START STORY MODE   +45 XP",
-                        style: GoogleFonts.arOneSans(
-                          color: Colors.red,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
                   ChicletOutlinedAnimatedButton(
                     onPressed: () async {
                       // setState(() {
@@ -424,29 +418,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                       "JUMP TO QUESTIONS   +45 XP",
                       style: GoogleFonts.arOneSans(
                         color: Colors.red,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  ChicletAnimatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.pop(context);
-                      setState(() {
-                        showContinuationButtons = false;
-                      });
-                      startConversation();
-                    },
-                    buttonType: ChicletButtonTypes.roundedRectangle,
-                    width: double.infinity,
-                    height: 50,
-                    buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                    backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                    child: Text(
-                      "Move to Next Checkpoint -Testing",
-                      style: GoogleFonts.arOneSans(
-                        color: Colors.black,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -591,7 +562,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
     final Map<String, dynamic> data = jsonDecode(stringMessage);
 
-    if (data.containsKey("setupComplete")) {
+    if (data.containsKey("setupComplete") && !sessionResumed) {
       if (!greetingDone) {
         greetingAndIntroConversationForGemini();
       } else {
@@ -610,6 +581,10 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         responseStreaming = false;
         responseCompleted = true;
         conversationText = "";
+        if (goAwayEventReceived) {
+          resumeExistingSession();
+        }
+
         Uint8List silence = generateSilence(durationMs: 1000); // 300ms silence
         player.foodSink?.add(FoodData(silence));
         setState(() {
@@ -689,10 +664,36 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
           }
           _scrollToBottom();
         });
+      } else {
+        print("server content $serverContent");
       }
+    } else if (data.containsKey("sessionResumptionUpdate")) {
+      Map<String, dynamic> sessionResumtionUpdate =
+          data["sessionResumptionUpdate"];
+
+      if (sessionResumtionUpdate.containsKey("newHandle")) {
+        previousSessionHandle = data["sessionResumptionUpdate"]["newHandle"];
+      }
+    } else if (data.containsKey("goAway")) {
+      // if (data["sessionResumptionUpdate"].contains("timeLeft")) {
+      goAwayEventReceived = true;
+      // print("restarting websocket due to go away");
+      // webSocketService.disconnect();
+      // startWebsocket();
+      // resumeSession(previousSessionHandle);
+      // }
     } else {
       print(data);
     }
+  }
+
+  void resumeExistingSession() {
+    goAwayEventReceived = false;
+    webSocketService.disconnect();
+    print("restarting websocket due to go away");
+
+    startWebsocket();
+    resumeSession(previousSessionHandle);
   }
 
   Future<File> convertRawPCMToWAV(Uint8List pcmData,
@@ -878,8 +879,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
           conceptCheckpoints[currentCheckpointIndex]['id'], widget.conceptId);
 
       String contentText =
-          "Concept to teach: ${widget.conceptName}. Moving to next checkpoint of the concept. Checkpoint ${currentCheckpointIndex + 1}: ${conceptCheckpoints[currentCheckpointIndex]}. Dont ask  the same questions from the sample conversation given in checkpoint, use it as a reference only for asking questions but make sure that the questions are simple and are socratic like the ones given in sample conversation for the checkpoint. You are an ideal class 7 teacher teaching blood circulatory system to a student who has never studied it before and you are a socratic tutor who has interactive style of teaching so the student is never bored.";
-
+          "Concept to teach: ${widget.conceptName}. Moving to next checkpoint of the concept. Checkpoint ${currentCheckpointIndex + 1}: ${conceptCheckpoints[currentCheckpointIndex]}. Once all the learning objectives in the given checkpoint are completed, ask student to continue with next checkpoint.";
       // conversationItemCreationForUser(contentText);
       sendConversationItemToGemini(contentText);
     } else {
@@ -927,16 +927,26 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     setState(() {
       showCheckpointContinueButton = false;
     });
-    if (currentCheckpointIndex == 0 && !showContinuationButtons) {
-      String contentText =
-          "Now there are 3 available options to continue from here. 1.Continue learning with Tutor \n 2.Proceed with story mode \n 3.Jump to questions. Ask user to choose one of the option";
+    // if (currentCheckpointIndex == 0 && !showContinuationButtons) {
+    //   String contentText =
+    //       "Now there are 3 available options to continue from here. 1.Continue learning with Tutor \n 2.Proceed with story mode \n 3.Jump to questions. Ask user to choose one of the option";
 
-      // conversationItemCreationForUser(contentText);
-      sendConversationItemToGemini(contentText);
-      setState(() {
-        showContinuationButtons = true;
-      });
-    } else if (currentCheckpointIndex == conceptCheckpoints.length - 1) {
+    //   // conversationItemCreationForUser(contentText);
+    //   sendConversationItemToGemini(contentText);
+    //   setState(() {
+    //     showContinuationButtons = true;
+    //   });
+    // } else if (currentCheckpointIndex == conceptCheckpoints.length - 1) {
+    //   setState(() {
+    //     xpGained += 45;
+    //     allCheckpointsCompleted = true;
+    //   });
+    //   movingToQuestionConversation();
+    // } else {
+    //   moveToNextCheckpoint();
+    // }
+
+    if (currentCheckpointIndex == conceptCheckpoints.length - 1) {
       setState(() {
         xpGained += 45;
         allCheckpointsCompleted = true;
@@ -1069,7 +1079,12 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         "model": "models/gemini-2.0-flash-live-001",
         "generationConfig": {
           "responseModalities": ["AUDIO"],
-          "speechConfig": {"languageCode": "en-IN"}
+          "speechConfig": {
+            "languageCode": selectedLanguage,
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {"voiceName": selectedVoice}
+            }
+          }
         },
         "systemInstruction": {
           "parts": [
@@ -1086,24 +1101,87 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     webSocketService.sendMessage(sessionCreateMessage);
   }
 
-  void sessionConnectForLEssonStart() {
+  void sessionConnectForLEssonStart(String handle) {
     final sessionCreateMessage = {
       "setup": {
         "model": "models/gemini-2.0-flash-live-001",
         "generationConfig": {
           "responseModalities": ["AUDIO"],
-          "speechConfig": {"languageCode": "en-IN"}
+          "speechConfig": {
+            "languageCode": selectedLanguage,
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {"voiceName": selectedVoice}
+            }
+          }
         },
         "systemInstruction": {
           "parts": [
-            {"text": aiTutorPrompt}
+            {
+              "text": selectedLanguage == 'en-US'
+                  ? aiTutorPrompt
+                  : aiTutorPromptHinglish
+            }
           ]
         },
         "realtimeInputConfig": {
           "automaticActivityDetection": {"disabled": true}
         },
         "outputAudioTranscription": {},
-        "contextWindowCompression": {"slidingWindow": {}}
+        "contextWindowCompression": {"slidingWindow": {}},
+        "sessionResumption": {"handle": handle}
+      }
+    };
+    webSocketService.sendMessage(sessionCreateMessage);
+  }
+
+  void resumeSession(String handle) {
+    sessionResumed = true;
+    final sessionCreateMessage = {
+      "setup": {
+        "model": "models/gemini-2.0-flash-live-001",
+        "generationConfig": {
+          "responseModalities": ["AUDIO"],
+          "speechConfig": {
+            "languageCode": selectedLanguage,
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {"voiceName": selectedVoice}
+            }
+          }
+        },
+        "realtimeInputConfig": {
+          "automaticActivityDetection": {"disabled": true}
+        },
+        "outputAudioTranscription": {},
+        "contextWindowCompression": {"slidingWindow": {}},
+        "sessionResumption": {"handle": handle}
+      }
+    };
+    webSocketService.sendMessage(sessionCreateMessage);
+  }
+
+  void sessionReconnectOnLanguageChange(String handle) {
+    webSocketService.disconnect();
+    startWebsocket();
+    sessionResumed = true;
+    print(aiTutorPromptHinglish);
+    final sessionCreateMessage = {
+      "setup": {
+        "model": "models/gemini-2.0-flash-live-001",
+        "generationConfig": {
+          "responseModalities": ["AUDIO"],
+          "speechConfig": {"languageCode": selectedLanguage}
+        },
+        "systemInstruction": {
+          "parts": [
+            {"text": "$aiTutorPromptHinglish"}
+          ]
+        },
+        "realtimeInputConfig": {
+          "automaticActivityDetection": {"disabled": true}
+        },
+        "outputAudioTranscription": {},
+        "contextWindowCompression": {"slidingWindow": {}},
+        "sessionResumption": {"handle": handle}
       }
     };
     webSocketService.sendMessage(sessionCreateMessage);
@@ -1196,6 +1274,21 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     } else {
       final tempDir = await getTemporaryDirectory();
       _audioPath = '${tempDir.path}/audio_record.wav';
+      final session = await AudioSession.instance;
+
+      // Configure audio routing/session
+      await session.configure(AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.defaultToSpeaker,
+        avAudioSessionMode: AVAudioSessionMode.defaultMode,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.speech,
+          usage: AndroidAudioUsage.voiceCommunication,
+        ),
+        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+        androidWillPauseWhenDucked: false,
+      ));
       await _recorder!.startRecorder(
           toFile: _audioPath, codec: Codec.pcm16WAV, sampleRate: 24000);
 
@@ -1235,6 +1328,27 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       }
     };
     webSocketService.sendMessage(audioMessage);
+
+    final textMessage = {
+      "realtimeInput": {
+        "text":
+            "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"
+      }
+    };
+
+    webSocketService.sendMessage(textMessage);
+
+    // final textMessage = {
+    //   "clientContent": {
+    //     "turns": {
+    //       "role": "user",
+    //       "parts": [
+    //         {"text": "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"}
+    //       ]
+    //     },
+    //     "turn_complete": true
+    //   }
+    // };
     // await Future.delayed(Duration(milliseconds: 500));
 
     final activityEndMessage = {
@@ -1262,13 +1376,14 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     // };
 
     // webSocketService.sendMessage(audioMessage);
-    Future.delayed(Duration(seconds: 15), () {
-      if (!responseStreaming && !responseCompleted && !responseStarted) {
-        print("message sent again as response generation didnt start");
-        lastResponseTime = DateTime.now();
-        sendAudioResponseForGemini(base64Audio);
-      }
-    });
+
+    // Future.delayed(Duration(seconds: 15), () {
+    //   if (!responseStreaming && !responseCompleted && !responseStarted) {
+    //     print("message sent again as response generation didnt start");
+    //     lastResponseTime = DateTime.now();
+    //     sendAudioResponseForGemini(base64Audio);
+    //   }
+    // });
   }
 
   void sendAudioResponse(String base64Audio) {
@@ -1590,6 +1705,34 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     );
   }
 
+  void showLanguageAndVoiceSelectionSheet(BuildContext context) {
+    final previousLanguage = selectedLanguage;
+    final previousVoice = selectedVoice;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => LanguageAndVoiceSelection(
+        languages: languageOptions,
+        voices: voiceOptions,
+        selectedLanguage: selectedLanguage,
+        selectedVoice: selectedVoice,
+        onLanguageSelect: (id, name) => selectedLanguage = id,
+        onVoiceSelect: (id, name) => selectedVoice = id,
+      ),
+    ).then((value) async {
+      if (selectedLanguage != previousLanguage ||
+          selectedVoice != previousVoice) {
+        print("Language or voice changed!");
+        await prefs.setString("aiTutorLanguage", selectedLanguage);
+        await prefs.setString("aiTutorVoice", selectedVoice);
+
+        webSocketService.disconnect();
+        startWebsocket();
+        sessionConnect();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayedConversations = List.from(conversations);
@@ -1640,7 +1783,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                             onTap: () {
                               HapticFeedback.lightImpact();
                               logAITutorMenuButtonClick(widget.conceptId);
-                              _showMenuToSwitch(context);
+                              if (greetingDone) {
+                                _showMenuToSwitch(context);
+                              } else {
+                                showLanguageAndVoiceSelectionSheet(context);
+                              }
                             },
                             child: Icon(
                               Icons.more_vert_outlined,
@@ -2485,7 +2632,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                       });
                                       webSocketService.disconnect();
                                       startWebsocket();
-                                      sessionConnectForLEssonStart();
+                                      sessionConnectForLEssonStart(
+                                          previousSessionHandle);
                                       // startConversation();
                                     },
                                     buttonType:

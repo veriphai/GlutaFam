@@ -39,7 +39,7 @@ class LifecycleEventHandler extends WidgetsBindingObserver {
       bool isConnected = await InternetConnection().hasInternetAccess;
       if (connectivityResults.contains(ConnectivityResult.none) ||
           !isConnected) {
-        _showNoInternetModal();
+        // _showNoInternetModal();
       }
     });
   }

@@ -1,3 +1,4 @@
+import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -27,11 +28,15 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Select Your Avatar',
-          style: GoogleFonts.raleway(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+        title: Align(
+          alignment: Alignment.centerLeft, // This forces left alignment
+          child: Text(
+            "Select Your Avatar",
+            style: GoogleFonts.raleway(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         iconTheme: IconThemeData(
@@ -106,30 +111,28 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
             ),
             const SizedBox(height: 16.0),
             // Confirm Button
-            ElevatedButton(
+            ChicletAnimatedButton(
               onPressed: () {
-                HapticFeedback.lightImpact();
                 if (selectedAvatarKey != null) {
                   Navigator.pop(context, selectedAvatarKey);
                 }
+                // Logic for adding friends
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0, vertical: 12.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
+              buttonType: ChicletButtonTypes.roundedRectangle,
+              height: 50,
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              buttonColor: const Color.fromRGBO(187, 160, 2, 1),
+              backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
               child: Text(
-                'Confirm Selection',
+                "CONFIRM SELECTION",
                 style: GoogleFonts.raleway(
                   color: Colors.black,
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ),
+            )
           ],
         ),
       ),

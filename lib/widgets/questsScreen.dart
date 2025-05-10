@@ -243,14 +243,16 @@ class _QuestsScreenState extends State<QuestsScreen> {
                                                     width: availableWidth *
                                                         ((questItem["friendContribution"] +
                                                                 questItem[
-                                                                    "progress"]) /
+                                                                    "userContribution"]) /
                                                             questItem[
                                                                 "completionCriteria"]), // Dynamically adjust width
                                                     height: 25.0,
                                                     decoration: BoxDecoration(
-                                                      color: Colors.green
-                                                          .withOpacity(
-                                                              0.8), // Friend's progress color
+                                                      color: Color.fromRGBO(
+                                                          255,
+                                                          217,
+                                                          0,
+                                                          1), // Friend's progress color
                                                       borderRadius:
                                                           BorderRadius.only(
                                                               topLeft: Radius
@@ -267,12 +269,14 @@ class _QuestsScreenState extends State<QuestsScreen> {
                                                         .easeInOut, // Animation curve
                                                     width: availableWidth *
                                                         ((questItem[
-                                                                "progress"]) /
+                                                                "userContribution"]) /
                                                             questItem[
                                                                 "completionCriteria"]), // Dynamically adjust width
                                                     height: 25.0,
                                                     decoration: BoxDecoration(
-                                                      color: Colors.blue
+                                                      color: const Color
+                                                              .fromARGB(
+                                                              255, 198, 81, 218)
                                                           .withOpacity(
                                                               0.9), // Your progress color
                                                       borderRadius:
@@ -345,7 +349,7 @@ class _QuestsScreenState extends State<QuestsScreen> {
                                   ),
                                 ),
                                 Text(
-                                  "${questItem["progress"]} lessons",
+                                  "${questItem["userContribution"]} lessons",
                                   style: GoogleFonts.raleway(
                                     color: Colors.white,
                                     fontSize: 16,
@@ -426,10 +430,9 @@ class _QuestsScreenState extends State<QuestsScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.center,
                                     children: [
-                                      Icon(
-                                        Icons.waving_hand_rounded,
-                                        color: Colors.yellow,
-                                      ),
+                                      Icon(Icons.waving_hand_rounded,
+                                          color:
+                                              Color.fromRGBO(255, 217, 0, 1)),
                                       SizedBox(
                                         width: 8,
                                       ),
@@ -471,7 +474,7 @@ class _QuestsScreenState extends State<QuestsScreen> {
                                     children: [
                                       Icon(
                                         Icons.card_giftcard_rounded,
-                                        color: Colors.yellow,
+                                        color: Color.fromRGBO(255, 217, 0, 1),
                                       ),
                                       SizedBox(
                                         width: 8,
@@ -1196,37 +1199,41 @@ class _QuestsScreenState extends State<QuestsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Friends Quest Section
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Friends Quest",
-                                style: GoogleFonts.raleway(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
+                          if (questData["friendQuest"].isNotEmpty)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Friends Quest",
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                getExpiryText(
-                                    questData["friendQuest"][0]["expiryTime"]),
-                                style: GoogleFonts.raleway(
-                                  color: Colors.grey,
-                                  fontSize: 14,
+                                Text(
+                                  getExpiryText(questData["friendQuest"][0]
+                                      ["expiryTime"]),
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          questData["friendQuest"][0]["questType"] ==
-                                  "FOLLOW_FRIEND"
-                              ? questTiles(
-                                  context: context,
-                                  quest: questData["friendQuest"])
-                              : questTilesForFriendQuest(
-                                  context: context,
-                                  quest: questData["friendQuest"]),
-                          const SizedBox(height: 24),
+                              ],
+                            ),
+                          if (questData["friendQuest"].isNotEmpty)
+                            const SizedBox(height: 8),
+                          if (questData["friendQuest"].isNotEmpty)
+                            questData["friendQuest"][0]["questType"] ==
+                                    "FOLLOW_FRIEND"
+                                ? questTiles(
+                                    context: context,
+                                    quest: questData["friendQuest"])
+                                : questTilesForFriendQuest(
+                                    context: context,
+                                    quest: questData["friendQuest"]),
+                          if (questData["friendQuest"].isNotEmpty)
+                            const SizedBox(height: 24),
 
                           // Daily Quest Section
                           Row(
