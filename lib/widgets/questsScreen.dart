@@ -741,6 +741,7 @@ class _QuestsScreenState extends State<QuestsScreen> {
                           child: ChicletAnimatedButton(
                             onPressed: () {
                               HapticFeedback.lightImpact();
+                              Navigator.pop(context);
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -748,7 +749,12 @@ class _QuestsScreenState extends State<QuestsScreen> {
                                     profileData: userProfile,
                                   ),
                                 ),
-                              );
+                              ).then((_) async {
+                                final profileData = await refreshProfile();
+                                setState(() {
+                                  userProfile = profileData;
+                                });
+                              });
                             },
                             buttonType: ChicletButtonTypes.roundedRectangle,
                             height: 50,
@@ -1001,9 +1007,9 @@ class _QuestsScreenState extends State<QuestsScreen> {
                           ),
                           const SizedBox(width: 16),
                           Image.asset(
-                            'lib/assets/glutaclassLogo.png',
-                            height: 100,
-                            width: 100,
+                            'lib/assets/quests-generic.png',
+                            height: 120,
+                            // width: 150,
                           ),
                         ],
                       ),

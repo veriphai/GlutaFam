@@ -107,7 +107,7 @@ Future<String?> generateProfileCard(
     userNameTextPainter.paint(canvas, Offset(blueBoxX, userNameTextY));
 
     final ui.Image? logoImage =
-        await loadAssetImage("lib/assets/byteme-logo.png");
+        await loadAssetImage("lib/assets/tuto-logo.png");
 
     if (logoImage != null) {
       final double logoSize = imageSize * 0.15;

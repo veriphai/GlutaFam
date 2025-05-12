@@ -31,14 +31,14 @@ class AchievementDetailsWidget extends StatelessWidget {
         final xFile = XFile(imagePath);
         Share.shareXFiles(
           [xFile],
-          text: "Check out my achievement on GlutaClass!\n$achievementLink",
-          subject: "View Achievement on GlutaClass",
+          text: "Check out my achievement on Tuto!\n$achievementLink",
+          subject: "View Achievement on Tuto",
         );
       } else {
         // If image generation fails, share only the link
         Share.share(
-          "Check out my achievement on GlutaClass!\n$achievementLink",
-          subject: "View Achievement on GlutaClass",
+          "Check out my achievement on Tuto!\n$achievementLink",
+          subject: "View Achievement on Tuto",
         );
       }
     } catch (e) {

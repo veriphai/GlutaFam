@@ -130,7 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 // GlutaClass Icon
                 Image.asset(
-                  'lib/assets/glutaclassLogo.png', // Replace with your logo's path
+                  'lib/assets/tuto-logo.png',
+
+                  // 'lib/assets/glutaclassLogo.png',
                   height: 120, // Adjust height as needed
                   width: 120, // Adjust width as needed
                   fit: BoxFit.contain,

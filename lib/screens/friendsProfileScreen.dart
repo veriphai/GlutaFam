@@ -253,7 +253,7 @@ class _FriendsProfileScreenState extends State<FriendsProfileScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(8),
                             buttonColor: isFriend
-                                ? Color.fromRGBO(29, 195, 65, 1)
+                                ? Color.fromRGBO(74, 193, 249, 1)
                                 : Color.fromRGBO(187, 160, 2, 1),
                             backgroundColor: Color.fromRGBO(255, 217, 0, 1),
                             child: Row(

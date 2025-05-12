@@ -140,19 +140,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final xFile = XFile(imagePath);
         Share.shareXFiles(
           [xFile],
-          text:
-              "Check out ${profileData["firstName"]}'s profile on YourApp!\n$profileLink",
-          subject: "Follow ${profileData["firstName"]} on YourApp",
+          text: "Check out my profile on Tuto!\n$profileLink",
+          subject: "Follow ${profileData["firstName"]} on Tuto",
         );
       } else {
         // If image generation fails, share only the link
         Share.share(
-          "Check out ${profileData["firstName"]}'s profile on YourApp!\n$profileLink",
-          subject: "Follow ${profileData["firstName"]} on YourApp",
+          "Check out my profile on Tuto!\n$profileLink",
+          subject: "Follow ${profileData["firstName"]} on Tuto",
         );
       }
     } catch (e) {
-      print("Error sharing achievement: $e");
+      print("Error sharing profile Link: $e");
     }
   }
 
@@ -824,11 +823,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         height: 30,
                         padding: EdgeInsets.all(0),
                         buttonColor: friends.contains(friendSuggestion["id"])
-                            ? Color.fromRGBO(29, 195, 65, 1)
+                            ? const Color.fromRGBO(25, 151, 213, 1)
                             : Color.fromRGBO(187, 160, 2, 1),
                         backgroundColor:
                             friends.contains(friendSuggestion["id"])
-                                ? Color.fromRGBO(29, 195, 65, 1)
+                                ? Color.fromRGBO(74, 193, 249, 1)
                                 : Color.fromRGBO(255, 217, 0, 1),
                         borderRadius: 12,
                         child: Text(

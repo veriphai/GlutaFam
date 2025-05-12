@@ -11,6 +11,7 @@ import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/checkConceptCheckpointCompleted.dart';
 import 'package:eureka_app/apis/checkGreetingsAndIntroCompleted.dart';
 import 'package:eureka_app/apis/fetchConceptDetails.dart';
+import 'package:eureka_app/apis/fetchLanguagesAndVoices.dart';
 import 'package:eureka_app/apis/getAITutorPrompts.dart';
 import 'package:eureka_app/apis/markLessonCompletion.dart';
 import 'package:eureka_app/apis/transcribeAudio.dart';
@@ -94,7 +95,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   bool showCheckpointContinueButton = false;
   late String greetingPrompt;
   late String aiTutorPrompt;
-  late String aiTutorPromptHinglish;
   bool isConceptCheckpointLoading = true;
   int xpGained = 0;
   bool allCheckpointsCompleted = false;
@@ -113,22 +113,44 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   bool goAwayEventReceived = false;
   String selectedLanguage = "en-US";
   String selectedVoice = "Puck";
-  Map<String, String> languageOptions = {
-    "en-US": "English",
-    "hi-IN": "Hinglish"
-  };
-  Map<String, String> voiceOptions = {
-    "Puck": "Puck",
-    "Charon": "Charon",
-    "Kore": "Kore",
-    "Fenrir": "Fenrir",
-    "Aoede": "Aoede",
-    "Leda": "Leda",
-    "Orus": "Orus",
-    "Zephyr": "Zephyr"
-  };
+  // Map<String, String> languageOptions = {
+  //   "en-US": "English",
+  //   "hi-IN": "Hinglish"
+  // };
+  // Map<String, String> voiceOptions = {
+  //   "Puck": "Puck",
+  //   "Charon": "Charon",
+  //   "Kore": "Kore",
+  //   "Fenrir": "Fenrir",
+  //   "Aoede": "Aoede",
+  //   "Leda": "Leda",
+  //   "Orus": "Orus",
+  //   "Zephyr": "Zephyr"
+  // };
+
+  late Map<String, String> languageOptions = {};
+  late Map<String, String> voiceOptions = {};
 
   late final prefs;
+
+  Future<void> loadLanguageAndVoiceOptions() async {
+    try {
+      final data = await fetchLanguagesAndVoices();
+
+      final List<dynamic> languages = data['languages'] ?? [];
+      final List<dynamic> voices = data['voices'] ?? [];
+
+      languageOptions = {for (var lang in languages) lang['id']: lang['name']};
+
+      voiceOptions = {for (var voice in voices) voice['id']: voice['name']};
+
+      setState(() {
+        // trigger UI update if needed
+      });
+    } catch (e) {
+      print("Error loading language and voice options: $e");
+    }
+  }
 
   Future<void> getConceptDetails() async {
     try {
@@ -148,13 +170,17 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
   Future<void> fetchAITutorPrompts() async {
     try {
-      Map<String, dynamic>? aiTutorPrompts = await getAITutorPrompts();
+      String selectedLanguageName =
+          languageOptions[selectedLanguage] ?? "English";
+      Map<String, dynamic>? aiTutorPrompts =
+          await getAITutorPrompts(language: selectedLanguageName);
       // final profileData = await getProfile();
 
       setState(() {
-        greetingPrompt = aiTutorPrompts['aiTutorGreetings'];
-        aiTutorPrompt = aiTutorPrompts['aiTutorPrompt'];
-        aiTutorPromptHinglish = aiTutorPrompts['aiTutorPromptHinglish'];
+        greetingPrompt =
+            aiTutorPrompts['aiTutorGreetings$selectedLanguageName']['content'];
+        aiTutorPrompt =
+            aiTutorPrompts['aiTutorPrompt$selectedLanguageName']['content'];
       });
     } catch (error) {
       print("Error fetching concept details: $error");
@@ -202,6 +228,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     studentName = widget.name;
     _scrollController = ScrollController();
     startWebsocket();
+    loadLanguageAndVoiceOptions();
     setLanguageAndVoice();
     // startWebsocketForTranscription();
     player = FlutterSoundPlayer();
@@ -1116,11 +1143,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         },
         "systemInstruction": {
           "parts": [
-            {
-              "text": selectedLanguage == 'en-US'
-                  ? aiTutorPrompt
-                  : aiTutorPromptHinglish
-            }
+            {"text": aiTutorPrompt}
           ]
         },
         "realtimeInputConfig": {
@@ -1163,7 +1186,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     webSocketService.disconnect();
     startWebsocket();
     sessionResumed = true;
-    print(aiTutorPromptHinglish);
     final sessionCreateMessage = {
       "setup": {
         "model": "models/gemini-2.0-flash-live-001",
@@ -1173,7 +1195,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         },
         "systemInstruction": {
           "parts": [
-            {"text": "$aiTutorPromptHinglish"}
+            {"text": aiTutorPrompt}
           ]
         },
         "realtimeInputConfig": {
@@ -1329,12 +1351,29 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     };
     webSocketService.sendMessage(audioMessage);
 
+    List<String> completedObjectives = [];
+    List<String> leftObjectives = [];
+    checkpointLearningObjectiveStatus.forEach((objective, isCompleted) {
+      if (isCompleted) {
+        completedObjectives.add(objective);
+      } else {
+        leftObjectives.add(objective);
+      }
+    });
+
     final textMessage = {
       "realtimeInput": {
         "text":
-            "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"
+            "These are the completed learning objectives : $completedObjectives . And these learning objectives are left $leftObjectives . Focus on the left objectives only, and try to complete them."
       }
     };
+
+    // final textMessage = {
+    //   "realtimeInput": {
+    //     "text":
+    //         "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"
+    //   }
+    // };
 
     webSocketService.sendMessage(textMessage);
 
@@ -1725,7 +1764,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         print("Language or voice changed!");
         await prefs.setString("aiTutorLanguage", selectedLanguage);
         await prefs.setString("aiTutorVoice", selectedVoice);
-
+        if (selectedLanguage != previousLanguage) {
+          fetchAITutorPrompts();
+        }
         webSocketService.disconnect();
         startWebsocket();
         sessionConnect();
@@ -2610,22 +2651,28 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                       !showCheckResultButton &&
                       !skipAudioTutor &&
                       !responseStreaming &&
-                      !showCheckpointContinueButton &&
-                      showAfterGreetingContinueButton)
+                      (showAfterGreetingContinueButton ||
+                          showCheckpointContinueButton))
                     Positioned(
                       bottom: 20,
                       left: 0,
                       right: 0,
                       child: Container(
-                          color: Color.fromRGBO(19, 31, 36, 1),
-                          child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12.0, vertical: 12),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ChicletAnimatedButton(
-                                    onPressed: () {
+                        color: const Color.fromRGBO(19, 31, 36, 1),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 12),
+                          child: Row(
+                            children: [
+                              if (showCheckpointContinueButton)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: _buildRecordingButton(),
+                                ),
+                              Expanded(
+                                child: ChicletAnimatedButton(
+                                  onPressed: () {
+                                    if (showAfterGreetingContinueButton) {
                                       setState(() {
                                         greetingDone = true;
                                         showAfterGreetingContinueButton = false;
@@ -2634,70 +2681,33 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                       startWebsocket();
                                       sessionConnectForLEssonStart(
                                           previousSessionHandle);
-                                      // startConversation();
-                                    },
-                                    buttonType:
-                                        ChicletButtonTypes.roundedRectangle,
-                                    width: double.infinity,
-                                    height: 50,
-                                    buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                                    backgroundColor:
-                                        Color.fromRGBO(255, 217, 0, 1),
-                                    child: Text(
-                                      "CONTINUE",
-                                      style: GoogleFonts.raleway(
-                                        color: Colors.black,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ))),
-                    ),
-                  if (!showContinuationButtons &&
-                      !showJumpToQuestionsButton &&
-                      !showMistakeCorrectionButton &&
-                      !showCheckResultButton &&
-                      !skipAudioTutor &&
-                      !responseStreaming &&
-                      !showAfterGreetingContinueButton &&
-                      showCheckpointContinueButton)
-                    Positioned(
-                      bottom: 20,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                          color: Color.fromRGBO(19, 31, 36, 1),
-                          child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12.0, vertical: 0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ChicletAnimatedButton(
-                                    onPressed: () {
+                                    } else if (showCheckpointContinueButton) {
                                       checkpointContinueButtonClick();
-                                    },
-                                    buttonType:
-                                        ChicletButtonTypes.roundedRectangle,
-                                    width: double.infinity,
-                                    height: 50,
-                                    buttonColor: Color.fromRGBO(187, 160, 2, 1),
-                                    backgroundColor:
-                                        Color.fromRGBO(255, 217, 0, 1),
-                                    child: Text(
-                                      "CONTINUE",
-                                      style: GoogleFonts.raleway(
-                                        color: Colors.black,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                    }
+                                  },
+                                  buttonType:
+                                      ChicletButtonTypes.roundedRectangle,
+                                  width: double.infinity,
+                                  height: 50,
+                                  buttonColor:
+                                      const Color.fromRGBO(187, 160, 2, 1),
+                                  backgroundColor:
+                                      const Color.fromRGBO(255, 217, 0, 1),
+                                  child: Text(
+                                    "CONTINUE",
+                                    style: GoogleFonts.raleway(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                ],
-                              ))),
-                    )
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                 ]),
               ));
   }

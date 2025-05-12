@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:http/http.dart' as http;
 
-Future<Map<String, dynamic>> getAITutorPrompts() async {
-  const url = 'https://glutaclass.com:8080/gluta/famV2/ai-tutor-prompts';
+Future<Map<String, dynamic>> getAITutorPrompts(
+    {required String language}) async {
+  final url =
+      'https://glutaclass.com:8080/gluta/famV2/ai-tutor-prompts?language=$language';
 
   try {
     final AuthTokenService authTokenService = AuthTokenService();

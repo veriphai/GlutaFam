@@ -324,12 +324,13 @@ class _FeedScreenState extends State<FeedScreen> {
               const SizedBox(
                   width: 16), // Spacing between description and image
               // Feed Image
-              CachedNetworkImage(
-                imageUrl: feed['feedImage'],
-                height: 80,
-                width: 80,
-                fit: BoxFit.cover,
-              ),
+              if (feed.containsKey("feedImage"))
+                CachedNetworkImage(
+                  imageUrl: feed['feedImage'],
+                  height: 80,
+                  width: 80,
+                  fit: BoxFit.cover,
+                ),
             ],
           ),
           const SizedBox(height: 36),
@@ -441,7 +442,7 @@ class _FeedScreenState extends State<FeedScreen> {
               // Add logic to invite friends
             },
             child: Text(
-              "🎯 Invite friends to GlutaClass",
+              "🎯 Invite friends to Tuto",
               style: GoogleFonts.raleway(
                 color: Color.fromRGBO(255, 217, 0, 1),
                 fontWeight: FontWeight.w600,

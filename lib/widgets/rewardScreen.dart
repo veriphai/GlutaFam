@@ -125,23 +125,38 @@ class _RewardScreenState extends State<RewardScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Spacer(),
-                    AnimatedBuilder(
-                      animation: _controller,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(0, _positionAnimation.value),
-                          child: Transform.scale(
-                            scale: _scaleAnimation.value,
-                            child: CachedNetworkImage(
-                              imageUrl: rewardData["image"] ?? "",
-                              height: 150,
-                              width: 150,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        );
-                      },
+                    CachedNetworkImage(
+                      imageUrl: rewardData["image"] ?? "",
+                      height: 200,
+                      width: 200,
+                      fit: BoxFit.cover,
                     ),
+                    // AnimatedBuilder(
+                    //   animation: _controller,
+                    //   builder: (context, child) {
+                    //     return Transform.translate(
+                    //       offset: Offset(0, _positionAnimation.value),
+                    //       child: Transform.scale(
+                    //         scale: _scaleAnimation.value,
+                    //         child: CachedNetworkImage(
+                    //           imageUrl: rewardData["image"] ?? "",
+                    //           height: 150,
+                    //           width: 150,
+                    //           fit: BoxFit.cover,
+                    //         ),
+                    //       ),
+                    //     );
+                    //   },
+                    // ),
+                    if (rewardData["type"] == "GEMS")
+                      Text(
+                        "You have earned ${rewardData["name"].split(" ")[0]} Gems.",
+                        style: GoogleFonts.raleway(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     Spacer(),
                     Padding(
                       padding: const EdgeInsets.symmetric(

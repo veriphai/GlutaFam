@@ -65,15 +65,14 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
         final xFile = XFile(imagePath);
         Share.shareXFiles(
           [xFile],
-          text:
-              "Check out ${widget.profileData["firstName"]}'s profile on YourApp!\n$profileLink",
-          subject: "Follow ${widget.profileData["firstName"]} on YourApp",
+          text: "Check out my profile on Tuto!\n$profileLink",
+          subject: "Follow ${widget.profileData["firstName"]} on Tuto",
         );
       } else {
         // If image generation fails, share only the link
         Share.share(
-          "Check out ${widget.profileData["firstName"]}'s profile on YourApp!\n$profileLink",
-          subject: "Follow ${widget.profileData["firstName"]} on YourApp",
+          "Check out my profile on Tuto!\n$profileLink",
+          subject: "Follow ${widget.profileData["firstName"]} on Tuto",
         );
       }
     } catch (e) {
@@ -189,11 +188,11 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
                         padding: EdgeInsets.all(0),
                         buttonColor:
                             followedFriends.contains(friendSuggestion["id"])
-                                ? Color.fromRGBO(19, 116, 40, 1)
+                                ? Color.fromRGBO(25, 151, 213, 1)
                                 : Color.fromRGBO(187, 160, 2, 1),
                         backgroundColor:
                             followedFriends.contains(friendSuggestion["id"])
-                                ? Color.fromRGBO(29, 195, 65, 1)
+                                ? Color.fromRGBO(74, 193, 249, 1)
                                 : Color.fromRGBO(255, 217, 0, 1),
                         borderRadius: 12,
                         child: Text(
@@ -282,34 +281,50 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
                               const SizedBox(height: 16),
 
                               // User Name
-                              Text(
-                                widget.profileData["firstName"],
-                                style: GoogleFonts.raleway(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Column with Name and Username
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.profileData["firstName"],
+                                          style: GoogleFonts.raleway(
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "@${widget.profileData["userName"]}",
+                                          style: GoogleFonts.raleway(
+                                            color: Colors.grey[400],
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Profile image (example)
+                                  Image.asset("lib/assets/tuto-logo.png",
+                                      height: 70)
+                                ],
                               ),
                               const SizedBox(height: 4),
 
-                              // User Username
-                              Text(
-                                "@${widget.profileData["userName"]}",
-                                style: GoogleFonts.raleway(
-                                  color: Colors.grey[400],
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-
-                              Text(
-                                "GLUTACLASS",
-                                style: GoogleFonts.raleway(
-                                  color: Colors.yellow,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
+                              // Text(
+                              //   "TUTO",
+                              //   style: GoogleFonts.raleway(
+                              //     color: Colors.yellow,
+                              //     fontSize: 22,
+                              //     fontWeight: FontWeight.w700,
+                              //   ),
+                              // ),
                             ],
                           ),
                         ),
