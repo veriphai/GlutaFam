@@ -5,6 +5,7 @@ import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
+import 'package:eureka_app/screens/landingScreenWebMobile.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
@@ -132,8 +133,10 @@ class MyApp extends StatelessWidget {
             ],
             debugShowCheckedModeBanner: false,
             home: firstLaunch
-                ? (checkIsWebOnDesktop(context)
-                    ? LandingScreenWeb()
+                ? (kIsWeb
+                    ? (checkIsWebOnDesktop(context)
+                        ? LandingScreenWeb()
+                        : LandingScreenMobile())
                     : LoginScreen())
                 : MainPage(),
             routes: {
@@ -207,13 +210,14 @@ class MyAppState extends ChangeNotifier {
 }
 
 bool checkIsWebOnDesktop(BuildContext context) {
-  if (!kIsWeb) {
-    return false; // Not running on web
-  }
+  // if (!kIsWeb) {
+  //   return false; // Not running on web
+  // }
 
   // Check if the screen width exceeds a typical mobile width threshold
   final double screenWidth = MediaQuery.of(context).size.width;
   return screenWidth >= 600; // Adjust this breakpoint for your needs
+  // return true;
 }
 
 Future<bool> checkIfRealDevice() async {
