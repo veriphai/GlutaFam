@@ -1,11 +1,11 @@
 {
-    "name": "GlutaClass: AI Tutor for NCERT",
-    "short_name": "GlutaClass: AI Tutor for NCERT",
+    "name": "Tuto: AI Tutor for Classes 6-10",
+    "short_name": "Tuto: AI Tutor for Classes 6-10",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Read NCERT in a new and engaging manner.",
+    "description": "Leaning made fun",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
