@@ -1,4 +1,5 @@
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
+import 'package:eureka_app/main.dart';
 import 'package:eureka_app/screens/onboardingScreenV4.dart';
 import 'package:eureka_app/screens/signupscreen.dart'; // Import the signup screen
 import 'package:eureka_app/utils/appHelperService.dart';
@@ -13,6 +14,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -26,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String deviceId = "";
   String platform = "";
   String userIP = "";
+  bool newUser = true;
 
   @override
   void initState() {
@@ -92,13 +95,14 @@ class _LoginScreenState extends State<LoginScreen> {
         print("Auth api:$data");
         String authToken = data['token'];
         String userTrackingId = data['userTrackingId'];
-        bool newUser = data['newUser'];
+        newUser = data['newUser'];
         SharedPreferences prefs = await SharedPreferences.getInstance();
         prefs.setString('userTrackingId', userTrackingId);
         await FirebaseAnalytics.instance.setUserId(id: userTrackingId);
         if (newUser) {
           FirebaseAnalytics.instance.logSignUp(signUpMethod: "gmail");
         } else {
+          await prefs.setBool('appFirstLaunch', false);
           FirebaseAnalytics.instance.logLogin(loginMethod: "gmail");
         }
         await authTokenService.setAuthToken(authToken);
@@ -111,6 +115,15 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       // Handle any errors during the HTTP request
       print("Error occurred while saving profile data: $e");
+    }
+  }
+
+  void _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Could not launch $url';
     }
   }
 
@@ -140,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 30),
                 // Description Text
                 Text(
-                  "Personalised Audio Tutor",
+                  "A Personalised AI Tutor",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.raleway(
                     fontSize: 28,
@@ -149,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 Text(
-                  "for Your NCERT Books",
+                  "That Actually Understands You",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.raleway(
                     fontSize: 28,
@@ -166,123 +179,170 @@ class _LoginScreenState extends State<LoginScreen> {
                   255, 217, 0, 1), // Optional: color of the spinner
             ),
           Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
-              child: Column(
-                children: [
-                  if (!kIsWeb)
-                    OutlinedButton(
-                      onPressed: () async {
-                        logPhoneAuthButtonClick(deviceId, platform, userIP);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => Signupscreen(
-                                  deviceId: deviceId,
-                                  platform: platform,
-                                  userIP: userIP)),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                            color: Color.fromRGBO(128, 128, 128,
-                                1)), // Border color // Border color
-                        minimumSize:
-                            const Size(double.infinity, 50), // Full width
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Icon(
-                            Icons.smartphone_outlined,
-                            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
+            child: !kIsWeb
+                ? Column(
+                    children: [
+                      if (!kIsWeb)
+                        OutlinedButton(
+                          onPressed: () async {
+                            logPhoneAuthButtonClick(deviceId, platform, userIP);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Signupscreen(
+                                      deviceId: deviceId,
+                                      platform: platform,
+                                      userIP: userIP)),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                                color: Color.fromRGBO(128, 128, 128,
+                                    1)), // Border color // Border color
+                            minimumSize:
+                                const Size(double.infinity, 50), // Full width
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                           ),
-                          Expanded(
-                            child: Center(
-                              child: Text(
-                                'Continue with phone number',
-                                style: GoogleFonts.raleway(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Icon(
+                                Icons.smartphone_outlined,
+                                color: Colors.white,
+                              ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'Continue with phone number',
+                                    style: GoogleFonts.raleway(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                width:
+                                    24, // Placeholder space to match the icon size
+                              )
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      // Google Sign-In Button
+                      OutlinedButton(
+                        onPressed: () async {
+                          try {
+                            UserCredential userCredential =
+                                await signInWithGoogle();
+                            User? user = userCredential.user;
+
+                            if (user != null) {
+                              print(user);
+                              String? displayName = user.displayName;
+                              String? email = user.email;
+                              String? photoURL = user.photoURL;
+                              String? uid = user.uid;
+                              logGoogleAuthSuccess(
+                                  uid, deviceId, platform, userIP);
+                              await saveProfile(
+                                  displayName, email, uid, photoURL);
+                            }
+
+                            if (newUser) {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => OnboardingScreenV4(
+                                          deviceId: deviceId,
+                                          platform: platform,
+                                          userIP: userIP)));
+                            } else {
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => MainPage()),
+                                (Route<dynamic> route) => false,
+                              );
+                            }
+                          } catch (error) {
+                            print("Google Sign-In Failed: $error");
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                              color: Color.fromRGBO(
+                                  128, 128, 128, 1)), // Border color
+                          minimumSize:
+                              const Size(double.infinity, 50), // Full width
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Image.asset(
+                              'lib/assets/google_logo.png',
+                              height: 24,
+                              width: 24,
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Continue with Google',
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(
-                            width:
-                                24, // Placeholder space to match the icon size
-                          )
-                        ],
+                            const SizedBox(
+                              width:
+                                  24, // Placeholder space to match the icon size
+                            )
+                          ],
+                        ),
                       ),
-                    ),
-                  const SizedBox(height: 20),
-                  // Google Sign-In Button
-                  OutlinedButton(
-                    onPressed: () async {
-                      try {
-                        UserCredential userCredential =
-                            await signInWithGoogle();
-                        User? user = userCredential.user;
-
-                        if (user != null) {
-                          print(user);
-                          String? displayName = user.displayName;
-                          String? email = user.email;
-                          String? photoURL = user.photoURL;
-                          String? uid = user.uid;
-                          logGoogleAuthSuccess(uid, deviceId, platform, userIP);
-                          await saveProfile(displayName, email, uid, photoURL);
-                        }
-
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => OnboardingScreenV4(
-                                    deviceId: deviceId,
-                                    platform: platform,
-                                    userIP: userIP)));
-                      } catch (error) {
-                        print("Google Sign-In Failed: $error");
-                      }
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color:
-                              Color.fromRGBO(128, 128, 128, 1)), // Border color
-                      minimumSize:
-                          const Size(double.infinity, 50), // Full width
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Image.asset(
-                          'lib/assets/google_logo.png',
-                          height: 24,
-                          width: 24,
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              'Continue with Google',
-                              style: GoogleFonts.raleway(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
+                    ],
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      MouseRegion(
+                          cursor: SystemMouseCursors
+                              .click, // Changes cursor to pointer (thumb)
+                          child: GestureDetector(
+                            onTap: () {
+                              _launchURL(
+                                  'https://play.google.com/store/apps/details?id=com.gluta.glutafam'); // Replace with your Play Store link
+                            },
+                            child: Image.asset(
+                              'lib/assets/playStoreButton.png', // Path to your Play Store image
+                              width: 150,
+                              fit: BoxFit.contain,
                             ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 24, // Placeholder space to match the icon size
-                        )
-                      ],
-                    ),
+                          )),
+                      const SizedBox(width: 20),
+                      MouseRegion(
+                          cursor: SystemMouseCursors
+                              .click, // Changes cursor to pointer (thumb)
+                          child: GestureDetector(
+                            onTap: () {
+                              _launchURL(
+                                  'https://apps.apple.com/us/app/glutaclass-ai-tutor-for-ncert/id6736943726'); // Replace with your App Store link
+                            },
+                            child: Image.asset(
+                              'lib/assets/appStoreButton.png', // Path to your App Store image
+                              width: 150,
+                              fit: BoxFit.contain,
+                            ),
+                          )),
+                    ],
                   ),
-                ],
-              )),
+          ),
         ],
       ),
     );

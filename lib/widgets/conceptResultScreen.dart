@@ -170,7 +170,9 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
               updatedQuests: updatedQuests,
             ),
           ),
-        );
+        ).then((_) {
+          getQuestsAndSaveToCache();
+        });
       } else {
         Navigator.pushAndRemoveUntil(
           context,

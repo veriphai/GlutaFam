@@ -52,12 +52,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     {"text": "Class 8", "standard": 8},
     {"text": "Class 9", "standard": 9},
     {"text": "Class 10", "standard": 10},
-    {"text": "Class 11 - Science", "standard": 11, "stream": "Science"},
-    {"text": "Class 11 - Commerce", "standard": 11, "stream": "Commerce"},
-    {"text": "Class 11 - Humanities", "standard": 11, "stream": "Humanities"},
-    {"text": "Class 12 - Science", "standard": 12, "stream": "Science"},
-    {"text": "Class 12 - Commerce", "standard": 12, "stream": "Commerce"},
-    {"text": "Class 12 - Humanities", "standard": 12, "stream": "Humanities"}
+    // {"text": "Class 11 - Science", "standard": 11, "stream": "Science"},
+    // {"text": "Class 11 - Commerce", "standard": 11, "stream": "Commerce"},
+    // {"text": "Class 11 - Humanities", "standard": 11, "stream": "Humanities"},
+    // {"text": "Class 12 - Science", "standard": 12, "stream": "Science"},
+    // {"text": "Class 12 - Commerce", "standard": 12, "stream": "Commerce"},
+    // {"text": "Class 12 - Humanities", "standard": 12, "stream": "Humanities"}
   ];
 
   Future<void> fetchProfile() async {
@@ -982,7 +982,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.all(16.0),
           constraints: BoxConstraints(
             maxHeight:
-                MediaQuery.of(context).size.height * 0.5, // Set max height
+                MediaQuery.of(context).size.height * 0.45, // Set max height
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

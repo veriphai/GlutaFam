@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late SharedPreferences prefs;
   int xpMultiplier = 1;
   bool unlimitedLifelines = false;
-  int totalXPForConcept = 135;
+  int totalXPForConcept = 90;
 
   String? selectedConceptId;
 
@@ -147,12 +147,15 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final booksData =
           await getBooksWithCache(standard: standard, stream: stream);
+      selectedBookId = prefs.getString("bookId") ?? "";
+      _selectedSubject = prefs.getString("subject") ?? "";
       if (selectedBookId == "") {
         selectedBookId = booksData[0]["id"];
         prefs.setString("bookId", booksData[0]["id"]);
       }
       if (_selectedSubject == "") {
         _selectedSubject = booksData[0]["subject"];
+        prefs.setString("subject", booksData[0]["subject"]);
       }
       final chapterData = await getChaptersWithCache(
           standard: standard, subject: _selectedSubject);
@@ -304,14 +307,15 @@ class _HomeScreenState extends State<HomeScreen> {
         return SubjectSelection(
           selectedSubject: _selectedSubject,
           books: books,
-          onSubjectSelect: (selected, bookId) {
+          onSubjectSelect: (selected, bookId) async {
             logSubjectSelected(selected);
             setState(() {
               _selectedSubject = selected;
               selectedBookId = bookId;
               chapters = [];
             });
-            prefs.setString("bookId", bookId);
+            await prefs.setString("bookId", bookId);
+            await prefs.setString("subject", selected);
             fetchData(userProfile["standard"], userProfile["stream"], false);
           },
         );
@@ -466,14 +470,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Navigator.pop(context); // Close the bottom sheet
           },
-          onSubjectSelect: (selected, bookId) {
+          onSubjectSelect: (selected, bookId) async {
             logSubjectSelectedFromChaptersList(selected);
             setState(() {
               _selectedSubject = selected;
               selectedBookId = bookId;
               chapters = [];
             });
-            prefs.setString("bookId", bookId);
+            await prefs.setString("bookId", bookId);
+            await prefs.setString("subject", selected);
             fetchData(userProfile["standard"], userProfile["stream"], false);
           },
         );
@@ -904,270 +909,314 @@ class _HomeScreenState extends State<HomeScreen> {
                   opacity: _listOpacity, // Use the opacity variable
                   duration: Duration(milliseconds: 1), // Animation duration
                   child: Stack(children: [
-                    SizedBox(
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        itemCount: chapters.length,
-                        itemBuilder: (context, chapterIndex) {
-                          final chapter = chapters[chapterIndex];
-                          return Column(children: [
-                            // Padding(
-                            //     padding: const EdgeInsets.only(top: 40),
-                            //     child: Text(
-                            //       chapter['name'],
-                            //       style: GoogleFonts.raleway(
-                            //         color: Color.fromRGBO(255, 217, 0, 1),
-                            //         fontSize: 24,
-                            //         fontWeight: FontWeight.w700,
-                            //       ),
-                            //       maxLines: 3,
-                            //       overflow: TextOverflow.ellipsis,
-                            //       textAlign: TextAlign.center,
-                            //     )),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  top: 40, left: 0, right: 0),
-                              child: Container(
-                                width: double
-                                    .infinity, // <-- this makes it expand horizontally
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Color.fromRGBO(
-                                      21, 40, 48, 1), // Optional background
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.keyboard_double_arrow_down,
-                                          color:
-                                              Color.fromRGBO(255, 217, 0, 1)),
-                                      SizedBox(
-                                        width: 16,
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          chapter['name'],
-                                          style: GoogleFonts.raleway(
+                    Padding(
+                      padding: EdgeInsets.only(top: 60),
+                      child: SizedBox(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          itemCount: chapters.length,
+                          itemBuilder: (context, chapterIndex) {
+                            final chapter = chapters[chapterIndex];
+                            return Column(children: [
+                              // Padding(
+                              //     padding: const EdgeInsets.only(top: 40),
+                              //     child: Text(
+                              //       chapter['name'],
+                              //       style: GoogleFonts.raleway(
+                              //         color: Color.fromRGBO(255, 217, 0, 1),
+                              //         fontSize: 24,
+                              //         fontWeight: FontWeight.w700,
+                              //       ),
+                              //       maxLines: 3,
+                              //       overflow: TextOverflow.ellipsis,
+                              //       textAlign: TextAlign.center,
+                              //     )),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    top: 40, left: 0, right: 0),
+                                child: Container(
+                                  width: double
+                                      .infinity, // <-- this makes it expand horizontally
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Color.fromRGBO(
+                                        21, 40, 48, 1), // Optional background
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.keyboard_double_arrow_down,
                                             color:
-                                                Color.fromRGBO(255, 217, 0, 1),
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
+                                                Color.fromRGBO(255, 217, 0, 1)),
+                                        SizedBox(
+                                          width: 16,
                                         ),
-                                      ),
-                                      SizedBox(
-                                        width: 16,
-                                      ),
-                                      Icon(Icons.keyboard_double_arrow_down,
-                                          color:
-                                              Color.fromRGBO(255, 217, 0, 1)),
-                                    ]),
+                                        Expanded(
+                                          child: Text(
+                                            chapter['name'],
+                                            style: GoogleFonts.raleway(
+                                              color: Color.fromRGBO(
+                                                  255, 217, 0, 1),
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 16,
+                                        ),
+                                        Icon(Icons.keyboard_double_arrow_down,
+                                            color:
+                                                Color.fromRGBO(255, 217, 0, 1)),
+                                      ]),
+                                ),
                               ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: chapter['topics']
-                                  .asMap()
-                                  .entries
-                                  .map<Widget>((topicEntry) {
-                                final int topicIndex = topicEntry.key;
-                                final topic = topicEntry.value;
-                                final concepts = topic['lessons'];
-                                final globalKeyIndex = chapters
-                                        .take(chapterIndex)
-                                        .fold<int>(
-                                            0,
-                                            (total, chapter) =>
-                                                total +
-                                                (chapter['topics'].length
-                                                    as int)) +
-                                    topicIndex;
-                                final buttonColour = buttonColours[
-                                    (topic['seqNumber'] - 1) %
-                                        buttonColours.length];
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: chapter['topics']
+                                    .asMap()
+                                    .entries
+                                    .map<Widget>((topicEntry) {
+                                  final int topicIndex = topicEntry.key;
+                                  final topic = topicEntry.value;
+                                  final concepts = topic['lessons'];
+                                  final globalKeyIndex = chapters
+                                          .take(chapterIndex)
+                                          .fold<int>(
+                                              0,
+                                              (total, chapter) =>
+                                                  total +
+                                                  (chapter['topics'].length
+                                                      as int)) +
+                                      topicIndex;
+                                  final buttonColour = buttonColours[
+                                      (topic['seqNumber'] - 1) %
+                                          buttonColours.length];
 
-                                // final buttonColour;
-                                // if (chapterIndex == 0 && topicIndex == 0) {
-                                //   buttonColour = buttonColours[topicIndex];
-                                // } else {
-                                //   int randomIndex = Random().nextInt(4) +
-                                //       1; // Generates a random number from 1 to 5
-                                //   buttonColour = buttonColours[randomIndex];
-                                // }
-                                return Padding(
-                                  key: _topicKeys[globalKeyIndex],
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 0, vertical: 0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Divider with Topic Name
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 0, horizontal: 20),
-                                        child: Center(
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 20),
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Divider(
-                                                    color: Colors.grey,
-                                                    thickness: 1,
-                                                    endIndent: 10,
-                                                  ),
-                                                ),
-                                                Container(
-                                                  constraints: BoxConstraints(
-                                                    maxWidth: MediaQuery.of(
-                                                                context)
-                                                            .size
-                                                            .width *
-                                                        0.7, // Limits text width
-                                                  ),
-                                                  child: Text(
-                                                    topic['name'],
-                                                    style: GoogleFonts.raleway(
+                                  // final buttonColour;
+                                  // if (chapterIndex == 0 && topicIndex == 0) {
+                                  //   buttonColour = buttonColours[topicIndex];
+                                  // } else {
+                                  //   int randomIndex = Random().nextInt(4) +
+                                  //       1; // Generates a random number from 1 to 5
+                                  //   buttonColour = buttonColours[randomIndex];
+                                  // }
+                                  return Padding(
+                                    key: _topicKeys[globalKeyIndex],
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 0, vertical: 0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Divider with Topic Name
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 0, horizontal: 20),
+                                          child: Center(
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 20),
+                                              child: Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Divider(
                                                       color: Colors.grey,
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.w700,
+                                                      thickness: 1,
+                                                      endIndent: 10,
                                                     ),
-                                                    maxLines: 3,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    textAlign: TextAlign.center,
                                                   ),
-                                                ),
-                                                Expanded(
-                                                  child: Divider(
-                                                    color: Colors.grey,
-                                                    thickness: 1,
-                                                    indent:
-                                                        10, // Space between text and divider
+                                                  Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: MediaQuery.of(
+                                                                  context)
+                                                              .size
+                                                              .width *
+                                                          0.7, // Limits text width
+                                                    ),
+                                                    child: Text(
+                                                      topic['name'],
+                                                      style:
+                                                          GoogleFonts.raleway(
+                                                        color: Colors.grey,
+                                                        fontSize: 20,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                      maxLines: 3,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                  Expanded(
+                                                    child: Divider(
+                                                      color: Colors.grey,
+                                                      thickness: 1,
+                                                      indent:
+                                                          10, // Space between text and divider
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      // Concept Islands in a Stack with Alternating Pattern
-                                      SizedBox(
-                                        height: concepts.length * 100.0,
-                                        child: Stack(
-                                          children: [
-                                            ...List.generate(concepts.length,
-                                                (index) {
-                                              double topOffset = index * 100.0;
-                                              double screenWidth =
-                                                  MediaQuery.of(context)
-                                                      .size
-                                                      .width;
-                                              double leftOffset;
+                                        // Concept Islands in a Stack with Alternating Pattern
+                                        SizedBox(
+                                          height: concepts.length * 100.0,
+                                          child: Stack(
+                                            children: [
+                                              ...List.generate(concepts.length,
+                                                  (index) {
+                                                double topOffset =
+                                                    index * 100.0;
+                                                double screenWidth =
+                                                    MediaQuery.of(context)
+                                                        .size
+                                                        .width;
+                                                double leftOffset;
 
-                                              int globalConceptIndex = chapters
-                                                      .take(chapterIndex)
-                                                      .fold<int>(0,
-                                                          (total, chapter) {
-                                                    return total +
-                                                        ((chapter['topics'] as List).fold<
-                                                                int>(
+                                                int globalConceptIndex = chapters
+                                                        .take(chapterIndex)
+                                                        .fold<int>(0,
+                                                            (total, chapter) {
+                                                      return total +
+                                                          ((chapter['topics'] as List).fold<
+                                                                  int>(
+                                                              0,
+                                                              (subTotal,
+                                                                      topic) =>
+                                                                  subTotal +
+                                                                  (topic['lessons']
+                                                                          as List)
+                                                                      .length));
+                                                    }) +
+                                                    (chapter['topics'] as List)
+                                                        .take(topicIndex)
+                                                        .fold<int>(
                                                             0,
                                                             (subTotal, topic) =>
                                                                 subTotal +
                                                                 (topic['lessons']
                                                                         as List)
-                                                                    .length));
-                                                  }) +
-                                                  (chapter['topics'] as List)
-                                                      .take(topicIndex)
-                                                      .fold<int>(
-                                                          0,
-                                                          (subTotal, topic) =>
-                                                              subTotal +
-                                                              (topic['lessons']
-                                                                      as List)
-                                                                  .length) +
-                                                  index;
+                                                                    .length) +
+                                                    index;
 
-                                              int topicConceptIndex =
-                                                  index; // Resets per topic
+                                                int topicConceptIndex =
+                                                    index; // Resets per topic
 
-                                              int wavePosition =
-                                                  topicConceptIndex % 6;
-                                              bool isLeft = wavePosition <
-                                                  3; // First 3 go left, last 3 go right
+                                                int wavePosition =
+                                                    topicConceptIndex % 6;
+                                                bool isLeft = wavePosition <
+                                                    3; // First 3 go left, last 3 go right
 
-                                              int shift = [
-                                                50,
-                                                80,
-                                                120,
-                                                120,
-                                                80,
-                                                50
-                                              ][wavePosition];
+                                                int shift = [
+                                                  50,
+                                                  80,
+                                                  120,
+                                                  120,
+                                                  80,
+                                                  50
+                                                ][wavePosition];
 
-                                              leftOffset = isLeft
-                                                  ? (screenWidth / 2) - shift
-                                                  : (screenWidth / 2) -
-                                                      shift +
-                                                      60; // Shift right
-                                              final concept = concepts[index];
-                                              //current_lesson
-                                              final isLastCompleted =
-                                                  concept['id'] ==
-                                                      conceptToStartFrom;
-                                              final isCompleted =
-                                                  completedConcepts
-                                                      .contains(concept['id']);
-                                              final isStartOfTopic =
-                                                  !isCompleted &&
-                                                      concept['id'] !=
-                                                          conceptToStartFrom &&
-                                                      concept['id']
-                                                          .toString()
-                                                          .endsWith('_1');
+                                                leftOffset = isLeft
+                                                    ? (screenWidth / 2) - shift
+                                                    : (screenWidth / 2) -
+                                                        shift +
+                                                        60; // Shift right
+                                                final concept = concepts[index];
+                                                //current_lesson
+                                                final isLastCompleted =
+                                                    concept['id'] ==
+                                                        conceptToStartFrom;
+                                                final isCompleted =
+                                                    completedConcepts.contains(
+                                                        concept['id']);
+                                                final isStartOfTopic =
+                                                    !isCompleted &&
+                                                        concept['id'] !=
+                                                            conceptToStartFrom &&
+                                                        concept['id']
+                                                            .toString()
+                                                            .endsWith('_1');
 
-                                              final isDisabled =
-                                                  !(isLastCompleted ||
-                                                      isStartOfTopic ||
-                                                      isCompleted);
-                                              final GlobalKey buttonKey =
-                                                  GlobalKey();
+                                                final isDisabled =
+                                                    !(isLastCompleted ||
+                                                        isStartOfTopic ||
+                                                        isCompleted);
+                                                final GlobalKey buttonKey =
+                                                    GlobalKey();
 
-                                              return Positioned(
-                                                top: topOffset,
-                                                left: leftOffset,
-                                                child: Stack(
-                                                    alignment: Alignment.center,
-                                                    children: [
-                                                      Padding(
-                                                        padding: const EdgeInsets
-                                                            .only(
-                                                            top: 30.0,
-                                                            left: 20,
-                                                            right:
-                                                                20), // Add space above the stack
-                                                        child:
-                                                            ChicletAnimatedButton(
-                                                          key: buttonKey,
-                                                          onPressed: () {
-                                                            HapticFeedback
-                                                                .lightImpact();
-                                                            logConceptClicked(
-                                                                concept['id']);
-                                                            showOverlay(
-                                                                context,
-                                                                concept,
-                                                                buttonKey,
+                                                return Positioned(
+                                                  top: topOffset,
+                                                  left: leftOffset,
+                                                  child: Stack(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      children: [
+                                                        Padding(
+                                                          padding: const EdgeInsets
+                                                              .only(
+                                                              top: 30.0,
+                                                              left: 20,
+                                                              right:
+                                                                  20), // Add space above the stack
+                                                          child:
+                                                              ChicletAnimatedButton(
+                                                            key: buttonKey,
+                                                            onPressed: () {
+                                                              HapticFeedback
+                                                                  .lightImpact();
+                                                              logConceptClicked(
+                                                                  concept[
+                                                                      'id']);
+                                                              showOverlay(
+                                                                  context,
+                                                                  concept,
+                                                                  buttonKey,
+                                                                  isDisabled
+                                                                      ? Color.fromRGBO(
+                                                                          56,
+                                                                          70,
+                                                                          79,
+                                                                          1)
+                                                                      : buttonColour[
+                                                                          'background'],
+                                                                  isCompleted,
+                                                                  isDisabled);
+                                                            },
+                                                            buttonType:
+                                                                ChicletButtonTypes
+                                                                    .oval,
+                                                            width: 70,
+                                                            height: 60,
+                                                            buttonHeight: 6,
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    0),
+                                                            buttonColor:
+                                                                isDisabled
+                                                                    ? Color
+                                                                        .fromRGBO(
+                                                                            42,
+                                                                            55,
+                                                                            63,
+                                                                            1)
+                                                                    : isCompleted
+                                                                        ? Colors
+                                                                            .green
+                                                                        : buttonColour[
+                                                                            'button'],
+                                                            backgroundColor:
                                                                 isDisabled
                                                                     ? Color
                                                                         .fromRGBO(
@@ -1175,111 +1224,78 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                             70,
                                                                             79,
                                                                             1)
-                                                                    : buttonColour[
-                                                                        'background'],
-                                                                isCompleted,
-                                                                isDisabled);
-                                                          },
-                                                          buttonType:
-                                                              ChicletButtonTypes
-                                                                  .oval,
-                                                          width: 70,
-                                                          height: 60,
-                                                          buttonHeight: 6,
-                                                          padding:
-                                                              EdgeInsets.all(0),
-                                                          buttonColor:
-                                                              isDisabled
-                                                                  ? Color
-                                                                      .fromRGBO(
-                                                                          42,
-                                                                          55,
-                                                                          63,
-                                                                          1)
-                                                                  : isCompleted
-                                                                      ? Colors
-                                                                          .green
-                                                                      : buttonColour[
-                                                                          'button'],
-                                                          backgroundColor:
-                                                              isDisabled
-                                                                  ? Color
-                                                                      .fromRGBO(
-                                                                          56,
-                                                                          70,
-                                                                          79,
-                                                                          1)
-                                                                  : isCompleted
-                                                                      ? Colors.green[
-                                                                          200]
-                                                                      : buttonColour[
-                                                                          'background'],
-                                                          child: Shimmer
-                                                              .fromColors(
-                                                            enabled: isDisabled ||
-                                                                    isCompleted
-                                                                ? false
-                                                                : true,
+                                                                    : isCompleted
+                                                                        ? Colors.green[
+                                                                            200]
+                                                                        : buttonColour[
+                                                                            'background'],
+                                                            child: Shimmer
+                                                                .fromColors(
+                                                              enabled: isDisabled ||
+                                                                      isCompleted
+                                                                  ? false
+                                                                  : true,
 
-                                                            baseColor:
-                                                                Colors.black,
-                                                            highlightColor:
-                                                                buttonColour[
-                                                                    'background'],
-                                                            child: index == 0
-                                                                ? Icon(
-                                                                    Icons
-                                                                        .fast_forward_rounded,
-                                                                    color: Colors
-                                                                        .black,
-                                                                    size: 40)
-                                                                : Icon(
-                                                                    Icons
-                                                                        .star_rounded,
-                                                                    color: Colors
-                                                                        .black,
-                                                                    size: 40),
-                                                            // : concepts[index]['type'] == 'reward'
-                                                            //     ? Icon(Icons.card_giftcard,
-                                                            //         color: Colors.black, size: 40)
-                                                            //     : Icon(Icons.star_rounded,
-                                                            //         color: Colors.black,
-                                                            //         size: 40),
+                                                              baseColor:
+                                                                  Colors.black,
+                                                              highlightColor:
+                                                                  buttonColour[
+                                                                      'background'],
+                                                              child: index == 0
+                                                                  ? Icon(
+                                                                      Icons
+                                                                          .fast_forward_rounded,
+                                                                      color:
+                                                                          Colors
+                                                                              .black,
+                                                                      size: 40)
+                                                                  : Icon(
+                                                                      Icons
+                                                                          .star_rounded,
+                                                                      color: Colors
+                                                                          .black,
+                                                                      size: 40),
+                                                              // : concepts[index]['type'] == 'reward'
+                                                              //     ? Icon(Icons.card_giftcard,
+                                                              //         color: Colors.black, size: 40)
+                                                              //     : Icon(Icons.star_rounded,
+                                                              //         color: Colors.black,
+                                                              //         size: 40),
+                                                            ),
                                                           ),
                                                         ),
-                                                      ),
-                                                      if (isLastCompleted)
-                                                        _BouncingTextIndicator(
-                                                          text: "START",
-                                                          textColor:
-                                                              buttonColour[
-                                                                  "background"],
-                                                          powerupType:
-                                                              activePowerup
-                                                                      .isNotEmpty
-                                                                  ? activePowerup[
-                                                                      "type"]
-                                                                  : null,
-                                                        ),
-                                                      if (isStartOfTopic)
-                                                        _BouncingTextIndicator(
-                                                            text: "JUMP HERE",
+                                                        if (isLastCompleted)
+                                                          _BouncingTextIndicator(
+                                                            text: "START",
                                                             textColor:
                                                                 buttonColour[
-                                                                    "background"]),
-                                                    ]),
-                                              );
-                                            })
-                                          ],
+                                                                    "background"],
+                                                            powerupType: activePowerup
+                                                                    .isNotEmpty
+                                                                ? activePowerup[
+                                                                    "type"]
+                                                                : null,
+                                                          ),
+                                                        if (isStartOfTopic)
+                                                          _BouncingTextIndicator(
+                                                              text: "JUMP HERE",
+                                                              textColor:
+                                                                  buttonColour[
+                                                                      "background"]),
+                                                      ]),
+                                                );
+                                              })
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            )
-                          ]);
-                        },
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              )
+                            ]);
+                          },
+                        ),
                       ),
                     ),
                     Positioned(

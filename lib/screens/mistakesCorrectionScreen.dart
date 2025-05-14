@@ -710,31 +710,33 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
           if (!isLoading && !conversationCompleted && conversationStarted)
             renderMessageBar(),
           if (conversationCompleted)
-            ChicletAnimatedButton(
-              onPressed: () {
-                mistakesCorrected += 1;
-                logMistakeCorrectionStatusPerQuestion(
-                    widget.conceptId,
-                    widget.incorrectQuestions[currentQuestionIndex]['id'],
-                    true);
-                _nextQuestion();
-              },
-              buttonType: ChicletButtonTypes.roundedRectangle,
-              height: 40,
-              width: double.infinity,
-              buttonHeight: 4,
-              padding: const EdgeInsets.all(0),
-              buttonColor: Color.fromRGBO(187, 160, 2, 1),
-              backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-              child: Text(
-                "CONTINUE",
-                style: GoogleFonts.raleway(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            )
+            Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: ChicletAnimatedButton(
+                  onPressed: () {
+                    mistakesCorrected += 1;
+                    logMistakeCorrectionStatusPerQuestion(
+                        widget.conceptId,
+                        widget.incorrectQuestions[currentQuestionIndex]['id'],
+                        true);
+                    _nextQuestion();
+                  },
+                  buttonType: ChicletButtonTypes.roundedRectangle,
+                  height: 40,
+                  width: double.infinity,
+                  buttonHeight: 4,
+                  padding: const EdgeInsets.all(0),
+                  buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                  backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                  child: Text(
+                    "CONTINUE",
+                    style: GoogleFonts.raleway(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ))
         ],
       ),
     );

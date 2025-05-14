@@ -1,6 +1,7 @@
 import "dart:async";
 import "package:chiclet/chiclet.dart";
 import "package:eureka_app/apis/authApi.dart";
+import "package:eureka_app/main.dart";
 import "package:eureka_app/screens/ncertPodcasts/classSelection.dart";
 import "package:eureka_app/screens/onboardingScreenV4.dart";
 import "package:firebase_analytics/firebase_analytics.dart";
@@ -40,6 +41,7 @@ class _OtpPageState extends State<OtpPage> {
   int _resendTimer = 60;
   late Timer _timer;
   bool _isLoading = false; // Loading state
+  bool newUser = true;
 
   @override
   void initState() {
@@ -80,13 +82,21 @@ class _OtpPageState extends State<OtpPage> {
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
       await getIdTokenAndSendToBackend();
-      Navigator.push(
+      if (newUser) {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => OnboardingScreenV4(
+                    deviceId: widget.deviceId,
+                    platform: widget.platform,
+                    userIP: widget.userIP)));
+      } else {
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(
-              builder: (context) => OnboardingScreenV4(
-                  deviceId: widget.deviceId,
-                  platform: widget.platform,
-                  userIP: widget.userIP)));
+          MaterialPageRoute(builder: (context) => MainPage()),
+          (Route<dynamic> route) => false,
+        );
+      }
     } catch (ex) {
       setState(() {
         _isLoading = false; // Stop loading if there's an error
@@ -122,13 +132,14 @@ class _OtpPageState extends State<OtpPage> {
           // Send token to the backend...
           final data = await sendIdTokenToBackend();
           String userTrackingId = data['userTrackingId'];
-          bool newUser = data['newUser'];
+          newUser = data['newUser'];
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setString('userTrackingId', userTrackingId);
           await FirebaseAnalytics.instance.setUserId(id: userTrackingId);
           if (newUser) {
             FirebaseAnalytics.instance.logSignUp(signUpMethod: "phoneAuth");
           } else {
+            await prefs.setBool('appFirstLaunch', false);
             FirebaseAnalytics.instance.logLogin(loginMethod: "phoneAuth");
           }
         }

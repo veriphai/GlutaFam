@@ -10,6 +10,7 @@ import 'package:eureka_app/widgets/subjectSelection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ProgressReportScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   bool isLoading = true;
   String selectedSubject = "";
   String selectedBookId = "";
+  late final prefs;
 
   late Map<String, dynamic> userProfile;
 
@@ -43,10 +45,11 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
   Future<void> getBooks() async {
     final booksData = await fetchBooks(standard: userProfile["standard"]);
+    prefs = await SharedPreferences.getInstance();
+    selectedBookId = await prefs.getString("bookId") ?? "";
+    selectedSubject = await prefs.getString("subject") ?? "";
     setState(() {
       books = booksData;
-      selectedSubject = booksData[0]["name"];
-      selectedBookId = booksData[0]["id"];
     });
   }
 

@@ -40,11 +40,13 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   ];
 
   final List<String> carouselImages = [
-    'lib/assets/screen-1.png',
-    'lib/assets/screen-2.png',
-    'lib/assets/screen-3.png',
-    'lib/assets/screen-4.png',
-    'lib/assets/screen-5.png',
+    'lib/assets/1.png',
+    'lib/assets/3.png',
+    'lib/assets/4.png',
+    'lib/assets/6.png',
+    'lib/assets/7.png',
+    'lib/assets/8.png',
+    'lib/assets/9.png',
   ];
 
   void _launchURL(String url) async {
@@ -62,11 +64,13 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
       backgroundColor: Color.fromRGBO(19, 31, 36, 1),
       body: SingleChildScrollView(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Top Bar
             Container(
               color: Color.fromRGBO(19, 31, 36, 1),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -74,83 +78,83 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   Row(
                     children: [
                       Image.asset(
-                        'lib/assets/glutaclassLogo.png',
-                        height: 60,
-                        width: 60,
+                        'lib/assets/tuto-logo.png',
+                        height: 100,
+                        width: 100,
                         fit: BoxFit.contain,
                       ),
-                      SizedBox(width: 20),
-                      Text(
-                        "GlutaClass",
-                        style: GoogleFonts.raleway(
-                          fontSize: 40,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      // SizedBox(width: 20),
+                      // Text(
+                      //   "GlutaClass",
+                      //   style: GoogleFonts.raleway(
+                      //     fontSize: 40,
+                      //     color: Colors.white,
+                      //     fontWeight: FontWeight.bold,
+                      //   ),
+                      // ),
                     ],
                   ),
                   // Get Started Button
-                  Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          _launchURL(
-                              'https://glutaclass.com/interactive-learning');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color.fromRGBO(255, 217, 0, 0.2),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 20),
-                          side: BorderSide(
-                            color:
-                                Color.fromRGBO(255, 217, 0, 1), // Border color
-                            width: 1, // Border width
-                          ),
-                        ),
-                        child: Text(
-                          'View Simulations',
-                          style: GoogleFonts.raleway(
-                            color: Color.fromRGBO(255, 217, 0, 1),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 20,
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => LoginScreen()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 20),
-                        ),
-                        child: Text(
-                          'Get Started',
-                          style: GoogleFonts.raleway(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                    ],
-                  )
+                  // Row(
+                  //   children: [
+                  //     ElevatedButton(
+                  //       onPressed: () {
+                  //         _launchURL(
+                  //             'https://glutaclass.com/interactive-learning');
+                  //       },
+                  //       style: ElevatedButton.styleFrom(
+                  //         backgroundColor:
+                  //             const Color.fromRGBO(255, 217, 0, 0.2),
+                  //         padding: const EdgeInsets.symmetric(
+                  //             horizontal: 20, vertical: 20),
+                  //         side: BorderSide(
+                  //           color:
+                  //               Color.fromRGBO(255, 217, 0, 1), // Border color
+                  //           width: 1, // Border width
+                  //         ),
+                  //       ),
+                  //       child: Text(
+                  //         'View Simulations',
+                  //         style: GoogleFonts.raleway(
+                  //           color: Color.fromRGBO(255, 217, 0, 1),
+                  //           fontSize: 16,
+                  //           fontWeight: FontWeight.w400,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     SizedBox(
+                  //       width: 20,
+                  //     ),
+                  //     ElevatedButton(
+                  //       onPressed: () {
+                  //         Navigator.push(
+                  //           context,
+                  //           MaterialPageRoute(
+                  //               builder: (context) => LoginScreen()),
+                  //         );
+                  //       },
+                  //       style: ElevatedButton.styleFrom(
+                  //         backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
+                  //         padding: const EdgeInsets.symmetric(
+                  //             horizontal: 20, vertical: 20),
+                  //       ),
+                  //       child: Text(
+                  //         'Get Started',
+                  //         style: GoogleFonts.raleway(
+                  //           color: Colors.black,
+                  //           fontSize: 16,
+                  //           fontWeight: FontWeight.bold,
+                  //         ),
+                  //       ),
+                  //     )
+                  //   ],
+                  // )
                 ],
               ),
             ),
             // Header Content
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 60.0),
+              padding: const EdgeInsets.symmetric(vertical: 0.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -184,7 +188,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "GlutaClass",
+                        "Tuto",
                         textAlign: TextAlign.left,
                         style: GoogleFonts.raleway(
                           fontSize: 64,
@@ -253,59 +257,59 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
               ),
             ),
             // Onboarding Content
-            ListView.builder(
-              shrinkWrap: true, // Ensures ListView takes only necessary space
-              physics:
-                  NeverScrollableScrollPhysics(), // Prevents nested scrolling
-              padding: const EdgeInsets.all(20),
-              itemCount: onboardingData.length,
-              itemBuilder: (context, index) {
-                final item = onboardingData[index];
-                if (index == 1) {
-                  return _buildRowV2(
-                    item['topText']!,
-                    item['secondTopText']!,
-                    item['imagePath']!,
-                    item['bottomText']!,
-                    item['bottomMidText']!,
-                    item['bottomBoldText']!,
-                  );
-                } else {
-                  return _buildRow(
-                    item['topText']!,
-                    item['secondTopText']!,
-                    item['imagePath']!,
-                    item['bottomText']!,
-                    item['bottomMidText']!,
-                    item['bottomBoldText']!,
-                  );
-                }
-              },
-            ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginScreen()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size.fromHeight(50),
-                  backgroundColor: Color.fromRGBO(255, 217, 0, 1),
-                ),
-                child: Text(
-                  'Get Started',
-                  style: GoogleFonts.nunito(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+            // ListView.builder(
+            //   shrinkWrap: true, // Ensures ListView takes only necessary space
+            //   physics:
+            //       NeverScrollableScrollPhysics(), // Prevents nested scrolling
+            //   padding: const EdgeInsets.all(20),
+            //   itemCount: onboardingData.length,
+            //   itemBuilder: (context, index) {
+            //     final item = onboardingData[index];
+            //     if (index == 1) {
+            //       return _buildRowV2(
+            //         item['topText']!,
+            //         item['secondTopText']!,
+            //         item['imagePath']!,
+            //         item['bottomText']!,
+            //         item['bottomMidText']!,
+            //         item['bottomBoldText']!,
+            //       );
+            //     } else {
+            //       return _buildRow(
+            //         item['topText']!,
+            //         item['secondTopText']!,
+            //         item['imagePath']!,
+            //         item['bottomText']!,
+            //         item['bottomMidText']!,
+            //         item['bottomBoldText']!,
+            //       );
+            //     }
+            //   },
+            // ),
+            // Padding(
+            //   padding:
+            //       const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
+            //   child: ElevatedButton(
+            //     onPressed: () {
+            //       Navigator.push(
+            //         context,
+            //         MaterialPageRoute(builder: (context) => LoginScreen()),
+            //       );
+            //     },
+            //     style: ElevatedButton.styleFrom(
+            //       minimumSize: Size.fromHeight(50),
+            //       backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+            //     ),
+            //     child: Text(
+            //       'Get Started',
+            //       style: GoogleFonts.nunito(
+            //         color: Colors.black,
+            //         fontSize: 20,
+            //         fontWeight: FontWeight.bold,
+            //       ),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),

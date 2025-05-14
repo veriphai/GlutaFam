@@ -1,4 +1,5 @@
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:bubble_box/bubble_box.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/saveProfile.dart';
@@ -6,6 +7,7 @@ import 'package:eureka_app/main.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/widgets/schoolSelectionWidget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,12 +33,16 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
   String? selectedOption;
   Map<String, dynamic> selectedOptions = {};
   TextEditingController? nameController; // Persistent controller
+  final AudioPlayer continueAudioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
     // Initialize the controller with the selected option (if available)
     nameController = TextEditingController(text: selectedOptions["name_input"]);
+    continueAudioPlayer.setSource(AssetSource('correct_answer.mp3')).then((_) {
+      print('Correct answer audio preloaded');
+    });
   }
 
   @override
@@ -44,6 +50,14 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
     nameController
         ?.dispose(); // Dispose of the controller when no longer needed
     super.dispose();
+  }
+
+  void _playSound(String soundPath) {
+    try {
+      continueAudioPlayer.play(AssetSource(soundPath));
+    } catch (e) {
+      print("Error playing sound: $e");
+    }
   }
 
   void _updateSelection(String type, dynamic value) {
@@ -57,7 +71,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "pageNo": 2,
       "type": "info_message",
       "headingType": "generic",
-      "heading": "Hi there! I am Haru!",
+      "heading": "Hi there! I am Tuto!",
       "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
@@ -85,19 +99,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "heading": "In which class are you?",
       "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
-      "options": [
-        "Class 6",
-        "Class 7",
-        "Class 8",
-        "Class 9",
-        "Class 10",
-        "Class 11 - Science",
-        "Class 11 - Commerce",
-        "Class 11 - Humanities",
-        "Class 12 - Science",
-        "Class 12 - Commerce",
-        "Class 12 - Humanities"
-      ]
+      "options": ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"]
     },
     {
       "pageNo": 2,
@@ -111,7 +113,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
     {
       "pageNo": 2,
       "type": "source_of_information",
-      "heading": "How did you hear about Haruki Learning?",
+      "heading": "How did you hear about Tuto?",
       "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": [
@@ -125,7 +127,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
     {
       "pageNo": 3,
       "type": "goal_selection",
-      "heading": "What is your primary goal with Haruki Learning?",
+      "heading": "What is your primary goal with Tuto?",
       "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": [
@@ -161,22 +163,22 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
           "With consistent achievement of goals, students are likely to improve drastically!",
       "options": [
         {
-          "label": "10 min / day",
+          "label": "15 min / day",
           "helperText": "Casual",
           "description": "You'll be 1x more likely to improve your grades!"
         },
         {
-          "label": "15 min / day",
+          "label": "30 min / day",
           "helperText": "Regular",
           "description": "You'll be 2x more likely to improve your grades!"
         },
         {
-          "label": "20 min / day",
+          "label": "45 min / day",
           "helperText": "Serious",
           "description": "You'll be 3x more likely to improve your grades!"
         },
         {
-          "label": "30 min / day",
+          "label": "60 min / day",
           "helperText": "Intense",
           "description": "You'll be 5x more likely to improve your grades!"
         }
@@ -190,14 +192,14 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "description": "",
       "options": ["Morning", "Afternoon", "Evening", "Night"]
     },
-    {
-      "pageNo": 2,
-      "type": "info_message",
-      "headingType": "learning_time",
-      "heading": "Let's set up a learning routine!",
-      "mascotImage": "lib/assets/animations/lovelyCat.json",
-      "description": "",
-    },
+    // {
+    //   "pageNo": 2,
+    //   "type": "info_message",
+    //   "headingType": "learning_time",
+    //   "heading": "Let's set up a learning routine!",
+    //   "mascotImage": "lib/assets/animations/lovelyCat.json",
+    //   "description": "",
+    // },
     {
       "pageNo": 2,
       "type": "info_message",
@@ -210,7 +212,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "pageNo": 2,
       "type": "info_message",
       "headingType": "generic",
-      "heading": "so Haruki Learning is designed to be fun like a game!",
+      "heading": "so learning with Tuto is designed to be fun like a game!",
       "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
@@ -272,92 +274,92 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "description": "",
       "inputType": "text"
     },
-    {
-      "pageNo": 11,
-      "type": "school_details",
-      "heading": "In which school do you study?",
-      "mascotImage": "assets/images/mascot_school.png",
-      "description": "",
-      "inputs": [
-        {
-          "label": "State",
-          "placeholder": "Enter your state",
-          "inputType": "text"
-        },
-        {
-          "label": "City",
-          "placeholder": "Enter your city",
-          "inputType": "text"
-        },
-        {
-          "label": "School",
-          "placeholder": "Enter your school",
-          "inputType": "text"
-        }
-      ]
-    },
-    {
-      "pageNo": 2,
-      "type": "info_message",
-      "headingType": "name",
-      "heading": "Welcome, {}! Your profile is almost setup",
-      "mascotImage": "lib/assets/animations/lovelyCat.json",
-      "description": "",
-    },
+    // {
+    //   "pageNo": 11,
+    //   "type": "school_details",
+    //   "heading": "In which school do you study?",
+    //   "mascotImage": "assets/images/mascot_school.png",
+    //   "description": "",
+    //   "inputs": [
+    //     {
+    //       "label": "State",
+    //       "placeholder": "Enter your state",
+    //       "inputType": "text"
+    //     },
+    //     {
+    //       "label": "City",
+    //       "placeholder": "Enter your city",
+    //       "inputType": "text"
+    //     },
+    //     {
+    //       "label": "School",
+    //       "placeholder": "Enter your school",
+    //       "inputType": "text"
+    //     }
+    //   ]
+    // },
+    // {
+    //   "pageNo": 2,
+    //   "type": "info_message",
+    //   "headingType": "name",
+    //   "heading": "Welcome, {}! Your profile is almost setup",
+    //   "mascotImage": "lib/assets/animations/lovelyCat.json",
+    //   "description": "",
+    // },
+    // {
+    //   "pageNo": 2,
+    //   "type": "info_message",
+    //   "headingType": "generic",
+    //   "heading":
+    //       "Finally, a little bit about your learning preferences! So we can improve the app to support you better",
+    //   "mascotImage": "lib/assets/animations/lovelyCat.json",
+    //   "description": "",
+    // },
+    // {
+    //   "pageNo": 7,
+    //   "type": "progress_reports",
+    //   "heading": "Would you like to receive progress reports?",
+    //   "mascotImage": "lib/assets/animations/catNotingDown.json",
+    //   "description": "",
+    //   "options": ["Yes - Weekly", "Yes - Monthly", "No"]
+    // },
+    // {
+    //   "pageNo": 8,
+    //   "type": "motivation",
+    //   "heading": "What motivates you to learn?",
+    //   "mascotImage": "lib/assets/animations/catNotingDown.json",
+    //   "description": "",
+    //   "options": [
+    //     "Rewards",
+    //     "Parental encouragement",
+    //     "Personal interest",
+    //     "Peer pressure",
+    //     "Career goals"
+    //   ]
+    // },
+    // {
+    //   "pageNo": 9,
+    //   "type": "learning_preference",
+    //   "heading": "Do you prefer competitive or individual learning?",
+    //   "mascotImage": "lib/assets/animations/catNotingDown.json",
+    //   "description": "",
+    //   "options": ["Compete with others", "Learn at my own pace"]
+    // },
+    // {
+    //   "pageNo": 2,
+    //   "type": "info_message",
+    //   "headingType": "generic",
+    //   "heading":
+    //       "Ahhh! I am so satisfied by getting to know you. Thanks for telling me everything about you!",
+    //   "mascotImage": "lib/assets/animations/lovelyCat.json",
+    //   "description": "",
+    // },
     {
       "pageNo": 2,
       "type": "info_message",
       "headingType": "generic",
       "heading":
-          "Finally, a little bit about your learning preferences! So we can improve the app to support you better",
-      "mascotImage": "lib/assets/animations/lovelyCat.json",
-      "description": "",
-    },
-    {
-      "pageNo": 7,
-      "type": "progress_reports",
-      "heading": "Would you like to receive progress reports?",
-      "mascotImage": "lib/assets/animations/catNotingDown.json",
-      "description": "",
-      "options": ["Yes - Weekly", "Yes - Monthly", "No"]
-    },
-    {
-      "pageNo": 8,
-      "type": "motivation",
-      "heading": "What motivates you to learn?",
-      "mascotImage": "lib/assets/animations/catNotingDown.json",
-      "description": "",
-      "options": [
-        "Rewards",
-        "Parental encouragement",
-        "Personal interest",
-        "Peer pressure",
-        "Career goals"
-      ]
-    },
-    {
-      "pageNo": 9,
-      "type": "learning_preference",
-      "heading": "Do you prefer competitive or individual learning?",
-      "mascotImage": "lib/assets/animations/catNotingDown.json",
-      "description": "",
-      "options": ["Compete with others", "Learn at my own pace"]
-    },
-    {
-      "pageNo": 2,
-      "type": "info_message",
-      "headingType": "generic",
-      "heading":
-          "Ahhh! I am so satisfied by getting to know you. Thanks for telling me everything about you!",
-      "mascotImage": "lib/assets/animations/lovelyCat.json",
-      "description": "",
-    },
-    {
-      "pageNo": 2,
-      "type": "info_message",
-      "headingType": "generic",
-      "heading":
-          "Let's dive into learning, and remember haruki learning everyday keeps bad grades away!",
+          "I am so satisfied by getting to know you. Let's dive into learning, and remember learning with Tuto everyday keeps bad grades away!",
       "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     }
@@ -487,6 +489,9 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
   }
 
   void _nextPage() async {
+    _playSound('correct_answer.mp3');
+    HapticFeedback.lightImpact();
+
     if (currentPage < pages.length - 1) {
       setState(() {
         selectedOption = null; // Reset the selected option for the next page
@@ -514,7 +519,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
   @override
   Widget build(BuildContext context) {
     final currentData = pages[currentPage];
-    final double progress = (currentProgress) / (pages.length - 14);
+    final double progress = (currentProgress) / (pages.length - 11);
 
     return Scaffold(
       appBar: AppBar(
@@ -702,6 +707,8 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
 
   Widget _buildPageTemplate2(Map<String, dynamic> pageData) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Question
         Text(
@@ -709,8 +716,9 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
           style: GoogleFonts.raleway(
             color: Colors.white,
             fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
           ),
+          textAlign: TextAlign.left,
         ),
         const SizedBox(height: 20),
         _buildOptionsForTemplate2(

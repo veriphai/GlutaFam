@@ -1035,7 +1035,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       });
     } else {
       contentText =
-          "The student moved to attempt the questions associated with the concept but left in between, without completing it. Tell them that they can try again ";
+          "The student moved to attempt the questions associated with the concept but left in between, without completing it. Tell them that they can try again whenever they feel like. And dont start them teaching anything. Keep the conversation natural like you are directly tellin it to the student. ";
       setState(() {
         showJumpToQuestionsButton = true;
         showContinuationButtons = false;
@@ -1661,12 +1661,12 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
             children: [
               // 🎯 Image at the top
               Container(
-                height: 100,
-                width: 100,
+                height: 150,
+                width: 150,
                 child: Center(
                   child: Image.asset(
-                    "lib/assets/streakIcon.png",
-                    height: 50,
+                    "lib/assets/lesson-quit.png",
+                    height: 150,
                   ),
                 ),
               ),
@@ -1765,7 +1765,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         await prefs.setString("aiTutorLanguage", selectedLanguage);
         await prefs.setString("aiTutorVoice", selectedVoice);
         if (selectedLanguage != previousLanguage) {
-          fetchAITutorPrompts();
+          await fetchAITutorPrompts();
         }
         webSocketService.disconnect();
         startWebsocket();
@@ -1820,19 +1820,54 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                             maxLines: 1, // Limit to a single line
                           ),
                         ),
-                        GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              logAITutorMenuButtonClick(widget.conceptId);
-                              if (greetingDone) {
-                                _showMenuToSwitch(context);
-                              } else {
-                                showLanguageAndVoiceSelectionSheet(context);
-                              }
-                            },
-                            child: Icon(
-                              Icons.more_vert_outlined,
-                            ))
+                        if (!(showMistakeCorrectionButton ||
+                            showCheckResultButton ||
+                            showJumpToQuestionsButton))
+                          if (greetingDone)
+                            GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  logAITutorMenuButtonClick(widget.conceptId);
+                                  _showMenuToSwitch(context);
+                                },
+                                child: Icon(
+                                  Icons.more_vert_outlined,
+                                )),
+                        if (!(showMistakeCorrectionButton ||
+                            showCheckResultButton ||
+                            showJumpToQuestionsButton))
+                          if (!greetingDone)
+                            GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  logAITutorMenuButtonClick(widget.conceptId);
+                                  showLanguageAndVoiceSelectionSheet(context);
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        languageOptions[selectedLanguage] ??
+                                            "English",
+                                        style: GoogleFonts.raleway(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color.fromRGBO(255, 217, 0, 1),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.arrow_drop_down,
+                                          color:
+                                              Color.fromRGBO(255, 217, 0, 1)),
+                                    ],
+                                  ),
+                                )),
                       ]),
                   iconTheme: IconThemeData(
                     color: Colors.grey,
@@ -1899,7 +1934,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                     vertical: 8.0, horizontal: 12.0),
                                 child: GestureDetector(
                                     onTap: () {
-                                      _showAllConversations(context);
+                                      // if (conversations.isNotEmpty) {
+                                      //   _showAllConversations(context);
+                                      // }
                                     },
                                     child: othersMessage(
                                         displayedConversations.last["text"])))
@@ -1954,7 +1991,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                               vertical: 8.0, horizontal: 12.0),
                                           child: GestureDetector(
                                             onTap: () {
-                                              _showAllConversations(context);
+                                              // if (conversations.isNotEmpty) {
+                                              //   _showAllConversations(context);
+                                              // }
                                             },
                                             child: othersMessage(
                                                 displayedConversations
@@ -2493,6 +2532,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                     logMistakeCorrectionButtonClick(
                                         widget.conceptId);
 
+                                    player.stopPlayer();
+
                                     setState(() {
                                       showJumpToQuestionsButton = false;
                                     });
@@ -2517,21 +2558,36 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                                       questionsAttemptedDetails[
                                                           'incorrectQuestions']),
                                         )).then((value) async {
-                                      final Map<String, dynamic>
+                                      _initPlayer();
+
+                                      final totalQuestions =
+                                          questionsAttemptedDetails[
+                                                  'totalQuestions'] ??
+                                              1; // avoid divide-by-zero
+
+                                      final xpPerQuestion =
+                                          (45 / totalQuestions).toInt();
+                                      xpGained =
+                                          questionsAttemptedDetails['totalXp'] +
+                                              xpGained +
+                                              xpPerQuestion * value;
+                                      final Map<String,
+                                              dynamic>
                                           lessonCompletionResponse =
                                           await markLessonCompletion(
                                               lessonId: widget.conceptId,
-                                              attemptTime: questionsAttemptedDetails[
-                                                  'attemptTime'],
+                                              attemptTime:
+                                                  questionsAttemptedDetails[
+                                                      'attemptTime'],
                                               timeToComplete:
                                                   questionsAttemptedDetails[
                                                       'timeToComplete'],
                                               xpGained: questionsAttemptedDetails[
                                                       'totalXp'] +
-                                                  xpGained,
-                                              accuracy:
-                                                  questionsAttemptedDetails[
-                                                      'accuracy'],
+                                                  xpGained +
+                                                  3 * value,
+                                              accuracy: questionsAttemptedDetails[
+                                                  'accuracy'],
                                               bookId: questionsAttemptedDetails[
                                                   'bookId'],
                                               report: questionsAttemptedDetails[
@@ -2587,6 +2643,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                     logCheckResultsButtonClick(
                                         widget.conceptId);
 
+                                    player.stopPlayer();
+
                                     setState(() {
                                       showJumpToQuestionsButton = false;
                                     });
@@ -2596,9 +2654,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                           builder: (context) =>
                                               ConceptResultScreen(
                                             conceptName: widget.conceptName,
-                                            totalXp: questionsAttemptedDetails[
-                                                    'totalXp'] +
-                                                xpGained,
+                                            totalXp: xpGained,
                                             timeTaken:
                                                 questionsAttemptedDetails[
                                                     'timeTaken'],

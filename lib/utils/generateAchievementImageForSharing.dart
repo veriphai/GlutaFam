@@ -126,25 +126,46 @@ Future<String?> generateAchievementImage(BuildContext context,
         canvas, Offset(achievementTextX, achievementTextY));
 
     // 2️⃣ "Glutaclass" branding
-    final TextPainter glutaclassPainter = TextPainter(
-      text: TextSpan(
-        text: "Glutaclass",
-        style: TextStyle(
-          fontSize: imageSize * 0.08, // Larger branding text
-          fontWeight: FontWeight.w900,
-          color: Colors.yellow, // Branding color
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-      textAlign: TextAlign.center,
-    );
-    glutaclassPainter.layout();
+    // final TextPainter glutaclassPainter = TextPainter(
+    //   text: TextSpan(
+    //     text: "TUTO",
+    //     style: TextStyle(
+    //       fontSize: imageSize * 0.08, // Larger branding text
+    //       fontWeight: FontWeight.w900,
+    //       color: Colors.yellow, // Branding color
+    //     ),
+    //   ),
+    //   textDirection: TextDirection.ltr,
+    //   textAlign: TextAlign.center,
+    // );
+    // glutaclassPainter.layout();
 
-    // 🏹 Center "Glutaclass"
-    final double glutaclassTextX = (imageSize - glutaclassPainter.width) / 2;
-    final double glutaclassTextY =
-        imageSize * 0.9; // Below the achievement text
-    glutaclassPainter.paint(canvas, Offset(glutaclassTextX, glutaclassTextY));
+    // // 🏹 Center "Glutaclass"
+    // final double glutaclassTextX = (imageSize - glutaclassPainter.width) / 2;
+    // final double glutaclassTextY =
+    //     imageSize * 0.9; // Below the achievement text
+    // glutaclassPainter.paint(canvas, Offset(glutaclassTextX, glutaclassTextY));
+
+    final ui.Image? logoImage =
+        await loadAssetImage("lib/assets/tuto-logo.png");
+
+    if (logoImage != null) {
+      final double logoSize = imageSize * 0.15;
+      final double padding = imageSize * 0.04;
+
+      final double logoX = imageSize - logoSize - padding; // top-right
+      final double logoY = padding;
+
+      final Rect logoRect = Rect.fromLTWH(logoX, logoY, logoSize, logoSize);
+      final Rect srcRect = Rect.fromLTWH(
+        0,
+        0,
+        logoImage.width.toDouble(),
+        logoImage.height.toDouble(),
+      );
+
+      canvas.drawImageRect(logoImage, srcRect, logoRect, paint);
+    }
 
     // 📷 Convert to High-Resolution Image
     final picture = recorder.endRecording();

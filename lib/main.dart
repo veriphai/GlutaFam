@@ -8,6 +8,7 @@ import 'package:eureka_app/screens/landingScreenWeb.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
+import 'package:eureka_app/screens/onboardingScreenV4.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/screens/progressReportScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
@@ -117,7 +118,7 @@ class MyApp extends StatelessWidget {
               context: context, firstLaunch: firstLaunch));
 
           return MaterialApp(
-            title: 'GlutaClass: AI Tutor for NCERT',
+            title: "Tuto: AI Tutor for Class 6-10",
             navigatorKey: navigatorKey,
             theme: ThemeData(
               useMaterial3: true,
@@ -175,6 +176,7 @@ class _MainPageState extends State<MainPage> {
       ProfileScreen(),
       QuestsScreen(),
       FeedScreen(),
+      // LoginScreen()
     ];
 
     return Scaffold(
