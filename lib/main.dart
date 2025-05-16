@@ -179,7 +179,6 @@ class _MainPageState extends State<MainPage> {
       ProfileScreen(),
       QuestsScreen(),
       FeedScreen(),
-      // LoginScreen()
     ];
 
     return Scaffold(

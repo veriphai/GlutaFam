@@ -4,7 +4,7 @@ description: "Bond constructively with your child"
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.1.4+28
+version: 1.1.5+29
 
 environment:
   sdk: ^3.1.1
@@ -16,7 +16,7 @@ dependencies:
   english_words: ^4.0.0
   provider: ^6.0.0
 
-  carousel_slider: ^4.0.0
+  # carousel_slider: 4.1.1
   http: ^1.2.0
   url_launcher: ^6.2.5
   flutter_local_notifications: ^9.0.0

@@ -36,7 +36,8 @@ class WebSocketService {
       });
     } else if (useGemini) {
       print("URL for websocket : $websocketUrlForGemini");
-      String geminiKey = "AIzaSyD50eOpqFEhQWIAuyhj55pYscgoqT0Yrrk";
+      // String geminiKey = "AIzaSyD50eOpqFEhQWIAuyhj55pYscgoqT0Yrrk";
+      String geminiKey = "AIzaSyCqPA1bsP52yhLtrpcSz0Y0oz5PxLJAJGs";
       // String geminiKey = "AIzaSyDMkADjdD6cu9jMy_vPAH-lFx1xE4HoUPY"; //Dagar's key
       String updatedUrl = "$websocketUrlForGemini?key=$geminiKey";
       channel = IOWebSocketChannel.connect(updatedUrl);

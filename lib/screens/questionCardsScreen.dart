@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:carousel_slider/carousel_slider.dart';
+// import 'package:carousel_slider/carousel_slider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -97,15 +97,16 @@ class _QuestionCardsState extends State<QuestionCards> {
     return Scaffold(
       appBar: appBar(widget.activityName),
       backgroundColor: colorToUse,
-      body: CarouselSlider(
-        options: CarouselOptions(
-          aspectRatio: 0.85,
-          enlargeCenterPage: true,
-          enableInfiniteScroll: false,
-          autoPlay: false,
-        ),
-        items: carouselItems,
-      ),
+      body: SizedBox(width: 20)
+      // CarouselSlider(
+      //   options: CarouselOptions(
+      //     aspectRatio: 0.85,
+      //     enlargeCenterPage: true,
+      //     enableInfiniteScroll: false,
+      //     autoPlay: false,
+      //   ),
+      //   items: carouselItems,
+      // ),
     );
   }
 

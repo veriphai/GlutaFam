@@ -1,7 +1,7 @@
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:carousel_slider/carousel_slider.dart';
+// import 'package:carousel_slider/carousel_slider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LandingScreenWeb extends StatefulWidget {
@@ -160,28 +160,28 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Image Carousel
-                  Container(
-                    // width: 300,
-                    height: 600,
-                    child: CarouselSlider(
-                      options: CarouselOptions(
-                        autoPlay: true,
-                        enlargeCenterPage: true,
-                        aspectRatio: 1.0,
-                        viewportFraction: 1.0,
-                      ),
-                      items: carouselImages.map((imagePath) {
-                        return Builder(
-                          builder: (BuildContext context) {
-                            return Image.asset(
-                              imagePath,
-                              fit: BoxFit.cover,
-                            );
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                  // Container(
+                  //   // width: 300,
+                  //   height: 600,
+                  //   child: CarouselSlider(
+                  //     options: CarouselOptions(
+                  //       autoPlay: true,
+                  //       enlargeCenterPage: true,
+                  //       aspectRatio: 1.0,
+                  //       viewportFraction: 1.0,
+                  //     ),
+                  //     items: carouselImages.map((imagePath) {
+                  //       return Builder(
+                  //         builder: (BuildContext context) {
+                  //           return Image.asset(
+                  //             imagePath,
+                  //             fit: BoxFit.cover,
+                  //           );
+                  //         },
+                  //       );
+                  //     }).toList(),
+                  //   ),
+                  // ),
                   const SizedBox(width: 20),
                   // Text Content
                   Column(

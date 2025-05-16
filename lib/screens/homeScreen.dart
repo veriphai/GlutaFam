@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String activeChapter = '';
   int activeTopicIndex = 0;
   List<GlobalKey> _topicKeys = [];
-  String _selectedSubject = "Science";
+  String _selectedSubject = "";
   String selectedBookId = "";
   bool isLoading = true;
   String conceptToStartFrom = "";
@@ -101,7 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // final profileData = await getProfile();
       final profileData = await refreshProfile();
       prefs = await SharedPreferences.getInstance();
-
       fetchData(profileData["standard"], profileData["stream"], true);
 
       setState(() {
@@ -147,15 +146,100 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final booksData =
           await getBooksWithCache(standard: standard, stream: stream);
-      selectedBookId = prefs.getString("bookId") ?? "";
-      _selectedSubject = prefs.getString("subject") ?? "";
-      if (selectedBookId == "") {
+
+      final scienceBook = booksData.firstWhere(
+        (book) => book["subject"]?.toLowerCase() == "science",
+        orElse: () => <String, dynamic>{},
+      );
+      if (scienceBook.isNotEmpty) {
+        selectedBookId = scienceBook["id"];
+        prefs.setString("bookId", scienceBook["id"]);
+        _selectedSubject = scienceBook["subject"];
+        prefs.setString("subject", scienceBook["subject"]);
+      } else {
         selectedBookId = booksData[0]["id"];
         prefs.setString("bookId", booksData[0]["id"]);
-      }
-      if (_selectedSubject == "") {
         _selectedSubject = booksData[0]["subject"];
         prefs.setString("subject", booksData[0]["subject"]);
+      }
+      final chapterData = await getChaptersWithCache(
+          standard: standard, subject: _selectedSubject);
+      if (chapterData.isEmpty) {
+        return;
+      }
+
+      final completedConceptsData = await fetchCompletedConcepts(
+          bookId: selectedBookId, subject: _selectedSubject);
+
+      setState(() {
+        chapters = chapterData;
+        chapters.sort((a, b) => a["chapterNo"].compareTo(b["chapterNo"]));
+        books = booksData;
+        // _selectedSubject = booksData[0]["subject"];
+
+        completedConcepts =
+            (completedConceptsData["completedConcepts"] as List<dynamic>)
+                .cast<String>();
+        // conceptToStartFrom =
+        //     "crop_production_and_management_8_Science_Section_6_SubSection_7";
+        conceptToStartFrom = completedConceptsData["conceptToStartFrom"];
+        if (chapters.isNotEmpty && chapters[0]['topics'].isNotEmpty) {
+          _activeTopic = chapters[0]['topics'][0]['name'];
+          activeChapter = chapters[0]['name'];
+          _activeButtonColour = buttonColours[0];
+          // if (conceptToStartFrom == "") {
+          //   conceptToStartFrom = chapters[0]['topics'][0]['lessons'][0]["id"];
+          // }
+          addSequentialNumbers(chapters);
+          _topicKeys = List.generate(
+            chapters.fold<int>(0,
+                (total, chapter) => total + (chapter['topics'].length as int)),
+            (index) => GlobalKey(),
+          );
+        }
+        isLoading = false;
+        _scrollController.addListener(_onScroll);
+      });
+
+      if (conceptToStartFrom != "") {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollToConcept(conceptToStartFrom);
+          }
+        });
+      } else {
+        setState(() {
+          _listOpacity = 1.0;
+        });
+      }
+    } catch (error) {
+      setState(() {
+        isLoading = false;
+      });
+      print("Error fetching chapters: $error");
+    }
+  }
+
+  Future<void> fetchDataWhenSubjectChanged(
+      int standard, String stream, bool updateSelectedSubject) async {
+    try {
+      final booksData =
+          await getBooksWithCache(standard: standard, stream: stream);
+      selectedBookId = prefs.getString("bookId") ?? "";
+      _selectedSubject = prefs.getString("subject") ?? "";
+
+      final scienceBook = booksData.firstWhere(
+        (book) => book["subject"]?.toLowerCase() == "science",
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (selectedBookId == "") {
+        selectedBookId = scienceBook["id"];
+        prefs.setString("bookId", scienceBook["id"]);
+      }
+      if (_selectedSubject == "") {
+        _selectedSubject = scienceBook["subject"];
+        prefs.setString("subject", scienceBook["subject"]);
       }
       final chapterData = await getChaptersWithCache(
           standard: standard, subject: _selectedSubject);
@@ -316,7 +400,8 @@ class _HomeScreenState extends State<HomeScreen> {
             });
             await prefs.setString("bookId", bookId);
             await prefs.setString("subject", selected);
-            fetchData(userProfile["standard"], userProfile["stream"], false);
+            fetchDataWhenSubjectChanged(
+                userProfile["standard"], userProfile["stream"], false);
           },
         );
       },
@@ -479,7 +564,8 @@ class _HomeScreenState extends State<HomeScreen> {
             });
             await prefs.setString("bookId", bookId);
             await prefs.setString("subject", selected);
-            fetchData(userProfile["standard"], userProfile["stream"], false);
+            fetchDataWhenSubjectChanged(
+                userProfile["standard"], userProfile["stream"], false);
           },
         );
       },

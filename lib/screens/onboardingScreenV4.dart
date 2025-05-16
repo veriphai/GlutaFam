@@ -489,7 +489,9 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
   }
 
   void _nextPage() async {
-    _playSound('correct_answer.mp3');
+    if (pages[currentPage]['type'] != 'info_message') {
+      _playSound('correct_answer.mp3');
+    }
     HapticFeedback.lightImpact();
 
     if (currentPage < pages.length - 1) {

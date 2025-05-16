@@ -3,7 +3,7 @@ import Flutter
 import Firebase
 import UserNotifications
 
-@UIApplicationMain
+@main
 @objc class AppDelegate: FlutterAppDelegate { // Remove redundant UNUserNotificationCenterDelegate
   override func application(
     _ application: UIApplication,

@@ -1,5 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:carousel_slider/carousel_slider.dart';
+// import 'package:carousel_slider/carousel_slider.dart';
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchPowerups.dart';
 import 'package:eureka_app/apis/markPowerupUsed.dart';
