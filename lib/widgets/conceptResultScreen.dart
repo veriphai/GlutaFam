@@ -1,12 +1,7 @@
-import 'dart:convert';
-
 import 'package:eureka_app/apis/fetchLeaderboard.dart';
 import 'package:eureka_app/main.dart';
-import 'package:eureka_app/popups/genericPopupWidget.dart';
 import 'package:eureka_app/popups/leaderboardPopup.dart';
-import 'package:eureka_app/popups/popUpManager.dart';
 import 'package:eureka_app/popups/streakPopup.dart';
-import 'package:eureka_app/screens/mistakesCorrectionScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/widgets/questProgressScreen.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ConceptResultScreen extends StatefulWidget {
   final String conceptName;
   final int totalXp;
-  final String timeTaken;
+  final int timeTaken;
   final double accuracy;
   final Map<String, dynamic> lessonCompletionResponse;
 
@@ -189,6 +184,12 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
     }
   }
 
+  String calculateTimeTakenFromSeconds(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${minutes}m ${seconds}s';
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -290,7 +291,8 @@ class _ConceptResultScreenState extends State<ConceptResultScreen> {
                         _buildStatTile(
                           context: context,
                           title: 'Time Taken',
-                          value: widget.timeTaken,
+                          value:
+                              calculateTimeTakenFromSeconds(widget.timeTaken),
                           icon: Icons.timer,
                           color: Color.fromRGBO(255, 217, 0, 1),
                         ),

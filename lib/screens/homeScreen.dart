@@ -7,6 +7,7 @@ import 'package:eureka_app/popups/genericPopupWidget.dart';
 import 'package:eureka_app/popups/popUpManager.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
+import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/cachingUtils.dart';
 import 'package:eureka_app/widgets/chapterSelection.dart';
@@ -119,15 +120,15 @@ class _HomeScreenState extends State<HomeScreen> {
       final lifelinesFromCache = prefs.getInt("lifelines");
       bool unlimitedHeartsEnabled =
           prefs.getBool("unlimitedLifelines") ?? false;
+      int xpMultiplierFromCache = prefs.getInt("xpMultiplier") ?? 1;
 
       double powerupStartTime = prefs.getDouble("powerupStartTime") ?? 0;
       int currentTimeInSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      bool has15MinutesPassed =
-          (currentTimeInSeconds - powerupStartTime) >= 900;
-      if (has15MinutesPassed) {
+      bool validityPassed = (currentTimeInSeconds - powerupStartTime) >= 3600;
+      if (validityPassed) {
         unlimitedHeartsEnabled = false;
-        xpMultiplier = 1;
+        xpMultiplierFromCache = 1;
         prefs.setBool("unlimitedLifelines", false);
       }
 
@@ -135,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
         creditsAvailable = creditsFromCache ?? 0;
         lifelinesAvailable = lifelinesFromCache ?? 0;
         unlimitedLifelines = unlimitedHeartsEnabled;
+        xpMultiplier = xpMultiplierFromCache;
       });
     } catch (error) {
       print("Error fetching userProfile: $error");
@@ -692,14 +694,27 @@ class _HomeScreenState extends State<HomeScreen> {
                         logConceptStart(concept['id']);
                         currentOverlayEntry?.remove();
                         currentOverlayEntry = null;
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => ConceptStartScreen(
+                        //         conceptId: concept['id'],
+                        //         conceptName: concept['name'],
+                        //         maxXP: totalXPForConcept * xpMultiplier,
+                        //         name: userProfile['firstName']),
+                        //   ),
+                        // );
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ConceptLearningScreenV2(
-                                conceptId: concept['id'],
-                                conceptName: concept['name'],
-                                maxXP: totalXPForConcept * xpMultiplier,
-                                name: userProfile['firstName']),
+                              conceptId: concept['id'],
+                              conceptName: concept['name'],
+                              maxXP: totalXPForConcept * xpMultiplier,
+                              name: userProfile['firstName'],
+                              subject: _selectedSubject,
+                              standard: userProfile['standard'],
+                            ),
                           ),
                         );
                       },
@@ -742,6 +757,7 @@ class _HomeScreenState extends State<HomeScreen> {
       activePowerup = powerup;
       if (powerup['type'] == 'XP_BOOST') {
         xpMultiplier = powerup['benefit'];
+        prefs.setInt("xpMultiplier", xpMultiplier);
       } else if (powerup['type'] == 'LIFELINE_BOOST') {
         if (powerup['id'] == 'lifeline_boost_1') {
           unlimitedLifelines = true;
@@ -752,6 +768,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } else if (powerup['type'] == 'GOD_MODE') {
         xpMultiplier = 3; // Example of combined benefits
+        prefs.setInt("xpMultiplier", xpMultiplier);
         unlimitedLifelines = true;
         toggleUnlimitedLifelines(prefs, unlimitedLifelines);
       }
@@ -779,6 +796,8 @@ class _HomeScreenState extends State<HomeScreen> {
           activePowerup = {};
           if (powerup['type'] == 'XP_BOOST') {
             xpMultiplier = 1; // Reset XP multiplier
+            prefs.setInt("xpMultiplier", xpMultiplier);
+
             showEventPopup(context,
                 {"powerupEnded": true, "powerupName": "XP Multiplier"});
           } else if (powerup['type'] == 'LIFELINE_BOOST') {
@@ -794,6 +813,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // setState(() {
             //   unlimitedLifelines = false;
             // });
+            prefs.setInt("xpMultiplier", xpMultiplier);
+
             unlimitedLifelines = false;
             toggleUnlimitedLifelines(prefs, false);
             showEventPopup(

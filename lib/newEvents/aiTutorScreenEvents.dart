@@ -18,6 +18,30 @@ void logAITutorMenuButtonClick(String conceptId) {
   );
 }
 
+void logAITutorSwitchTutorClick(String conceptId) {
+  logEvent(
+    eventName: "switch_tutor_clicked",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"conceptId": conceptId},
+  );
+}
+
+void logAITutorSelected(
+    String conceptId, String tutorId, String language, String voice) {
+  logEvent(
+    eventName: "ai_tutor_selected",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {
+      "conceptId": conceptId,
+      "tutorId": tutorId,
+      "language": language,
+      "voice": voice
+    },
+  );
+}
+
 void logAITutorGreetingCompleted(String conceptId) {
   logEvent(
     eventName: "tutor_greeting_completed",

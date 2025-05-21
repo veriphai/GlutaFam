@@ -1,6 +1,7 @@
 import 'package:eureka_app/apis/fetchRewardDetails.dart';
 import 'package:eureka_app/apis/updateFCMToken.dart';
 import 'package:eureka_app/events/genericEvents.dart';
+import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
@@ -17,6 +18,7 @@ import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
 import 'package:eureka_app/widgets/achievementDetailsWidgetV2.dart';
+import 'package:eureka_app/widgets/aiTeacherSelection.dart';
 import 'package:eureka_app/widgets/collectionDetailsWidget.dart';
 import 'package:eureka_app/widgets/customBottomBar.dart';
 import 'package:eureka_app/widgets/questsScreen.dart';
@@ -174,11 +176,13 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     final screens = [
       HomeScreen(),
+      QuestsScreen(),
+
       WeeklyLeaderboardContent(),
       ProgressReportScreen(),
       ProfileScreen(),
-      QuestsScreen(),
-      FeedScreen(),
+      // ConceptStartScreen()
+      FeedScreen()
     ];
 
     return Scaffold(

@@ -300,7 +300,7 @@ class _MCQQuestionsState extends State<MCQQuestions> {
         Navigator.pop(context, {
           "completed": true,
           // "lessonCompletionResponse": lessonCompletionResponse,
-          "attemptTime": _startTime.second,
+          "attemptTime": DateTime.now().difference(_startTime).inSeconds,
           "totalXp": _totalXp,
           "timeTaken": timeTaken,
           "accuracy": accuracy,

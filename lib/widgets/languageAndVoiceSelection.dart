@@ -107,7 +107,7 @@ class _LanguageAndVoiceSelectionState extends State<LanguageAndVoiceSelection> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(0),
       decoration: const BoxDecoration(
         color: Color.fromRGBO(19, 31, 36, 1),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

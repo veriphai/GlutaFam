@@ -44,23 +44,23 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               isActive: widget.currentIndex == 0,
             ),
             _buildNavItem(
+              imagePath: 'lib/assets/questIcon.png',
+              label: 'Quests',
+              isActive: widget.currentIndex == 1,
+            ),
+            _buildNavItem(
               imagePath: 'lib/assets/leaderboardIcon.png',
               label: 'Leaderboard',
-              isActive: widget.currentIndex == 1,
+              isActive: widget.currentIndex == 2,
             ),
             _buildNavItem(
               imagePath: 'lib/assets/progressReportIcon.png',
               label: 'Progress Report',
-              isActive: widget.currentIndex == 2,
+              isActive: widget.currentIndex == 3,
             ),
             _buildNavItem(
               imagePath: 'lib/assets/profileIcon.png',
               label: 'Profile',
-              isActive: widget.currentIndex == 3,
-            ),
-            _buildNavItem(
-              imagePath: 'lib/assets/questIcon.png',
-              label: 'Quests',
               isActive: widget.currentIndex == 4,
             ),
             _buildNavItem(
