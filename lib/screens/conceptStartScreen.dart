@@ -11,17 +11,25 @@ import 'package:chiclet/chiclet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ConceptStartScreen extends StatefulWidget {
-  // final String conceptId;
-  // final String conceptName;
-  // final int maxXP;
-  // final String name;
-  const ConceptStartScreen({
-    Key? key,
-    // required this.conceptId,
-    // required this.conceptName,
-    // required this.maxXP,
-    // required this.name
-  }) : super(key: key);
+  final String conceptId;
+  final String conceptName;
+  final int maxXP;
+  final String name;
+  final String subject;
+  final int standard;
+  final bool firstLesson;
+  final String? teacherId;
+  const ConceptStartScreen(
+      {Key? key,
+      required this.conceptId,
+      required this.conceptName,
+      required this.maxXP,
+      required this.name,
+      required this.subject,
+      required this.standard,
+      required this.firstLesson,
+      this.teacherId})
+      : super(key: key);
 
   @override
   State<ConceptStartScreen> createState() => _ConceptStartScreenState();
@@ -30,7 +38,7 @@ class ConceptStartScreen extends StatefulWidget {
 class _ConceptStartScreenState extends State<ConceptStartScreen> {
   late String selectedAITeacherId = "persona-1";
   late String selectedLanguage = "en-US";
-  late String selectedVoice = "Puck";
+  late String selectedVoice = "Zephyr";
 
   Map<String, String> languageOptions = {};
   Map<String, String> voiceOptions = {};
@@ -44,7 +52,7 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
   Future<void> loadDataFromCache() async {
     prefs = await SharedPreferences.getInstance();
     selectedLanguage = prefs.getString("aiTutorLanguage") ?? "en-US";
-    selectedVoice = prefs.getString("aiTutorVoice") ?? "Puck";
+    selectedVoice = prefs.getString("aiTutorVoice") ?? "Zephyr";
   }
 
   @override
@@ -82,11 +90,18 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
       setState(() {
         aiTeachers = aiTeachersData;
       });
-      selectedAITeacher = aiTeachersData.firstWhere(
-          (teacher) => teacher["useAsDefault"] == true,
-          orElse: () => {});
 
-      selectedAITeacherId = selectedAITeacher["id"] ?? "persona-1";
+      if (widget.teacherId == null) {
+        selectedAITeacher = aiTeachersData.firstWhere(
+            (teacher) => teacher["useAsDefault"] == true,
+            orElse: () => {});
+        selectedAITeacherId = selectedAITeacher["id"] ?? "persona-1";
+      } else {
+        selectedAITeacherId = widget.teacherId ?? "persona-1";
+        selectedAITeacher = aiTeachersData.firstWhere(
+            (teacher) => teacher["id"] == selectedAITeacherId,
+            orElse: () => {});
+      }
     } catch (error) {
       print("❌ Error fetching AI teachers: $error");
       setState(() {
@@ -160,26 +175,31 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
                   /// Confirm Button
                   ChicletAnimatedButton(
                     onPressed: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //     builder: (context) => ConceptLearningScreenV2(
-                      //       conceptId: widget.conceptId,
-                      //       conceptName: widget.conceptName,
-                      //       maxXP: widget.maxXP,
-                      //       name: widget.name,
-                      //       // aiTeacherId: selectedAITeacherId,
-                      //       // languageCode: selectedLanguage,
-                      //       // voice: selectedVoice,
-                      //     ),
-                      //   ),
-                      // );
-                      final response = {
-                        "language": selectedLanguage,
-                        "voice": selectedVoice,
-                        "tutor": selectedAITeacher
-                      };
-                      Navigator.pop(context, response);
+                      if (widget.firstLesson) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ConceptLearningScreenV2(
+                              conceptId: widget.conceptId,
+                              conceptName: widget.conceptName,
+                              maxXP: widget.maxXP,
+                              name: widget.name,
+                              subject: widget.subject,
+                              standard: widget.standard,
+                              tutorSelected: selectedAITeacher,
+                              selectedLanguage: selectedLanguage,
+                              selectedVoice: selectedVoice,
+                            ),
+                          ),
+                        );
+                      } else {
+                        final response = {
+                          "language": selectedLanguage,
+                          "voice": selectedVoice,
+                          "tutor": selectedAITeacher
+                        };
+                        Navigator.pop(context, response);
+                      }
                     },
                     buttonType: ChicletButtonTypes.roundedRectangle,
                     height: 50,

@@ -1,6 +1,6 @@
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchAiTeachers.dart';
-import 'package:eureka_app/utils/avatars.dart';
+import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -69,7 +69,7 @@ class _AITeacherSelectionState extends State<AITeacherSelection> {
                   // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Image.asset(
-                      getAvatar(teacher["avatar"])["imagePath"]!,
+                      getTutorAvatar(teacher["avatar"])["imagePath"]!,
                       height: 100,
                       fit: BoxFit.contain,
                     ),
@@ -348,7 +348,7 @@ class _AITeacherSelectionState extends State<AITeacherSelection> {
                                   children: [
                                     Expanded(
                                       child: Image.asset(
-                                        getAvatar(
+                                        getTutorAvatar(
                                             teacher["avatar"])["imagePath"]!,
                                         fit: BoxFit.contain,
                                         errorBuilder:

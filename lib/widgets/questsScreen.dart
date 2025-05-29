@@ -294,12 +294,12 @@ class _QuestsScreenState extends State<QuestsScreen> {
                                         ),
                                         questItem["rewardClaimed"]
                                             ? Image.asset(
-                                                "lib/assets/gemIcon.png",
+                                                "lib/assets/openChest.png",
                                                 height: 40,
                                               )
                                             : questItem["rewardAvailable"]
                                                 ? Image.asset(
-                                                    "lib/assets/streakIcon.png",
+                                                    "lib/assets/questIcon.png",
                                                     height: 40,
                                                   )
                                                 : Image.asset(
@@ -1038,7 +1038,7 @@ class _QuestsScreenState extends State<QuestsScreen> {
                                 Row(
                                   children: [
                                     Text(
-                                        "${questData["monthlyQuest"][0]["progress"]}",
+                                        "${questData["monthlyQuest"][0]["progress"] > questData["monthlyQuest"][0]["completionCriteria"] ? questData["monthlyQuest"][0]["completionCriteria"] : questData["monthlyQuest"][0]["progress"]}",
                                         style: GoogleFonts.arOneSans(
                                           color: Colors.white,
                                           fontSize: 16,

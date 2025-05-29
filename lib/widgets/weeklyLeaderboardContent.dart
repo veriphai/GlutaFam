@@ -373,7 +373,9 @@ class _WeeklyLeaderboardContentState extends State<WeeklyLeaderboardContent> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ProfileScreen(),
+                                  builder: (context) => ProfileScreen(
+                                    calledFromLeaderboard: true,
+                                  ),
                                 ),
                               );
                             } else {

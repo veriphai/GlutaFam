@@ -49,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int xpMultiplier = 1;
   bool unlimitedLifelines = false;
   int totalXPForConcept = 90;
+  bool firstLesson = true;
 
   String? selectedConceptId;
 
@@ -122,6 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
           prefs.getBool("unlimitedLifelines") ?? false;
       int xpMultiplierFromCache = prefs.getInt("xpMultiplier") ?? 1;
 
+      bool firstLessonFromCache = prefs.getBool("firstLesson") ?? true;
+
       double powerupStartTime = prefs.getDouble("powerupStartTime") ?? 0;
       int currentTimeInSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
@@ -137,6 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
         lifelinesAvailable = lifelinesFromCache ?? 0;
         unlimitedLifelines = unlimitedHeartsEnabled;
         xpMultiplier = xpMultiplierFromCache;
+        firstLesson = firstLessonFromCache;
       });
     } catch (error) {
       print("Error fetching userProfile: $error");
@@ -694,29 +698,36 @@ class _HomeScreenState extends State<HomeScreen> {
                         logConceptStart(concept['id']);
                         currentOverlayEntry?.remove();
                         currentOverlayEntry = null;
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => ConceptStartScreen(
-                        //         conceptId: concept['id'],
-                        //         conceptName: concept['name'],
-                        //         maxXP: totalXPForConcept * xpMultiplier,
-                        //         name: userProfile['firstName']),
-                        //   ),
-                        // );
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ConceptLearningScreenV2(
-                              conceptId: concept['id'],
-                              conceptName: concept['name'],
-                              maxXP: totalXPForConcept * xpMultiplier,
-                              name: userProfile['firstName'],
-                              subject: _selectedSubject,
-                              standard: userProfile['standard'],
+                        if (firstLesson) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ConceptStartScreen(
+                                conceptId: concept['id'],
+                                conceptName: concept['name'],
+                                maxXP: totalXPForConcept * xpMultiplier,
+                                name: userProfile['firstName'],
+                                subject: _selectedSubject,
+                                standard: userProfile['standard'],
+                                firstLesson: true,
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ConceptLearningScreenV2(
+                                conceptId: concept['id'],
+                                conceptName: concept['name'],
+                                maxXP: totalXPForConcept * xpMultiplier,
+                                name: userProfile['firstName'],
+                                subject: _selectedSubject,
+                                standard: userProfile['standard'],
+                              ),
+                            ),
+                          );
+                        }
                       },
                       buttonType: ChicletButtonTypes.roundedRectangle,
                       height: 40,

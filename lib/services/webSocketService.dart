@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:eureka_app/apis/fetchGeminiKeys.dart';
 import 'package:web_socket_channel/io.dart';
 
 class WebSocketService {
@@ -25,6 +26,28 @@ class WebSocketService {
   bool useOpenAI = false;
   bool useGemini = false;
 
+  List<String> geminiKeys = [];
+  int _currentGeminiKeyIndex = 0;
+
+  String get currentGeminiKey =>
+      geminiKeys.isNotEmpty ? geminiKeys[_currentGeminiKeyIndex] : "";
+
+  void rotateGeminiKey() {
+    _currentGeminiKeyIndex = (_currentGeminiKeyIndex + 1) % geminiKeys.length;
+    print("🔑 Rotated Gemini Key to index $_currentGeminiKeyIndex");
+  }
+
+  Function(String reason)? onConnectionError;
+
+  Future<void> initialize() async {
+    geminiKeys = await fetchGeminiKeys();
+    _currentGeminiKeyIndex = 0; // Always reset to 0 on fresh fetch
+    if (geminiKeys.isEmpty) {
+      throw Exception("No Gemini keys available!");
+    }
+    // print("✅ Gemini keys loaded: $geminiKeys");
+  }
+
   void connect() {
     if (useOpenAI) {
       print("URL for websocket : $websocketUrlForOpenaiMini");
@@ -36,10 +59,7 @@ class WebSocketService {
       });
     } else if (useGemini) {
       print("URL for websocket : $websocketUrlForGemini");
-      // String geminiKey = "AIzaSyD50eOpqFEhQWIAuyhj55pYscgoqT0Yrrk";
-      String geminiKey = "AIzaSyCqPA1bsP52yhLtrpcSz0Y0oz5PxLJAJGs";
-      // String geminiKey = "AIzaSyDMkADjdD6cu9jMy_vPAH-lFx1xE4HoUPY"; //Dagar's key
-      String updatedUrl = "$websocketUrlForGemini?key=$geminiKey";
+      String updatedUrl = "$websocketUrlForGemini?key=$currentGeminiKey";
       channel = IOWebSocketChannel.connect(updatedUrl);
     } else {
       channel = IOWebSocketChannel.connect(websocketUrl);
@@ -52,6 +72,32 @@ class WebSocketService {
     }, onError: (error) {
       print("WebSocket error: $error");
     }, onDone: () {
+      final closeCode = channel.closeCode;
+      final closeReason = channel.closeReason;
+
+      print("❌ WebSocket closed — Code: $closeCode, Reason: $closeReason");
+      if (useGemini && closeCode == 1011) {
+        if (closeReason == "The service is currently unavailable.") {
+        } else if (closeReason ==
+            "Deadline expired before operation could complete.") {
+        } else {
+          print(
+              "Quota error detected, rotating Gemini key and reconnecting...");
+          rotateGeminiKey();
+        }
+        connect(); // Reconnect websocket
+
+        if (onConnectionError != null) {
+          onConnectionError!(
+              closeReason == "The service is currently unavailable."
+                  ? "Service unavailable"
+                  : closeReason ==
+                          "Deadline expired before operation could complete."
+                      ? "Deadline Expired"
+                      : "1011");
+        }
+        return;
+      }
       String stringToAppend = useGemini
           ? "Gemini"
           : useOpenAI

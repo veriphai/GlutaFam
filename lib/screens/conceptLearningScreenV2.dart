@@ -17,11 +17,13 @@ import 'package:eureka_app/apis/getAITutorPromptsV2.dart';
 import 'package:eureka_app/apis/getAdditionalPrompts.dart';
 import 'package:eureka_app/apis/markLessonCompletion.dart';
 import 'package:eureka_app/apis/transcribeAudio.dart';
+import 'package:eureka_app/main.dart';
 import 'package:eureka_app/newEvents/aiTutorScreenEvents.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/screens/mistakesCorrectionScreen.dart';
 import 'package:eureka_app/services/webSocketService.dart';
 import 'package:eureka_app/utils/avatars.dart';
+import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'package:eureka_app/widgets/conceptResultScreen.dart';
 import 'package:eureka_app/widgets/conversationScreen.dart';
 import 'package:eureka_app/widgets/languageAndVoiceSelection.dart';
@@ -31,6 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -51,6 +54,9 @@ class ConceptLearningScreenV2 extends StatefulWidget {
   final String name;
   final String subject;
   final int standard;
+  final String? selectedLanguage;
+  final String? selectedVoice;
+  final Map<String, dynamic>? tutorSelected;
 
   const ConceptLearningScreenV2(
       {Key? key,
@@ -59,7 +65,10 @@ class ConceptLearningScreenV2 extends StatefulWidget {
       required this.maxXP,
       required this.name,
       required this.subject,
-      required this.standard})
+      required this.standard,
+      this.selectedLanguage,
+      this.selectedVoice,
+      this.tutorSelected})
       : super(key: key);
   @override
   _ConceptLearningScreenState createState() => _ConceptLearningScreenState();
@@ -119,11 +128,15 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   bool sessionResumed = false;
   bool goAwayEventReceived = false;
   String selectedLanguage = "en-US";
-  String selectedVoice = "Puck";
+  String selectedVoice = "Zephyr";
   late DateTime lessonStartTime;
   int timeTakenToCompleteLessonWithAiTutor = 0;
-  late Map<String, dynamic> selectedTutor = {};
+  late Map<String, dynamic> selectedTutor = {'id': "persona-1"};
   late Map<String, dynamic> additionalPrompts = {};
+  bool firstLesson = true;
+  bool wasFirstLesson = true;
+  String tutorName = "Tuto Prime";
+  bool showDots = true;
 
   // Map<String, String> languageOptions = {
   //   "en-US": "English",
@@ -211,7 +224,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         //     aiTutorPrompts['aiTutorPrompt$selectedLanguageName']['content'];
       });
       if (fetchPersonaPrompt) {
-        fetchAITutorPromptsV2("persona-1");
+        await fetchAITutorPromptsV2(
+            selectedTutor.isEmpty ? "persona-1" : selectedTutor['id']);
       }
     } catch (error) {
       print("Error fetching tutor prompts: $error");
@@ -225,14 +239,15 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       // final profileData = await getProfile();
 
       setState(() {
-        aiTutorPrompt = aiTutorPromptFromDB?['content'];
+        aiTutorPrompt = aiTutorPromptFromDB['content'];
+        tutorName = aiTutorPromptFromDB["name"];
       });
     } catch (error) {
       print("Error fetching ai prompt: $error");
     }
   }
 
-  void startWebsocket() {
+  void startWebsocket() async {
     webSocketService = WebSocketService();
     // webSocketService = WebSocketServiceForOpenai();
 
@@ -243,6 +258,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     } else {
       webSocketService.onMessageReceived = onMessageReceived;
     }
+    await webSocketService.initialize();
     webSocketService.connect();
   }
 
@@ -259,10 +275,14 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   void setLanguageAndVoice() async {
     prefs = await SharedPreferences.getInstance();
     if (prefs.containsKey("aiTutorLanguage")) {
-      selectedLanguage = prefs.getString("aiTutorLanguage") ?? "en-US";
+      selectedLanguage = await prefs.getString("aiTutorLanguage") ?? "en-US";
     }
     if (prefs.containsKey("aiTutorVoice")) {
-      selectedVoice = prefs.getString("aiTutorVoice") ?? "Puck";
+      selectedVoice = await prefs.getString("aiTutorVoice") ?? "Zephyr";
+    }
+    if (prefs.containsKey("firstLesson")) {
+      firstLesson = await prefs.getBool("firstLesson") ?? true;
+      wasFirstLesson = firstLesson;
     }
   }
 
@@ -287,6 +307,13 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
     _initializeRecorder();
     _initPlayer();
+    selectedLanguage = widget.selectedLanguage ?? "en-US";
+    selectedVoice = widget.selectedVoice ?? "Zephyr";
+    selectedTutor = widget.tutorSelected ?? {};
+    if (selectedTutor.isNotEmpty) {
+      tutorName = selectedTutor['name'];
+    }
+
     // startConversation();
     // getConceptDetails();
     getConceptDetails().then((_) {
@@ -299,8 +326,27 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         }
       });
     });
-    // greetingAndIntroConversation();
-    // _startResponseMonitor();
+
+    webSocketService.onConnectionError = (reason) {
+      if (reason == "1011") {
+        // Small delay can help prevent race conditions
+        Future.delayed(Duration(milliseconds: 200), () {
+          sessionConnect();
+        });
+      } else if (reason == "Service unavailable") {
+        Future.delayed(Duration(milliseconds: 200), () {
+          resumeExistingSession();
+        });
+      } else if (reason == "Deadline Expired") {
+        Future.delayed(Duration(milliseconds: 200), () {
+          resumeExistingSession();
+        });
+      } else {
+        Future.delayed(Duration(milliseconds: 200), () {
+          resumeExistingSession();
+        });
+      }
+    };
   }
 
   void _startResponseMonitor() {
@@ -512,8 +558,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         if (greetingDone)
           Image.asset(
             selectedTutor.isNotEmpty
-                ? getAvatar(selectedTutor['avatar'])["imagePath"]!
-                : getAvatar("avatar-9")["imagePath"]!,
+                ? getTutorAvatar(selectedTutor['avatar'])["imagePath"]!
+                : getTutorAvatar("tutoprime")["imagePath"]!,
             height: 40,
           ),
         Flexible(
@@ -552,6 +598,44 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                           fontSize: 16,
                         ),
                         blockSpacing: 8.0,
+                      ),
+                    ))))
+      ],
+    );
+  }
+
+  Widget loadingMessage(final conversation) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (greetingDone)
+          Image.asset(
+            selectedTutor.isNotEmpty
+                ? getTutorAvatar(selectedTutor['avatar'])["imagePath"]!
+                : getTutorAvatar("tutoprime")["imagePath"]!,
+            height: 40,
+          ),
+        Flexible(
+            child: BubbleBox(
+                maxWidth: double.infinity,
+                shape: BubbleShapeBorder(
+                    border: BubbleBoxBorder(
+                      color: Colors.grey.shade700,
+                      width: 3,
+                    ),
+                    radius: BorderRadius.circular(12),
+                    position: const BubblePosition.start(10),
+                    direction: BubbleDirection.left,
+                    arrowHeight: 10),
+                backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+                child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: Lottie.asset(
+                        "lib/assets/animations/3-dots.json",
+                        fit: BoxFit.cover,
                       ),
                     ))))
       ],
@@ -716,6 +800,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         String deltaText = serverContent["outputTranscription"]["text"] ?? "";
         setState(() {
           conversationText += deltaText;
+          showDots = false;
         });
         setState(() {
           if (userCurrentResponse.isNotEmpty) {
@@ -772,7 +857,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     webSocketService.disconnect();
     print("restarting websocket due to go away");
 
-    startWebsocket();
+    // startWebsocket();
+    webSocketService.connect();
     resumeSession(previousSessionHandle);
   }
 
@@ -953,6 +1039,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
   void moveToNextCheckpoint() {
     if (completedCheckpointIndexes.contains(currentCheckpointIndex)) {
+      setState(() {
+        showDots = true;
+      });
       currentCheckpointIndex += 1;
 
       logAITutorCheckpointStart(
@@ -973,6 +1062,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   }
 
   void movingToQuestionConversation() {
+    setState(() {
+      showDots = true;
+    });
     String contentText =
         "Now all checkpoints have been completed. Ask user to move to questions so test their understanding.";
 
@@ -1069,6 +1161,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
   void afterQuestionsConversation(Map<String, dynamic> questionCompletion) {
     String contentText = "";
+    setState(() {
+      showDots = true;
+    });
     if (questionCompletion['completed']) {
       if (questionCompletion.containsKey('incorrectQuestions') &&
           questionCompletion['incorrectQuestions'].length > 0) {
@@ -1104,6 +1199,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   }
 
   void afterMistakesCorrectionConversation() {
+    setState(() {
+      showDots = true;
+    });
     String contentText =
         "Now the student has completed the questions and corrected their mistakes too, associated with the concept. Congratulate the student, and ask them to check their result.";
     setState(() {
@@ -1154,13 +1252,16 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   }
 
   void sessionConnect() {
+    setState(() {
+      showDots = true;
+    });
     final sessionCreateMessage = {
       "setup": {
         // "model": "models/gemini-2.0-flash-live-preview-04-09",
 
-        "model": "models/gemini-2.0-flash-live-001",
+        "model": "models/gemini-2.5-flash-preview-native-audio-dialog",
         "generationConfig": {
-          "temperature": getRandomTemperature(),
+          // "temperature": 0.1,
           "responseModalities": ["AUDIO"],
           "speechConfig": {
             "languageCode": selectedLanguage,
@@ -1168,11 +1269,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
               "prebuiltVoiceConfig": {"voiceName": selectedVoice}
             }
           }
-        },
-        "systemInstruction": {
-          "parts": [
-            {"text": greetingPrompt}
-          ]
         },
         "realtimeInputConfig": {
           "automaticActivityDetection": {"disabled": true}
@@ -1191,6 +1287,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   }
 
   void sessionConnectForLEssonStart(String handle) {
+    setState(() {
+      showDots = true;
+    });
     String additionalPrompt =
         additionalPrompts['aiTutorPromptForSystem']['content'];
     additionalPrompt = additionalPrompt
@@ -1198,9 +1297,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         .replaceFirst("{standard}", widget.standard.toString());
     final sessionCreateMessage = {
       "setup": {
-        "model": "models/gemini-2.0-flash-live-001",
+        "model": "models/gemini-2.5-flash-preview-native-audio-dialog",
         "generationConfig": {
-          "temperature": getRandomTemperature(),
+          // "temperature": getRandomTemperature(),
           "responseModalities": ["AUDIO"],
           "speechConfig": {
             "languageCode": selectedLanguage,
@@ -1209,11 +1308,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
             }
           }
         },
-        "systemInstruction": {
-          "parts": [
-            {"text": "$additionalPrompt \n\n $aiTutorPrompt"}
-          ]
-        },
+        // "systemInstruction": {
+        //   "parts": [
+        //     {"text": "$additionalPrompt \n\n $aiTutorPrompt"}
+        //   ]
+        // },
         "realtimeInputConfig": {
           "automaticActivityDetection": {"disabled": true}
         },
@@ -1229,7 +1328,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     sessionResumed = true;
     final sessionCreateMessage = {
       "setup": {
-        "model": "models/gemini-2.0-flash-live-001",
+        "model": "models/gemini-2.5-flash-preview-native-audio-dialog",
         "generationConfig": {
           "responseModalities": ["AUDIO"],
           "speechConfig": {
@@ -1252,20 +1351,20 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
   void sessionReconnectOnLanguageChange(String handle) {
     webSocketService.disconnect();
-    startWebsocket();
+    webSocketService.connect();
     sessionResumed = true;
     final sessionCreateMessage = {
       "setup": {
-        "model": "models/gemini-2.0-flash-live-001",
+        "model": "models/gemini-2.5-flash-preview-native-audio-dialog",
         "generationConfig": {
           "responseModalities": ["AUDIO"],
           "speechConfig": {"languageCode": selectedLanguage}
         },
-        "systemInstruction": {
-          "parts": [
-            {"text": aiTutorPrompt}
-          ]
-        },
+        // "systemInstruction": {
+        //   "parts": [
+        //     {"text": aiTutorPrompt}
+        //   ]
+        // },
         "realtimeInputConfig": {
           "automaticActivityDetection": {"disabled": true}
         },
@@ -1279,7 +1378,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
   void greetingAndIntroConversationForGemini() {
     String contentText =
-        "Student's name:$studentName \n Concept to teach: ${widget.conceptName}.";
+        "$greetingPrompt \n\n Student's name:$studentName \n Concept to teach: ${widget.conceptName}.";
 
     sendConversationItemToGemini(contentText);
   }
@@ -1300,10 +1399,18 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   }
 
   void startConversationWithGemini() {
+    // String additionalPrompt =
+    //     additionalPrompts['aiTutorPromptForSystem']['content'];
+    // additionalPrompt = additionalPrompt
+    //     .replaceFirst("{subject}", widget.subject)
+    //     .replaceFirst("{standard}", widget.standard.toString());
+    setState(() {
+      showDots = true;
+    });
     String additionalPrompt =
         additionalPrompts['aiTutorPromptForCheckpoint']['content'];
     String contentText =
-        " Concept being taught: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}. $additionalPrompt";
+        "$aiTutorPrompt \n\n Concept being taught: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}. $additionalPrompt";
     logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId);
     sendConversationItemToGemini(contentText);
   }
@@ -1354,6 +1461,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         // sendAudioResponse(base64Audio);
         responseCompleted = false;
         responseStarted = false;
+        setState(() {
+          firstLesson = false;
+        });
+        await prefs.setBool("firstLesson", false);
+
         sendAudioResponseForGemini(base64Audio);
 
         transcribeAudio(File(_audioPath!)).then((transcribedText) {
@@ -1572,19 +1684,17 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                   size: 40,
                 ),
         ),
-        // const SizedBox(height: 20),
-        // Text(
-        //   _isLoading
-        //       ? ""
-        //       : (isRecording
-        //           ? 'Recording... Tap to submit answer'
-        //           : 'Tap to answer'),
-        //   style: GoogleFonts.raleway(
-        //     fontSize: 16,
-        //     color: Colors.white,
-        //   ),
-        //   textAlign: TextAlign.center, // Center-align the microphone hint text
-        // ),
+        if (firstLesson) const SizedBox(height: 8),
+        if (firstLesson)
+          Text(
+            _isLoading ? "" : (isRecording ? 'Tap to send' : 'Tap to speak'),
+            style: GoogleFonts.raleway(
+              fontSize: 14,
+              color: Colors.white,
+            ),
+            textAlign:
+                TextAlign.center, // Center-align the microphone hint text
+          ),
       ],
     );
   }
@@ -1787,10 +1897,16 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
               // 🔄 Cancel Button
               ChicletOutlinedAnimatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
-                  // Navigator.pop(context);
-                  // Navigator.pop(context);
-                  Navigator.pop(context, {"completed": false});
+                  if (wasFirstLesson) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainPage()),
+                      (route) => false,
+                    );
+                  } else {
+                    Navigator.pop(context);
+                    Navigator.pop(context, {"completed": false});
+                  }
 
                   // Navigator.pushAndRemoveUntil(
                   //   context,
@@ -1844,7 +1960,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
           await fetchAITutorPrompts();
         }
         webSocketService.disconnect();
-        startWebsocket();
+        webSocketService.connect();
         sessionConnect();
       }
     });
@@ -1997,93 +2113,128 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(150),
-                                child: Container(
-                                    color: Color.fromRGBO(255, 217, 0, 1),
-                                    child: Image.asset(
-                                      selectedTutor.isNotEmpty
-                                          ? getAvatar(selectedTutor['avatar'])[
-                                              "imagePath"]!
-                                          : getAvatar("avatar-9")["imagePath"]!,
-                                      height: 150,
-                                      fit: BoxFit.scaleDown,
-                                    )),
-                              ),
+                              Container(
+                                  color: Color.fromRGBO(19, 31, 36, 1),
+                                  child: Image.asset(
+                                    selectedTutor.isNotEmpty
+                                        ? getTutorAvatar(
+                                                selectedTutor['avatar'])[
+                                            "imagePath"]!
+                                        : getTutorAvatar(
+                                            "tutoprime")["imagePath"]!,
+                                    height: 150,
+                                    fit: BoxFit.scaleDown,
+                                  )),
+                              // ClipRRect(
+                              //   borderRadius: BorderRadius.circular(150),
+                              //   child: Container(
+                              //       color: Color.fromRGBO(19, 31, 36, 1),
+                              //       child: Image.asset(
+                              //         selectedTutor.isNotEmpty
+                              //             ? getTutorAvatar(
+                              //                     selectedTutor['avatar'])[
+                              //                 "imagePath"]!
+                              //             : getTutorAvatar(
+                              //                 "tutoprime")["imagePath"]!,
+                              //         height: 150,
+                              //         fit: BoxFit.scaleDown,
+                              //       )),
+                              // ),
                               SizedBox(
                                 height: 10,
                               ),
-                              GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    logAITutorSwitchTutorClick(
-                                        widget.conceptId);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            ConceptStartScreen(),
-                                      ),
-                                    ).then((response) async {
-                                      print(response);
-                                      if (selectedLanguage !=
-                                              response['language'] ||
-                                          selectedVoice != response['voice']) {
-                                        print("Language or voice changed!");
-                                        await prefs.setString("aiTutorLanguage",
-                                            response['language']);
-                                        await prefs.setString(
-                                            "aiTutorVoice", response['voice']);
-                                        if (selectedLanguage !=
-                                            response['language']) {
-                                          selectedLanguage =
-                                              response['language'];
-                                          await fetchAITutorPrompts(
-                                              fetchPersonaPrompt: false);
-                                        }
-                                        webSocketService.disconnect();
-                                        startWebsocket();
-                                        sessionConnect();
-                                      }
-                                      setState(() {
-                                        selectedTutor = response['tutor'];
-                                      });
-                                      logAITutorSelected(
-                                          widget.conceptId,
-                                          response['tutor']['id'],
-                                          selectedLanguage,
-                                          selectedVoice);
-
-                                      fetchAITutorPromptsV2(
-                                          response['tutor']['id']);
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          "Switch Tutor",
-                                          style: GoogleFonts.raleway(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color:
-                                                Color.fromRGBO(255, 217, 0, 1),
+                              if (tutorName.isNotEmpty)
+                                GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      logAITutorSwitchTutorClick(
+                                          widget.conceptId);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              ConceptStartScreen(
+                                            conceptId: widget.conceptId,
+                                            conceptName: widget.conceptName,
+                                            maxXP: widget.maxXP,
+                                            name: widget.name,
+                                            subject: widget.subject,
+                                            standard: widget.standard,
+                                            firstLesson: false,
+                                            teacherId: selectedTutor['id'],
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ))
+                                      ).then((response) async {
+                                        print(response);
+                                        if (selectedLanguage !=
+                                                response['language'] ||
+                                            selectedVoice !=
+                                                response['voice']) {
+                                          print("Language or voice changed!");
+                                          await prefs.setString(
+                                              "aiTutorLanguage",
+                                              response['language']);
+                                          await prefs.setString("aiTutorVoice",
+                                              response['voice']);
+                                          selectedVoice = response['voice'];
+                                          if (selectedLanguage !=
+                                              response['language']) {
+                                            selectedLanguage =
+                                                response['language'];
+                                            await fetchAITutorPrompts(
+                                                fetchPersonaPrompt: false);
+                                          }
+                                          webSocketService.disconnect();
+                                          webSocketService.connect();
+                                          sessionConnect();
+                                        }
+                                        setState(() {
+                                          selectedTutor = response['tutor'];
+                                        });
+                                        logAITutorSelected(
+                                            widget.conceptId,
+                                            response['tutor']['id'],
+                                            selectedLanguage,
+                                            selectedVoice);
+
+                                        fetchAITutorPromptsV2(
+                                            response['tutor']['id']);
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.transparent,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "You are studing with $tutorName. ",
+                                            style: GoogleFonts.raleway(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          Text(
+                                            "Change",
+                                            style: GoogleFonts.raleway(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color.fromRGBO(
+                                                  255, 217, 0, 1),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ))
                             ])),
                       if (!greetingDone)
-                        !skipAudioTutor && displayedConversations.isNotEmpty
+                        !skipAudioTutor
                             ? Padding(
                                 padding: const EdgeInsets.symmetric(
                                     vertical: 8.0, horizontal: 12.0),
@@ -2093,8 +2244,10 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                       //   _showAllConversations(context);
                                       // }
                                     },
-                                    child: othersMessage(
-                                        displayedConversations.last["text"])))
+                                    child: showDots
+                                        ? loadingMessage("")
+                                        : othersMessage(displayedConversations
+                                            .last["text"])))
                             : Spacer(),
                       if (greetingDone)
                         Expanded(
@@ -2150,9 +2303,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                               //   _showAllConversations(context);
                                               // }
                                             },
-                                            child: othersMessage(
-                                                displayedConversations
-                                                    .last["text"]),
+                                            child: showDots
+                                                ? loadingMessage("")
+                                                : othersMessage(
+                                                    displayedConversations
+                                                        .last["text"]),
                                           ),
                                         ),
                                       )
@@ -2868,6 +3023,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                       !showMistakeCorrectionButton &&
                       !showCheckResultButton &&
                       !skipAudioTutor &&
+                      !showDots &&
                       !responseStreaming &&
                       (showAfterGreetingContinueButton ||
                           showCheckpointContinueButton))
@@ -2896,7 +3052,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                         showAfterGreetingContinueButton = false;
                                       });
                                       webSocketService.disconnect();
-                                      startWebsocket();
+                                      webSocketService.connect();
                                       sessionConnectForLEssonStart(
                                           previousSessionHandle);
                                     } else if (showCheckpointContinueButton) {

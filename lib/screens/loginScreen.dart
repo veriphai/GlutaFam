@@ -14,7 +14,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -43,6 +45,35 @@ class _LoginScreenState extends State<LoginScreen> {
     userIP = await getUserIP();
 
     logLoginScreenView(deviceId, platform, userIP);
+  }
+
+  Future<UserCredential?> signInWithApple() async {
+    if (!Platform.isIOS) {
+      // Only available on iOS
+      return Future.error('Apple Sign-In is only supported on iOS devices');
+    }
+
+    try {
+      // Request Apple credentials from the user
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      // Create a Firebase Auth credential from the Apple credentials
+      final oauthCredential = OAuthProvider("apple.com").credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      // Sign in with Firebase using the credential
+      return await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+    } catch (e) {
+      print("Apple Sign-In failed: $e");
+      return Future.error(e);
+    }
   }
 
   Future<UserCredential> signInWithGoogle() async {
@@ -181,63 +212,91 @@ class _LoginScreenState extends State<LoginScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
             child: !kIsWeb
-                ? Column(
-                    children: [
-                      if (!kIsWeb)
-                        OutlinedButton(
-                          onPressed: () async {
-                            logPhoneAuthButtonClick(deviceId, platform, userIP);
+                ? Column(children: [
+                    // Google Sign-In Button
+                    OutlinedButton(
+                      onPressed: () async {
+                        try {
+                          UserCredential userCredential =
+                              await signInWithGoogle();
+                          User? user = userCredential.user;
+
+                          if (user != null) {
+                            print(user);
+                            String? displayName = user.displayName;
+                            String? email = user.email;
+                            String? photoURL = user.photoURL;
+                            String? uid = user.uid;
+                            logGoogleAuthSuccess(
+                                uid, deviceId, platform, userIP);
+                            await saveProfile(
+                                displayName, email, uid, photoURL);
+                          }
+
+                          if (newUser) {
                             Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => OnboardingScreenV4(
+                                        deviceId: deviceId,
+                                        platform: platform,
+                                        userIP: userIP)));
+                          } else {
+                            Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => Signupscreen(
-                                      deviceId: deviceId,
-                                      platform: platform,
-                                      userIP: userIP)),
+                                  builder: (context) => MainPage()),
+                              (Route<dynamic> route) => false,
                             );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                                color: Color.fromRGBO(128, 128, 128,
-                                    1)), // Border color // Border color
-                            minimumSize:
-                                const Size(double.infinity, 50), // Full width
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                          }
+                        } catch (error) {
+                          print("Google Sign-In Failed: $error");
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                            color: Color.fromRGBO(
+                                128, 128, 128, 1)), // Border color
+                        minimumSize:
+                            const Size(double.infinity, 50), // Full width
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Image.asset(
+                            'lib/assets/google_logo.png',
+                            height: 24,
+                            width: 24,
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Icon(
-                                Icons.smartphone_outlined,
-                                color: Colors.white,
-                              ),
-                              Expanded(
-                                child: Center(
-                                  child: Text(
-                                    'Continue with phone number',
-                                    style: GoogleFonts.raleway(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'Continue with Google',
+                                style: GoogleFonts.raleway(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(
-                                width:
-                                    24, // Placeholder space to match the icon size
-                              )
-                            ],
+                            ),
                           ),
-                        ),
-                      const SizedBox(height: 20),
-                      // Google Sign-In Button
+                          const SizedBox(
+                            width:
+                                24, // Placeholder space to match the icon size
+                          )
+                        ],
+                      ),
+                    ),
+                    if (Platform.isIOS) const SizedBox(height: 20),
+
+                    if (Platform.isIOS)
                       OutlinedButton(
                         onPressed: () async {
                           try {
-                            UserCredential userCredential =
-                                await signInWithGoogle();
-                            User? user = userCredential.user;
+                            UserCredential? userCredential =
+                                await signInWithApple();
+                            User? user = userCredential?.user;
 
                             if (user != null) {
                               print(user);
@@ -268,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               );
                             }
                           } catch (error) {
-                            print("Google Sign-In Failed: $error");
+                            print("Apple Sign-In Failed: $error");
                           }
                         },
                         style: OutlinedButton.styleFrom(
@@ -283,14 +342,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Image.asset(
-                              'lib/assets/google_logo.png',
+                              'lib/assets/apple-logo.png',
                               height: 24,
                               width: 24,
                             ),
                             Expanded(
                               child: Center(
                                 child: Text(
-                                  'Continue with Google',
+                                  'Continue with Apple',
                                   style: GoogleFonts.raleway(
                                     color: Colors.white,
                                     fontSize: 14,
@@ -306,8 +365,56 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ),
-                    ],
-                  )
+                    const SizedBox(height: 20),
+
+                    if (!kIsWeb)
+                      OutlinedButton(
+                        onPressed: () async {
+                          logPhoneAuthButtonClick(deviceId, platform, userIP);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Signupscreen(
+                                    deviceId: deviceId,
+                                    platform: platform,
+                                    userIP: userIP)),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                              color: Color.fromRGBO(128, 128, 128,
+                                  1)), // Border color // Border color
+                          minimumSize:
+                              const Size(double.infinity, 50), // Full width
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(
+                              Icons.smartphone_outlined,
+                              color: Colors.white,
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Continue with phone number',
+                                  style: GoogleFonts.raleway(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(
+                              width:
+                                  24, // Placeholder space to match the icon size
+                            )
+                          ],
+                        ),
+                      ),
+                  ])
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

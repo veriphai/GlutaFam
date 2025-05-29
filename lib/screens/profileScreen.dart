@@ -29,6 +29,9 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatefulWidget {
+  final bool? calledFromLeaderboard;
+
+  const ProfileScreen({Key? key, this.calledFromLeaderboard}) : super(key: key);
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -258,6 +261,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
+                        if (widget.calledFromLeaderboard != null)
+                          Positioned(
+                            top: 0,
+                            left: 10,
+                            child: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.pop(context);
+                              },
+                              child: Icon(
+                                Icons.arrow_back,
+                                color: Color.fromRGBO(19, 31, 36, 1),
+                                size: 30,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
