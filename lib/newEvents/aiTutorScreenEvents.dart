@@ -51,12 +51,17 @@ void logAITutorGreetingCompleted(String conceptId) {
   );
 }
 
-void logAITutorCheckpointStart(String checkpointId, String conceptId) {
+void logAITutorCheckpointStart(
+    String checkpointId, String conceptId, int checkpointNumber) {
   logEvent(
     eventName: "tutor_checkpoint_start",
     screenName: "AITutorScreen",
     eventType: "auto",
-    eventDetails: {"checkpointId": checkpointId, "conceptId": conceptId},
+    eventDetails: {
+      "checkpointId": checkpointId,
+      "checkpointNo": checkpointNumber,
+      "conceptId": conceptId
+    },
   );
 }
 

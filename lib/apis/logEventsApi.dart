@@ -26,7 +26,7 @@ Future<void> logEvent(
   // Retrieve the auth token from secure storage
   String? authToken = await authTokenService.getAuthToken();
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool? firstLaunchBool = prefs.getBool('firstLaunch');
+  bool? firstLaunchBool = prefs.getBool('appFirstLaunch');
   bool firstLaunch = firstLaunchBool ?? true;
   if (firstLaunch) {
     authToken = "app-first-launch";

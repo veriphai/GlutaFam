@@ -6,6 +6,7 @@ import 'package:eureka_app/apis/getDailyQuiz.dart';
 import 'package:eureka_app/apis/giftPowerup.dart';
 import 'package:eureka_app/apis/nudgeYourFriend.dart';
 import 'package:eureka_app/apis/startFriendQuest.dart';
+import 'package:eureka_app/newEvents/questsScreenEvents.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/widgets/findMyFriendsWidget.dart';
@@ -65,6 +66,7 @@ class _QuestsScreenState extends State<QuestsScreen> {
 
   @override
   void initState() {
+    logQuestsScreenView();
     super.initState();
     getData();
     fetchProfile();

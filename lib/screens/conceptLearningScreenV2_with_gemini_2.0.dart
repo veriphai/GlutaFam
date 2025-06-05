@@ -956,7 +956,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       currentCheckpointIndex += 1;
 
       logAITutorCheckpointStart(
-          conceptCheckpoints[currentCheckpointIndex]['id'], widget.conceptId);
+          conceptCheckpoints[currentCheckpointIndex]['id'],
+          widget.conceptId,
+          currentCheckpointIndex + 1);
 
       String additionalPrompt =
           additionalPrompts['aiTutorPromptForCheckpoint']['content'];
@@ -1304,7 +1306,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         additionalPrompts['aiTutorPromptForCheckpoint']['content'];
     String contentText =
         " Concept being taught: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}. $additionalPrompt";
-    logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId);
+    logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId, 1);
     sendConversationItemToGemini(contentText);
   }
 
@@ -1323,7 +1325,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
     String contentText =
         " Concept being taught: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}.";
-    logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId);
+    logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId, 1);
     conversationItemCreationForUser(contentText);
   }
 
