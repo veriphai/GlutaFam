@@ -1037,24 +1037,29 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     });
   }
 
-  void moveToNextCheckpoint() {
+  void moveToNextCheckpoint() async {
     if (completedCheckpointIndexes.contains(currentCheckpointIndex)) {
       setState(() {
         showDots = true;
       });
       currentCheckpointIndex += 1;
 
+      const additionalTextForNextCheckpoints =
+          " Moving to next checkpoint of the concept.";
+      final checkpoint = conceptCheckpoints[currentCheckpointIndex];
+      final contentText = prepareContextForCheckpoint(
+          checkpoint, currentCheckpointIndex + 1,
+          nextCheckpointAdditionalPrompt: additionalTextForNextCheckpoints);
+
+      final images = checkpoint['images'] as List<dynamic>? ?? [];
+      final imageParts = await prepareImageContextForCheckpoint(images);
+
       logAITutorCheckpointStart(
           conceptCheckpoints[currentCheckpointIndex]['id'],
           widget.conceptId,
           currentCheckpointIndex + 1);
 
-      String additionalPrompt =
-          additionalPrompts['aiTutorPromptForCheckpoint']['content'];
-      String contentText =
-          "Concept to teach: ${widget.conceptName}. Moving to next checkpoint of the concept. Checkpoint ${currentCheckpointIndex + 1}: ${conceptCheckpoints[currentCheckpointIndex]}.\n\n $additionalPrompt";
-      // conversationItemCreationForUser(contentText);
-      sendConversationItemToGemini(contentText);
+      sendConversationItemWithImagesToGemini(contentText, imageParts);
     } else {
       String contentText = "Start from where we have left";
 
@@ -1103,24 +1108,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     setState(() {
       showCheckpointContinueButton = false;
     });
-    // if (currentCheckpointIndex == 0 && !showContinuationButtons) {
-    //   String contentText =
-    //       "Now there are 3 available options to continue from here. 1.Continue learning with Tutor \n 2.Proceed with story mode \n 3.Jump to questions. Ask user to choose one of the option";
-
-    //   // conversationItemCreationForUser(contentText);
-    //   sendConversationItemToGemini(contentText);
-    //   setState(() {
-    //     showContinuationButtons = true;
-    //   });
-    // } else if (currentCheckpointIndex == conceptCheckpoints.length - 1) {
-    //   setState(() {
-    //     xpGained += 45;
-    //     allCheckpointsCompleted = true;
-    //   });
-    //   movingToQuestionConversation();
-    // } else {
-    //   moveToNextCheckpoint();
-    // }
 
     if (currentCheckpointIndex == conceptCheckpoints.length - 1) {
       setState(() {
@@ -1214,35 +1201,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     sendConversationItemToGemini(contentText);
   }
 
-  void startSessionForRealTimeTranscription() {
-    final startMessage = {
-      "event_id": "event_1234_greeting",
-      "type": "session.update",
-      "session": {
-        "instructions":
-            "You are a world class transcript writer who generate text transcripts in english for various types of audios. I am streaming an audio response, and as the response get streamed, I would be giving you chunks of that audio, and you have to provide me  the text transcript of it, nothing else."
-        // "You are a teacher guiding a student to deeply understand a concept. Begin with a warm greeting and a very small introduction to what we are studying, just the topic. Never end your conversation with a question or you will die. Keep the intro very short and crisp, and dont explain anything at all. Keep all our conversation short so that the discussion can be mnore engaging."
-        // "You are a Socratic teacher teaching a concept to a student. Follow these steps: \n 1. Begin with a warm greeting, just like a teacher starting a class. \n2. Wait for the student to respond to the greeting. \n3. Provide a very brief introduction (20-30 words) about the concept you are going to teach, and dont ask any questions while introducing the topic. \n4. Do not end the introduction with a question. \n5. Use the student's name and the concept name (which will be provided) while introducing the topic.",
-      }
-    };
-
-    webSocketForRealTimeTranscription.sendMessage(startMessage);
-
-    // String contentText =
-    //     "Student's name:$studentName \n Concept to teach: ${widget.conceptName}.";
-
-    // conversationItemCreationForUser(contentText);
-  }
-
   void greetingAndIntroConversation() {
     final startMessage = {
       "event_id": "event_123_greeting",
       "type": "session.update",
-      "session": {
-        "instructions": greetingPrompt
-        // "You are a teacher guiding a student to deeply understand a concept. Begin with a warm greeting and a very small introduction to what we are studying, just the topic. Never end your conversation with a question or you will die. Keep the intro very short and crisp, and dont explain anything at all. Keep all our conversation short so that the discussion can be mnore engaging."
-        // "You are a Socratic teacher teaching a concept to a student. Follow these steps: \n 1. Begin with a warm greeting, just like a teacher starting a class. \n2. Wait for the student to respond to the greeting. \n3. Provide a very brief introduction (20-30 words) about the concept you are going to teach, and dont ask any questions while introducing the topic. \n4. Do not end the introduction with a question. \n5. Use the student's name and the concept name (which will be provided) while introducing the topic.",
-      }
+      "session": {"instructions": greetingPrompt}
     };
 
     webSocketService.sendMessage(startMessage);
@@ -1265,6 +1228,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         "generationConfig": {
           // "temperature": 0.1,
           "responseModalities": ["AUDIO"],
+          // "enableAffectiveDialog": true,
           "speechConfig": {
             "languageCode": selectedLanguage,
             "voiceConfig": {
@@ -1385,6 +1349,26 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     sendConversationItemToGemini(contentText);
   }
 
+  void sendConversationItemWithImagesToGemini(
+      String content, List<Map<String, dynamic>>? imageParts) {
+    final parts = <Map<String, dynamic>>[
+      if (content.trim().isNotEmpty) {"text": content},
+      if (imageParts != null) ...imageParts,
+    ];
+
+    final message = {
+      "clientContent": {
+        "turns": {
+          "role": "user",
+          "parts": parts,
+        },
+        "turn_complete": true,
+      }
+    };
+
+    webSocketService.sendMessage(message);
+  }
+
   void sendConversationItemToGemini(String content) {
     final startMessage = {
       "clientContent": {
@@ -1400,22 +1384,123 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     webSocketService.sendMessage(startMessage);
   }
 
-  void startConversationWithGemini() {
-    // String additionalPrompt =
-    //     additionalPrompts['aiTutorPromptForSystem']['content'];
-    // additionalPrompt = additionalPrompt
-    //     .replaceFirst("{subject}", widget.subject)
-    //     .replaceFirst("{standard}", widget.standard.toString());
+  String getMimeTypeFromUrl(String url) {
+    if (url.endsWith('.png')) return 'image/png';
+    if (url.endsWith('.jpg') || url.endsWith('.jpeg')) return 'image/jpeg';
+    if (url.endsWith('.gif')) return 'image/gif';
+    if (url.endsWith('.webp')) return 'image/webp';
+    // fallback
+    return 'application/octet-stream';
+  }
+
+  Future<String> imageUrlToBase64(String url) async {
+    try {
+      final httpClient = HttpClient();
+      final request = await httpClient.getUrl(Uri.parse(url));
+      final response = await request.close();
+
+      if (response.statusCode == 200) {
+        final bytes = await consolidateHttpClientResponseBytes(response);
+        return base64Encode(bytes);
+      } else {
+        print("Failed to load image: $url");
+        return '';
+      }
+    } catch (e) {
+      print("Error converting image to base64: $e");
+      return '';
+    }
+  }
+
+  String prepareContextForCheckpoint(
+      Map<String, dynamic> checkpoint, int checkpointNumber,
+      {String nextCheckpointAdditionalPrompt = ''}) {
+    final learningObjectives =
+        (checkpoint['learningObjective'] as List<dynamic>)
+            .asMap()
+            .entries
+            .map((e) => '${e.key + 1}. ${e.value}')
+            .join('\n');
+
+    final blackboardText = checkpoint['blackboardText'] ?? '';
+    final teacherNotes = checkpoint['teacherNotes'] ?? '';
+
+    // Compose prompt
+    final additionalPrompt =
+        additionalPrompts['aiTutorPromptForCheckpoint']['content'];
+    final contentText = '''
+        STRICTLY FOLLOW: If there are any images GIVEN, then talk about those images while teaching too, like if the images contain some examples about something, then asking user to also check the image for examples.
+
+        ${checkpointNumber == 1 ? aiTutorPrompt : ''}
+        Concept being taught: ${widget.conceptName}.
+        $nextCheckpointAdditionalPrompt
+        Checkpoint ${checkpointNumber.toString()}:
+
+        Learning Objectives:
+        $learningObjectives
+
+        Blackboard Text:
+        $blackboardText
+
+        Teacher Notes:
+        $teacherNotes
+
+        $additionalPrompt
+        ''';
+    return contentText;
+  }
+
+  Future<List<Map<String, dynamic>>> prepareImageContextForCheckpoint(
+      List<dynamic> images) async {
+    final imageParts = <Map<String, dynamic>>[];
+
+    for (final url in images) {
+      final base64 = await imageUrlToBase64(url);
+      final mimeType = getMimeTypeFromUrl(url);
+
+      if (base64.isNotEmpty) {
+        imageParts.add({
+          "inlineData": {
+            "mimeType": mimeType,
+            "data": base64,
+          }
+        });
+      }
+    }
+    return imageParts;
+  }
+
+  void startConversationWithGemini() async {
     setState(() {
       showDots = true;
     });
-    String additionalPrompt =
-        additionalPrompts['aiTutorPromptForCheckpoint']['content'];
-    String contentText =
-        "$aiTutorPrompt \n\n Concept being taught: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}. $additionalPrompt";
-    logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId, 1);
-    sendConversationItemToGemini(contentText);
+
+    final checkpoint = conceptCheckpoints[0];
+    final contentText = prepareContextForCheckpoint(checkpoint, 1);
+
+    final images = checkpoint['images'] as List<dynamic>? ?? [];
+    final imageParts = await prepareImageContextForCheckpoint(images);
+
+    logAITutorCheckpointStart(checkpoint['id'], widget.conceptId, 1);
+    sendConversationItemWithImagesToGemini(contentText, imageParts);
   }
+
+  // void startConversationWithGemini() {
+  //   // String additionalPrompt =
+  //   //     additionalPrompts['aiTutorPromptForSystem']['content'];
+  //   // additionalPrompt = additionalPrompt
+  //   //     .replaceFirst("{subject}", widget.subject)
+  //   //     .replaceFirst("{standard}", widget.standard.toString());
+  //   setState(() {
+  //     showDots = true;
+  //   });
+  //   String additionalPrompt =
+  //       additionalPrompts['aiTutorPromptForCheckpoint']['content'];
+  //   String contentText =
+  //       "$aiTutorPrompt \n\n Concept being taught: ${widget.conceptName}. Checkpoint 1: ${conceptCheckpoints[0]}. $additionalPrompt";
+  //   logAITutorCheckpointStart(conceptCheckpoints[0]['id'], widget.conceptId, 1);
+  //   sendConversationItemToGemini(contentText);
+  // }
 
   void startConversation() {
     final startMessage = {
@@ -1512,16 +1597,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       _isLoading = true;
       lastMessageAudio = base64Audio;
     });
-    // final audioMessage = {
-    //   "realtimeInput": {
-    //     "mediaChunks": [
-    //       {
-    //         "mimeType": "audio/pcm;rate=24000",
-    //         "data": base64Audio,
-    //       }
-    //     ]
-    //   }
-    // };
     final activityStartMessage = {
       "realtimeInput": {"activityStart": {}}
     };
@@ -1555,64 +1630,18 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         .replaceFirst("{leftObjectives}", leftStr);
 
     final textMessage = {
-      "realtimeInput": {"text": additionalPrompt}
+      "realtimeInput": {
+        "text":
+            "$additionalPrompt /n/n STRICTLY FOLLOW: If there are any images GIVEN, then talk about those images while teaching too, like if the images contain some examples about something, then asking user to also check the image for examples."
+      }
     };
 
-    // final textMessage = {
-    //   "realtimeInput": {
-    //     "text":
-    //         "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"
-    //   }
-    // };
-
     webSocketService.sendMessage(textMessage);
-
-    // final textMessage = {
-    //   "clientContent": {
-    //     "turns": {
-    //       "role": "user",
-    //       "parts": [
-    //         {"text": "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"}
-    //       ]
-    //     },
-    //     "turn_complete": true
-    //   }
-    // };
-    // await Future.delayed(Duration(milliseconds: 500));
 
     final activityEndMessage = {
       "realtimeInput": {"activityEnd": {}}
     };
     webSocketService.sendMessage(activityEndMessage);
-
-    // final audioMessage = {
-    //   "type": "conversation.item.create",
-    //   "item": {
-    //     "type": "message",
-    //     "role": "user",
-    //     "content": [
-    //       {
-    //         "type": "input_audio",
-    //         "audio": base64Audio,
-    //       },
-    //       {
-    //         "type": "input_text",
-    //         "text":
-    //             "Current completion status of learning objectives: $checkpointLearningObjectiveStatus"
-    //       }
-    //     ]
-    //   }
-    // };
-
-    // webSocketService.sendMessage(audioMessage);
-
-    // Future.delayed(Duration(seconds: 15), () {
-    //   if (!responseStreaming && !responseCompleted && !responseStarted) {
-    //     print("message sent again as response generation didnt start");
-    //     lastResponseTime = DateTime.now();
-    //     sendAudioResponseForGemini(base64Audio);
-    //   }
-    // });
   }
 
   void sendAudioResponse(String base64Audio) {
@@ -2027,41 +2056,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                 child: Icon(
                                   Icons.more_vert_outlined,
                                 )),
-                        // if (!(showMistakeCorrectionButton ||
-                        //     showCheckResultButton ||
-                        //     showJumpToQuestionsButton))
-                        //   if (!greetingDone)
-                        //     GestureDetector(
-                        //         onTap: () {
-                        //           HapticFeedback.lightImpact();
-                        //           logAITutorMenuButtonClick(widget.conceptId);
-                        //           showLanguageAndVoiceSelectionSheet(context);
-                        //         },
-                        //         child: Container(
-                        //           padding: EdgeInsets.symmetric(
-                        //               horizontal: 12, vertical: 6),
-                        //           decoration: BoxDecoration(
-                        //             color: Colors.transparent,
-                        //             borderRadius: BorderRadius.circular(8),
-                        //           ),
-                        //           child: Row(
-                        //             children: [
-                        //               Text(
-                        //                 languageOptions[selectedLanguage] ??
-                        //                     "English",
-                        //                 style: GoogleFonts.raleway(
-                        //                   fontSize: 14,
-                        //                   fontWeight: FontWeight.w600,
-                        //                   color: Color.fromRGBO(255, 217, 0, 1),
-                        //                 ),
-                        //               ),
-                        //               const SizedBox(width: 4),
-                        //               const Icon(Icons.arrow_drop_down,
-                        //                   color:
-                        //                       Color.fromRGBO(255, 217, 0, 1)),
-                        //             ],
-                        //           ),
-                        //         )),
                       ]),
                   iconTheme: IconThemeData(
                     color: Colors.grey,
@@ -2127,21 +2121,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                     height: 150,
                                     fit: BoxFit.scaleDown,
                                   )),
-                              // ClipRRect(
-                              //   borderRadius: BorderRadius.circular(150),
-                              //   child: Container(
-                              //       color: Color.fromRGBO(19, 31, 36, 1),
-                              //       child: Image.asset(
-                              //         selectedTutor.isNotEmpty
-                              //             ? getTutorAvatar(
-                              //                     selectedTutor['avatar'])[
-                              //                 "imagePath"]!
-                              //             : getTutorAvatar(
-                              //                 "tutoprime")["imagePath"]!,
-                              //         height: 150,
-                              //         fit: BoxFit.scaleDown,
-                              //       )),
-                              // ),
                               SizedBox(
                                 height: 10,
                               ),
@@ -2268,22 +2247,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                 // Blackboard Text
                                 !skipAudioTutor &&
                                         displayedConversations.isNotEmpty
-                                    // ? Container(
-                                    //     constraints: BoxConstraints(
-                                    //       minHeight:
-                                    //           MediaQuery.of(context).size.height * 0.2,
-                                    //       // 15% of screen height as minimum height
-                                    //     ),
-                                    //     padding: const EdgeInsets.symmetric(
-                                    //         vertical: 8.0, horizontal: 12.0),
-                                    //     child: GestureDetector(
-                                    //       onTap: () {
-                                    //         _showAllConversations(context);
-                                    //       },
-                                    //       child: othersMessage(
-                                    //           displayedConversations.last["text"]),
-                                    //     ),
-                                    //   )
                                     ? AnimatedSize(
                                         duration: Duration(
                                             milliseconds:
@@ -2358,39 +2321,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                     ),
                                   )),
 
-                                // Image Inside Blackboard (If Present)
-                                // if (conceptCheckpoints[currentCheckpointIndex]
-                                //         .containsKey("image") &&
-                                //     conceptCheckpoints[currentCheckpointIndex]["image"]!
-                                //         .isNotEmpty)
-                                //   GestureDetector(
-                                //     onTap: () => _showImageDialog(
-                                //       context,
-                                //       conceptCheckpoints[currentCheckpointIndex]
-                                //           ["image"]!,
-                                //     ),
-                                //     child: Padding(
-                                //       padding: EdgeInsets.all(10),
-                                //       child: Flexible(
-                                //           child: Image.network(
-                                //         conceptCheckpoints[currentCheckpointIndex]
-                                //             ["image"]!,
-                                //         fit: BoxFit.contain,
-                                //         width: double.infinity,
-                                //         loadingBuilder:
-                                //             (context, child, loadingProgress) {
-                                //           if (loadingProgress == null) return child;
-                                //           return Center(
-                                //               child: CircularProgressIndicator());
-                                //         },
-                                //         errorBuilder: (context, error, stackTrace) =>
-                                //             Center(
-                                //           child: Icon(Icons.image_not_supported,
-                                //               color: Colors.grey, size: 50),
-                                //         ),
-                                //       )),
-                                //     ),
-                                //   ),
                                 if (!showContinuationButtons &&
                                     !showJumpToQuestionsButton &&
                                     !showMistakeCorrectionButton &&
@@ -2483,29 +2413,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                             fontWeight: FontWeight.w700),
                                       ))
                                     ])))),
-                      // !skipAudioTutor && displayedConversations.isNotEmpty
-                      //     ? Expanded(
-                      //         child: Padding(
-                      //             padding: const EdgeInsets.symmetric(
-                      //                 vertical: 8.0, horizontal: 12.0),
-                      //             child:
-                      //                 othersMessage(displayedConversations.last["text"])))
-                      //     // Flexible(
-                      //     //     child: ListView.builder(
-                      //     //     controller: _scrollController,
-                      //     //     itemCount: displayedConversations.length,
-                      //     //     itemBuilder: (context, index) {
-                      //     //       final conversation = conversations[index];
-
-                      //     //       return conversation['role'] == "user"
-                      //     //           ? SizedBox.shrink()
-                      //     //           : Padding(
-                      //     //               padding: const EdgeInsets.symmetric(
-                      //     //                   vertical: 8.0, horizontal: 12.0),
-                      //     //               child: othersMessage(conversation["text"]));
-                      //     //     },
-                      //     //   ))
-                      //     : Spacer(),
                       if (showContinuationButtons)
                         Padding(
                             padding:
