@@ -16,6 +16,8 @@ import 'package:eureka_app/apis/getAITutorPrompts.dart';
 import 'package:eureka_app/apis/getAITutorPromptsV2.dart';
 import 'package:eureka_app/apis/getAdditionalPrompts.dart';
 import 'package:eureka_app/apis/markLessonCompletion.dart';
+import 'package:eureka_app/apis/saveConceptConversations.dart';
+import 'package:eureka_app/apis/saveTokenUsage.dart';
 import 'package:eureka_app/apis/transcribeAudio.dart';
 import 'package:eureka_app/main.dart';
 import 'package:eureka_app/newEvents/aiTutorScreenEvents.dart';
@@ -155,6 +157,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
   late Map<String, String> languageOptions = {};
   late Map<String, String> voiceOptions = {};
+
+  Map<String, dynamic> usage = {};
 
   late final prefs;
 
@@ -726,6 +730,13 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
     final Map<String, dynamic> data = jsonDecode(stringMessage);
 
+    if (data.containsKey("usageMetadata")) {
+      setState(() {
+        usage = data["usageMetadata"];
+      });
+      saveTokenUsage(
+          tokenUsageData: data["usageMetadata"], conceptId: widget.conceptId);
+    }
     if (data.containsKey("setupComplete") && !sessionResumed) {
       if (!greetingDone) {
         greetingAndIntroConversationForGemini();
@@ -1114,6 +1125,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         xpGained += 45;
         allCheckpointsCompleted = true;
       });
+      saveConceptConversations(
+          conversations: conversations, conceptId: widget.conceptId);
       movingToQuestionConversation();
     } else {
       moveToNextCheckpoint();
@@ -1236,6 +1249,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
             }
           }
         },
+        "systemInstruction": {
+          "parts": [
+            {"text": greetingPrompt}
+          ]
+        },
         "realtimeInputConfig": {
           "automaticActivityDetection": {"disabled": true}
         },
@@ -1274,11 +1292,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
             }
           }
         },
-        // "systemInstruction": {
-        //   "parts": [
-        //     {"text": "$additionalPrompt \n\n $aiTutorPrompt"}
-        //   ]
-        // },
+        "systemInstruction": {
+          "parts": [
+            {"text": aiTutorPrompt}
+          ]
+        },
         "realtimeInputConfig": {
           "automaticActivityDetection": {"disabled": true}
         },
@@ -1344,7 +1362,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
   void greetingAndIntroConversationForGemini() {
     String contentText =
-        "$greetingPrompt \n\n Student's name:$studentName \n Concept to teach: ${widget.conceptName}.";
+        "Student's name:$studentName \n Concept to teach: ${widget.conceptName}.";
 
     sendConversationItemToGemini(contentText);
   }
@@ -1431,7 +1449,6 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     final contentText = '''
         STRICTLY FOLLOW: If there are any images GIVEN, then talk about those images while teaching too, like if the images contain some examples about something, then asking user to also check the image for examples.
 
-        ${checkpointNumber == 1 ? aiTutorPrompt : ''}
         Concept being taught: ${widget.conceptName}.
         $nextCheckpointAdditionalPrompt
         Checkpoint ${checkpointNumber.toString()}:
@@ -1458,7 +1475,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       final base64 = await imageUrlToBase64(url);
       final mimeType = getMimeTypeFromUrl(url);
 
-      if (base64.isNotEmpty) {
+      if (base64.isNotEmpty && mimeType != 'image/webp') {
         imageParts.add({
           "inlineData": {
             "mimeType": mimeType,
