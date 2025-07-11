@@ -1,4 +1,5 @@
 import 'package:eureka_app/apis/fetchRewardDetails.dart';
+import 'package:eureka_app/apis/refreshAccessToken.dart';
 import 'package:eureka_app/apis/updateFCMToken.dart';
 import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
@@ -16,6 +17,7 @@ import 'package:eureka_app/screens/progressReportScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
+import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
 import 'package:eureka_app/widgets/achievementDetailsWidgetV2.dart';
 import 'package:eureka_app/widgets/aiTeacherSelection.dart';
@@ -81,6 +83,11 @@ void main() async {
     String deviceId = deviceDetails['deviceId'] ?? "Unknown";
     String platform = deviceDetails['platform'] ?? "Unknown";
     String userIP = await getUserIP();
+
+    AuthTokenService authTokenService = AuthTokenService();
+    Map<String, dynamic> refreshTokenResponse = await refreshAccessToken();
+    await authTokenService.setAuthToken(refreshTokenResponse['token'] ?? "");
+
     logAppLaunchEvent(deviceId, platform, userIP, firstLaunch);
     if (!kIsWeb) {
       initDynamicLinkListener(prefs);
@@ -121,7 +128,7 @@ class MyApp extends StatelessWidget {
               context: context, firstLaunch: firstLaunch));
 
           return MaterialApp(
-            title: "Tuto: AI Tutor for Class 6-10",
+            title: "Tuto: AI Tutor for Class 6-12",
             navigatorKey: navigatorKey,
             theme: ThemeData(
               useMaterial3: true,
@@ -181,7 +188,7 @@ class _MainPageState extends State<MainPage> {
       WeeklyLeaderboardContent(),
       ProgressReportScreen(),
       ProfileScreen(),
-      // ConceptStartScreen()
+      // OnboardingScreenV4()
       FeedScreen()
       // LoginScreen()
     ];

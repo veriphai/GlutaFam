@@ -333,62 +333,62 @@ class _HomeScreenState extends State<HomeScreenSliver> {
     }
   }
 
-  void _showChapterSelectionSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return ChapterSelection(
-          chapters: chapters,
-          activeChapter: activeChapter,
-          subjects: [],
-          selectedSubject: '',
-          standard: 8,
-          onSubjectSelect: (index, name) {},
-          onChapterSelect: (index, chapterName) {
-            // Handle the selected chapter
-            print("Selected Chapter: $chapterName (Index: $index)");
+  // void _showChapterSelectionSheet(BuildContext context) {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (BuildContext context) {
+  //       return ChapterSelection(
+  //         chapters: chapters,
+  //         activeChapter: activeChapter,
+  //         subjects: [],
+  //         selectedSubject: '',
+  //         standard: 8,
+  //         onSubjectSelect: (index, name) {},
+  //         onChapterSelect: (index, chapterName) {
+  //           // Handle the selected chapter
+  //           print("Selected Chapter: $chapterName (Index: $index)");
 
-            // Get the first topic of the selected chapter
-            final topics = (chapters[index]['topics'] as List<dynamic>)
-                .map((topic) => topic as Map<String, dynamic>)
-                .toList();
-            if (topics.isNotEmpty) {
-              // Find the key for the first topic in the selected chapter
-              final firstTopicIndex = chapters
-                  .take(index) // Take all chapters before the selected chapter
-                  .fold<int>(
-                    0,
-                    (total, chapter) =>
-                        total + (chapter['topics'].length as int),
-                  ); // Calculate cumulative topic index
+  //           // Get the first topic of the selected chapter
+  //           final topics = (chapters[index]['topics'] as List<dynamic>)
+  //               .map((topic) => topic as Map<String, dynamic>)
+  //               .toList();
+  //           if (topics.isNotEmpty) {
+  //             // Find the key for the first topic in the selected chapter
+  //             final firstTopicIndex = chapters
+  //                 .take(index) // Take all chapters before the selected chapter
+  //                 .fold<int>(
+  //                   0,
+  //                   (total, chapter) =>
+  //                       total + (chapter['topics'].length as int),
+  //                 ); // Calculate cumulative topic index
 
-              final topicKey = _topicKeys[firstTopicIndex];
+  //             final topicKey = _topicKeys[firstTopicIndex];
 
-              // Scroll to the position of the first topic
-              // final estimatedPosition =
-              //     firstTopicIndex * 200.0; // Approximate height per item
-              // _scrollController.animateTo(
-              //   estimatedPosition,
-              //   duration: const Duration(milliseconds: 500),
-              //   curve: Curves.easeInOut,
-              // );
-              scrollToTopic(firstTopicIndex);
+  //             // Scroll to the position of the first topic
+  //             // final estimatedPosition =
+  //             //     firstTopicIndex * 200.0; // Approximate height per item
+  //             // _scrollController.animateTo(
+  //             //   estimatedPosition,
+  //             //   duration: const Duration(milliseconds: 500),
+  //             //   curve: Curves.easeInOut,
+  //             // );
+  //             scrollToTopic(firstTopicIndex);
 
-              // Update the active topic
-              setState(() {
-                activeChapter = chapterName;
-                _activeTopic = topics.first['name']; // Set first topic name
-              });
-            }
+  //             // Update the active topic
+  //             setState(() {
+  //               activeChapter = chapterName;
+  //               _activeTopic = topics.first['name']; // Set first topic name
+  //             });
+  //           }
 
-            // Navigator.pop(context); // Close the bottom sheet
-          },
-        );
-      },
-    );
-  }
+  //           // Navigator.pop(context); // Close the bottom sheet
+  //         },
+  //       );
+  //     },
+  //   );
+  // }
 
   bool isToday(int epochTimeInSeconds) {
     DateTime expiryDate =
@@ -1165,7 +1165,7 @@ class _HomeScreenState extends State<HomeScreenSliver> {
                 child: ChicletAnimatedButton(
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    _showChapterSelectionSheet(context);
+                    // _showChapterSelectionSheet(context);
                   },
                   height: 70,
                   buttonHeight: 4,
@@ -1212,7 +1212,7 @@ class _HomeScreenState extends State<HomeScreenSliver> {
                 child: ChicletAnimatedButton(
                     onPressed: () {
                       HapticFeedback.lightImpact();
-                      _showChapterSelectionSheet(context);
+                      // _showChapterSelectionSheet(context);
                     },
                     buttonType: ChicletButtonTypes.circle,
                     width: 80,

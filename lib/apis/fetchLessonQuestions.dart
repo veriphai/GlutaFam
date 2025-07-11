@@ -11,7 +11,8 @@ Future<Map<String, dynamic>> fetchLessonQuestions(
         await http.get(Uri.parse(url), headers: {'Accept-Encoding': 'gzip'});
 
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      final utf8Body = utf8.decode(response.bodyBytes);
+      return jsonDecode(utf8Body) as Map<String, dynamic>;
     } else {
       print(
           'Failed to fetch lesson questions. Status code: ${response.statusCode}');

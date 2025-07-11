@@ -2,7 +2,9 @@ import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bubble_box/bubble_box.dart';
 import 'package:chiclet/chiclet.dart';
+import 'package:eureka_app/apis/getClassOptions.dart';
 import 'package:eureka_app/apis/saveProfile.dart';
+import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:eureka_app/main.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/widgets/schoolSelectionWidget.dart';
@@ -34,37 +36,16 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
   Map<String, dynamic> selectedOptions = {};
   TextEditingController? nameController; // Persistent controller
   final AudioPlayer continueAudioPlayer = AudioPlayer();
+  AuthTokenService authTokenService = AuthTokenService();
+  Map<String, Set<String>> multiSelectStates = {};
 
-  @override
-  void initState() {
-    super.initState();
-    // Initialize the controller with the selected option (if available)
-    nameController = TextEditingController(text: selectedOptions["name_input"]);
-    continueAudioPlayer.setSource(AssetSource('correct_answer.mp3')).then((_) {
-      print('Correct answer audio preloaded');
-    });
-  }
-
-  @override
-  void dispose() {
-    nameController
-        ?.dispose(); // Dispose of the controller when no longer needed
-    super.dispose();
-  }
-
-  void _playSound(String soundPath) {
-    try {
-      continueAudioPlayer.play(AssetSource(soundPath));
-    } catch (e) {
-      print("Error playing sound: $e");
-    }
-  }
-
-  void _updateSelection(String type, dynamic value) {
-    setState(() {
-      selectedOptions[type] = value;
-    });
-  }
+  late List<Map<String, dynamic>> classOptions = [
+    {"name": "Class 6", "standard": 6},
+    {"name": "Class 7", "standard": 7},
+    {"name": "Class 8", "standard": 8},
+    {"name": "Class 9", "standard": 9},
+    {"name": "Class 10", "standard": 10}
+  ];
 
   final List<Map<String, dynamic>> pages = [
     {
@@ -80,7 +61,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "generic",
       "heading":
-          "My parents often used to say curiosity killed the cat but never told me the satisfaction brought it back",
+          'My parents used to say, "Curiosity killed the cat," but they never mentioned the second part: "satisfaction brought it back."',
       "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
@@ -89,7 +70,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "type": "info_message",
       "headingType": "generic",
       "heading":
-          "I am curious to learn more about you just few quick questions before we start your first lesson!",
+          "I am curious to learn more about you. I just have a few quick questions before we start your first lesson.",
       "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
@@ -150,103 +131,89 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "pageNo": 2,
       "type": "info_message",
       "headingType": "generic",
-      "heading": "Let's set up a learning routine!",
+      "heading": "Let's personalise the journey for you!",
       "mascotImage": "lib/assets/animations/lovelyCat.json",
       "description": "",
     },
     {
-      "pageNo": 4,
-      "type": "daily_goal",
-      "heading": "What’s your daily learning goal?",
-      "mascotImage": "lib/assets/animations/catLiftingWeights.json",
-      "description":
-          "With consistent achievement of goals, students are likely to improve drastically!",
+      "pageNo": 0,
+      "type": "challenges",
+      "subType": "multi-select",
+      "heading": "Which challenge trips you up most when studying on your own?",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
+      "description": "",
       "options": [
-        {
-          "label": "15 min / day",
-          "helperText": "Casual",
-          "description": "You'll be 1x more likely to improve your grades!"
-        },
-        {
-          "label": "30 min / day",
-          "helperText": "Regular",
-          "description": "You'll be 2x more likely to improve your grades!"
-        },
-        {
-          "label": "45 min / day",
-          "helperText": "Serious",
-          "description": "You'll be 3x more likely to improve your grades!"
-        },
-        {
-          "label": "60 min / day",
-          "helperText": "Intense",
-          "description": "You'll be 5x more likely to improve your grades!"
-        }
+        "💤 Can’t focus / phone pings",
+        "⏲ Too little time",
+        "🤯 Concepts feel confusing",
+        "🤷‍♂️ No one to clear doubts",
+        "😓 Forget soon after studying",
+        "📚 Too much homework / syllabus",
+        "😐 Material feels boring"
       ]
     },
     {
-      "pageNo": 5,
-      "type": "learning_time",
-      "heading": "What is your preferred learning time?",
+      "pageNo": 0,
+      "type": "startNewChapter",
+      "subType": "multi-select",
+      "heading": "What’s your first move when you start a new chapter?",
       "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
-      "options": ["Morning", "Afternoon", "Evening", "Night"]
-    },
-    // {
-    //   "pageNo": 2,
-    //   "type": "info_message",
-    //   "headingType": "learning_time",
-    //   "heading": "Let's set up a learning routine!",
-    //   "mascotImage": "lib/assets/animations/lovelyCat.json",
-    //   "description": "",
-    // },
-    {
-      "pageNo": 2,
-      "type": "info_message",
-      "headingType": "generic",
-      "heading": "It can be hard to stay motivated...",
-      "mascotImage": "lib/assets/animations/lovelyCat.json",
-      "description": "",
+      "options": [
+        "✍️ Work through practice questions",
+        "🎞 Watch a short video",
+        "📖 Read textbook/notes",
+        "🎤 Talk it out with someone",
+        "🧠 Use flashcards/mnemonics",
+        "🛠 Do a hands-on project"
+      ]
     },
     {
-      "pageNo": 2,
-      "type": "info_message",
-      "headingType": "generic",
-      "heading": "so learning with Tuto is designed to be fun like a game!",
-      "mascotImage": "lib/assets/animations/lovelyCat.json",
-      "description": "",
-    },
-    {
-      "pageNo": 6,
-      "type": "commit_to_learning",
-      "heading": "Commit to learning",
-      "mascotImage": "lib/assets/animations/catLiftingWeights.json",
+      "pageNo": 0,
+      "type": "learnBestThrough",
+      "subType": "multi-select",
+      "heading": "What methods help you learn tough concepts the best?",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
       "description": "",
       "options": [
-        {
-          "label": "7 day streak",
-          "helperText": "Good",
-          "description":
-              "You'll be 3x more likely to stay on track and retain what you learn!"
-        },
-        {
-          "label": "14 day streak",
-          "helperText": "Great",
-          "description":
-              "You'll be 5x more likely to stay on track and retain what you learn!"
-        },
-        {
-          "label": "30 day streak",
-          "helperText": "Incredible",
-          "description":
-              "You'll be 7x more likely to stay on track and retain what you learn!"
-        },
-        {
-          "label": "50 day streak",
-          "helperText": "Unstoppable",
-          "description":
-              "You'll be 9x more likely to stay on track and retain what you learn!"
-        }
+        "🧩 Step-by-step solved examples",
+        "🌍 Real-life stories/analogies",
+        "🎨 Animated visuals",
+        "🧠 Memory tricks/flashcards",
+        "💬 Discussion & Q&A"
+      ]
+    },
+    {
+      "pageNo": 0,
+      "type": "helpNeeded",
+      "subType": "multi-select",
+      "heading": "When do you usually feel you need help or extra assistance?",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
+      "description": "",
+      "options": [
+        "📝 While doing homework / assignments",
+        "🧪 Before an upcoming test",
+        "🔄 When revising what was taught in class",
+        "❓ When I’m stuck on a specific doubt",
+        "🚀 When I want to get ahead / explore",
+        "🧐 To quiz me"
+      ]
+    },
+    {
+      "pageNo": 0,
+      "type": "videoIssues",
+      "subType": "multi-select",
+      "heading": "What bugs you most about learning videos on YouTube?",
+      "mascotImage": "lib/assets/animations/catNotingDown.json",
+      "description": "",
+      "options": [
+        "⏱ Too long / rambling",
+        "🚀 Too fast",
+        "❓ Can’t ask doubts",
+        "🎯 Hard to find exact topic",
+        "📝 Lack of notes & practice questions",
+        "🧹 Too much filler / clickbait intro",
+        "🔧 Not personalised to your context"
       ]
     },
     {
@@ -274,86 +241,6 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "description": "",
       "inputType": "text"
     },
-    // {
-    //   "pageNo": 11,
-    //   "type": "school_details",
-    //   "heading": "In which school do you study?",
-    //   "mascotImage": "assets/images/mascot_school.png",
-    //   "description": "",
-    //   "inputs": [
-    //     {
-    //       "label": "State",
-    //       "placeholder": "Enter your state",
-    //       "inputType": "text"
-    //     },
-    //     {
-    //       "label": "City",
-    //       "placeholder": "Enter your city",
-    //       "inputType": "text"
-    //     },
-    //     {
-    //       "label": "School",
-    //       "placeholder": "Enter your school",
-    //       "inputType": "text"
-    //     }
-    //   ]
-    // },
-    // {
-    //   "pageNo": 2,
-    //   "type": "info_message",
-    //   "headingType": "name",
-    //   "heading": "Welcome, {}! Your profile is almost setup",
-    //   "mascotImage": "lib/assets/animations/lovelyCat.json",
-    //   "description": "",
-    // },
-    // {
-    //   "pageNo": 2,
-    //   "type": "info_message",
-    //   "headingType": "generic",
-    //   "heading":
-    //       "Finally, a little bit about your learning preferences! So we can improve the app to support you better",
-    //   "mascotImage": "lib/assets/animations/lovelyCat.json",
-    //   "description": "",
-    // },
-    // {
-    //   "pageNo": 7,
-    //   "type": "progress_reports",
-    //   "heading": "Would you like to receive progress reports?",
-    //   "mascotImage": "lib/assets/animations/catNotingDown.json",
-    //   "description": "",
-    //   "options": ["Yes - Weekly", "Yes - Monthly", "No"]
-    // },
-    // {
-    //   "pageNo": 8,
-    //   "type": "motivation",
-    //   "heading": "What motivates you to learn?",
-    //   "mascotImage": "lib/assets/animations/catNotingDown.json",
-    //   "description": "",
-    //   "options": [
-    //     "Rewards",
-    //     "Parental encouragement",
-    //     "Personal interest",
-    //     "Peer pressure",
-    //     "Career goals"
-    //   ]
-    // },
-    // {
-    //   "pageNo": 9,
-    //   "type": "learning_preference",
-    //   "heading": "Do you prefer competitive or individual learning?",
-    //   "mascotImage": "lib/assets/animations/catNotingDown.json",
-    //   "description": "",
-    //   "options": ["Compete with others", "Learn at my own pace"]
-    // },
-    // {
-    //   "pageNo": 2,
-    //   "type": "info_message",
-    //   "headingType": "generic",
-    //   "heading":
-    //       "Ahhh! I am so satisfied by getting to know you. Thanks for telling me everything about you!",
-    //   "mascotImage": "lib/assets/animations/lovelyCat.json",
-    //   "description": "",
-    // },
     {
       "pageNo": 2,
       "type": "info_message",
@@ -365,7 +252,52 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
     }
   ];
 
-  AuthTokenService authTokenService = AuthTokenService();
+  @override
+  void initState() {
+    super.initState();
+    fetchClassOptions();
+    // Initialize the controller with the selected option (if available)
+    nameController = TextEditingController(text: selectedOptions["name_input"]);
+    continueAudioPlayer.setSource(AssetSource('correct_answer.mp3')).then((_) {
+      print('Correct answer audio preloaded');
+    });
+    logOnboardingScreenView(widget.deviceId ?? "", widget.platform ?? "",
+        widget.userIP ?? "", currentPage + 1);
+  }
+
+  @override
+  void dispose() {
+    nameController
+        ?.dispose(); // Dispose of the controller when no longer needed
+    super.dispose();
+  }
+
+  void _playSound(String soundPath) {
+    try {
+      continueAudioPlayer.play(AssetSource(soundPath));
+    } catch (e) {
+      print("Error playing sound: $e");
+    }
+  }
+
+  void _updateSelection(String type, dynamic value) {
+    setState(() {
+      selectedOptions[type] = value;
+    });
+  }
+
+  Future<void> fetchClassOptions() async {
+    try {
+      final classesData = await getClassOptions();
+
+      setState(() {
+        classOptions = classesData;
+      });
+    } catch (error) {
+      print("Error fetching class options: $error");
+    }
+  }
+
   String findPreparationType(int classNumber) {
     if (classNumber == 11) {
       return "JEE_2025";
@@ -396,34 +328,15 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
     // Class selection processing
     if (selectedOptions["class_selection"] != null) {
       String classSelection = selectedOptions["class_selection"];
-      if (classSelection == "Class 6") {
-        standard = 6;
-      } else if (classSelection == "Class 7") {
-        standard = 7;
-      } else if (classSelection == "Class 8") {
-        standard = 8;
-      } else if (classSelection == "Class 9") {
-        standard = 9;
-      } else if (classSelection == "Class 10") {
-        standard = 10;
-      } else if (classSelection == "Class 11 - Science") {
-        standard = 11;
-        stream = "Science";
-      } else if (classSelection == "Class 11 - Commerce") {
-        standard = 11;
-        stream = "Commerce";
-      } else if (classSelection == "Class 11 - Humanities") {
-        standard = 11;
-        stream = "Humanities";
-      } else if (classSelection == "Class 12 - Science") {
-        standard = 12;
-        stream = "Science";
-      } else if (classSelection == "Class 12 - Commerce") {
-        standard = 12;
-        stream = "Commerce";
-      } else if (classSelection == "Class 12 - Humanities") {
-        standard = 12;
-        stream = "Humanities";
+      // Find the matching option in the list
+      final selected = classOptions.firstWhere(
+        (option) => option['name'] == classSelection,
+        orElse: () => {},
+      );
+
+      if (selected.isNotEmpty) {
+        standard = selected['standard'];
+        stream = selected['stream'] ?? ""; // Will be null for classes 6-10
       }
     }
     if (selectedOptions["commit_to_learning"] != null) {
@@ -460,6 +373,14 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
     String? school = selectedOptions["school"];
     String? schoolId = selectedOptions["schoolId"];
 
+    String challenges = (multiSelectStates["challenges"] ?? {}).join(", ");
+    String startNewChapter =
+        (multiSelectStates["startNewChapter"] ?? {}).join(", ");
+    String videoIssues = (multiSelectStates["videoIssues"] ?? {}).join(", ");
+    String learnBestThrough =
+        (multiSelectStates["learnBestThrough"] ?? {}).join(", ");
+    String helpNeeded = (multiSelectStates["helpNeeded"] ?? {}).join(", ");
+
     // Add all processed data to the map
     processedData = {
       "standard": standard,
@@ -482,7 +403,12 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       "refereeCode": refereeCode,
       "devicePlatform": widget.platform,
       "userIp": widget.userIP,
-      "fcmDeviceToken": fcmToken
+      "fcmDeviceToken": fcmToken,
+      "challenges": challenges,
+      "startNewChapter": startNewChapter,
+      "videoIssues": videoIssues,
+      "learnBestThrough": learnBestThrough,
+      "helpNeeded": helpNeeded
     };
 
     return processedData;
@@ -502,9 +428,13 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       if (pages[currentPage]["type"] != "info_message") {
         currentProgress++;
       }
+      logOnboardingScreenView(widget.deviceId ?? "", widget.platform ?? "",
+          widget.userIP ?? "", currentPage + 1);
     } else {
       // Complete onboarding logic
       print("Onboarding completed");
+      logOnboardingCompleted(
+          widget.deviceId ?? "", widget.platform ?? "", widget.userIP ?? "");
       SharedPreferences prefs = await SharedPreferences.getInstance();
       Map<String, dynamic> dataToSave = prepareDataToSave(prefs);
       await saveProfile(profileData: dataToSave);
@@ -594,6 +524,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
   Widget _buildPageContent(Map<String, dynamic> pageData) {
     switch (pageData["type"]) {
       case "class_selection":
+        pageData["options"] = classOptions.map((c) => c['name']).toList();
         return _buildPageTemplate1(pageData);
       case "source_of_information":
         return _buildPageTemplate1(pageData);
@@ -613,6 +544,12 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
         return _buildPageTemplate1(pageData);
       case "name_input":
         return _buildNameInputPage(pageData);
+      case "challenges":
+      case "startNewChapter":
+      case "videoIssues":
+      case "learnBestThrough":
+      case "helpNeeded":
+        return _buildPageTemplateMultiSelect(pageData);
       case "school_details":
         return SchoolSelectionWidget(
           onSelectionChanged: (state, city, school, schoolId) {
@@ -632,6 +569,158 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
       default:
         return _buildPageTemplate1(pageData);
     }
+  }
+
+  Widget _buildPageTemplateMultiSelect(Map<String, dynamic> pageData) {
+    final pageType = pageData["type"];
+    // Initialize selection state for this page if needed
+    multiSelectStates[pageType] ??= <String>{};
+
+    return Column(
+      children: [
+        // Mascot and Heading (reuse your code)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (pageData["mascotImage"] != null)
+              SizedBox(
+                height: 120,
+                width: 120,
+                child: Lottie.asset(
+                  pageData["mascotImage"],
+                  fit: BoxFit.cover,
+                ),
+              ),
+            const SizedBox(width: 4),
+            Flexible(
+                child: BubbleBox(
+                    shape: BubbleShapeBorder(
+                        border: BubbleBoxBorder(
+                          color: Colors.grey.shade700,
+                          width: 3,
+                        ),
+                        radius: BorderRadius.circular(12),
+                        position: const BubblePosition.center(0),
+                        direction: BubbleDirection.left,
+                        arrowHeight: 10),
+                    backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+                    child: Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Stack(
+                          children: [
+                            Text(
+                              pageData["heading"],
+                              // textAlign: TextAlign.center,
+                              style: GoogleFonts.raleway(
+                                color: Colors.transparent,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            AnimatedTextKit(
+                              key: ValueKey(pageData[
+                                  "heading"]), // Unique key for each message
+                              animatedTexts: [
+                                TyperAnimatedText(
+                                  pageData["heading"],
+                                  textStyle: GoogleFonts.raleway(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  speed: const Duration(
+                                      milliseconds: 20), // Typing speed
+                                ),
+                              ],
+                              isRepeatingAnimation: false, // No looping
+                              totalRepeatCount: 1, // Play once
+                            ),
+                          ],
+                        ))))
+          ],
+        ),
+        const SizedBox(height: 20),
+        Expanded(
+          child: _buildMultiOptions(pageData),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMultiOptions(Map<String, dynamic> pageData) {
+    final options = pageData["options"];
+    final pageType = pageData["type"];
+    if (options == null || options.isEmpty) return Container();
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: options.map<Widget>((option) {
+          final String label = option is String ? option : option;
+          final isSelected =
+              multiSelectStates[pageType]?.contains(label) ?? false;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: ChicletOutlinedAnimatedButton(
+              onPressed: () {
+                setState(() {
+                  if (isSelected) {
+                    multiSelectStates[pageType]?.remove(label);
+                    if (multiSelectStates[pageType]?.isEmpty == true) {
+                      selectedOption = null;
+                    }
+                  } else {
+                    multiSelectStates[pageType]?.add(label);
+                    selectedOption = label;
+                  }
+                  // If you want to save in selectedOptions as well:
+                  selectedOptions[pageType] =
+                      multiSelectStates[pageType]?.toList();
+                });
+              },
+              width: double.infinity,
+
+              // height: 50,
+              borderWidth: 2,
+              borderRadius: 12,
+              borderColor: isSelected ? Colors.blue : Colors.grey[700]!,
+              backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+              child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: 50),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      children: [
+                        // Icon(
+                        //   isSelected
+                        //       ? Icons.check_box
+                        //       : Icons.check_box_outline_blank,
+                        //   color: isSelected ? Colors.blue : Colors.white,
+                        // ),
+                        // const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: GoogleFonts.raleway(
+                              color: isSelected ? Colors.blue : Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            // Uncomment below if you want ellipsis instead of wrap:
+                            // maxLines: 2,
+                            // overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   Widget _buildPageTemplate1(Map<String, dynamic> pageData) {

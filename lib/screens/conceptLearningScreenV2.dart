@@ -18,6 +18,7 @@ import 'package:eureka_app/apis/getAdditionalPrompts.dart';
 import 'package:eureka_app/apis/markLessonCompletion.dart';
 import 'package:eureka_app/apis/saveConceptConversations.dart';
 import 'package:eureka_app/apis/saveTokenUsage.dart';
+import 'package:eureka_app/apis/saveUserFeedback.dart';
 import 'package:eureka_app/apis/transcribeAudio.dart';
 import 'package:eureka_app/main.dart';
 import 'package:eureka_app/newEvents/aiTutorScreenEvents.dart';
@@ -29,6 +30,7 @@ import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'package:eureka_app/widgets/conceptResultScreen.dart';
 import 'package:eureka_app/widgets/conversationScreen.dart';
 import 'package:eureka_app/widgets/languageAndVoiceSelection.dart';
+import 'package:eureka_app/widgets/lessonCheckpoints.dart';
 import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -159,6 +161,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   late Map<String, String> voiceOptions = {};
 
   Map<String, dynamic> usage = {};
+
+  late String conceptConversationsKey = "";
 
   late final prefs;
 
@@ -317,6 +321,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     if (selectedTutor.isNotEmpty) {
       tutorName = selectedTutor['name'];
     }
+
+    conceptConversationsKey =
+        "${widget.name}_${widget.conceptId}_${DateTime.now().millisecondsSinceEpoch}";
 
     // startConversation();
     // getConceptDetails();
@@ -782,7 +789,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       } else if (serverContent.containsKey("turnComplete") &&
           serverContent["turnComplete"]) {
         lastResponseTime = DateTime.now();
-
+        saveConceptConversations(
+            conversationsKey: conceptConversationsKey,
+            conversations: conversations,
+            conceptId: widget.conceptId,
+            language: selectedLanguage);
         return;
       } else if (serverContent.containsKey("modelTurn")) {
         //case for text response
@@ -1053,6 +1064,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       setState(() {
         showDots = true;
       });
+      logAITutorCheckpointEnd(conceptCheckpoints[currentCheckpointIndex]['id'],
+          widget.conceptId, currentCheckpointIndex + 1);
+
       currentCheckpointIndex += 1;
 
       const additionalTextForNextCheckpoints =
@@ -1125,8 +1139,13 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         xpGained += 45;
         allCheckpointsCompleted = true;
       });
+      logAITutorCheckpointEnd(conceptCheckpoints[currentCheckpointIndex]['id'],
+          widget.conceptId, currentCheckpointIndex + 1);
       saveConceptConversations(
-          conversations: conversations, conceptId: widget.conceptId);
+          conversationsKey: conceptConversationsKey,
+          conversations: conversations,
+          conceptId: widget.conceptId,
+          language: selectedLanguage);
       movingToQuestionConversation();
     } else {
       moveToNextCheckpoint();
@@ -1497,6 +1516,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
     final images = checkpoint['images'] as List<dynamic>? ?? [];
     final imageParts = await prepareImageContextForCheckpoint(images);
+    print(checkpoint['blackboardText']);
 
     logAITutorCheckpointStart(checkpoint['id'], widget.conceptId, 1);
     sendConversationItemWithImagesToGemini(contentText, imageParts);
@@ -1880,6 +1900,185 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     );
   }
 
+  void _showExitFeedbackSheet(BuildContext context) {
+    final List<String> feedbackOptions = [
+      "😴 Too slow / felt boring",
+      "🛠️ Tech glitch – tutor bugged/ stuck",
+      "👀 Just browsing for now",
+      "🔇 Speaking out loud felt awkward",
+      "🤔 Didn't understand",
+      "⏳ Not worth the time",
+      "😕 Expected something else",
+      "📝 Other (tell us!)"
+    ];
+
+    final Set<String> selectedOptions = {};
+    final TextEditingController feedbackController = TextEditingController();
+
+    // bool hasInput = false;
+
+    // feedbackController.addListener(() {
+    //   final newHasInput = feedbackController.text.trim().isNotEmpty;
+    //   if (newHasInput != hasInput) {
+    //     setState(() {
+    //       hasInput = newHasInput;
+    //     });
+    //   }
+    // });
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color.fromRGBO(19, 31, 36, 1),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setState) {
+          bool hasInput = feedbackController.text.trim().isNotEmpty;
+
+          feedbackController.addListener(() {
+            final newHasInput = feedbackController.text.trim().isNotEmpty;
+            if (newHasInput != hasInput) {
+              setState(() {
+                hasInput = newHasInput;
+              });
+            }
+          });
+          return Padding(
+            padding: MediaQuery.of(context)
+                .viewInsets
+                .add(const EdgeInsets.symmetric(vertical: 16, horizontal: 8)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Why are you leaving?",
+                  style: GoogleFonts.raleway(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Choice Chips
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: feedbackOptions.map((option) {
+                    final isSelected = selectedOptions.contains(option);
+                    return ChoiceChip(
+                      label: Text(
+                        option,
+                        style: GoogleFonts.raleway(
+                          color: isSelected ? Colors.black : Colors.white,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedColor: const Color.fromRGBO(255, 217, 0, 1),
+                      backgroundColor: const Color.fromRGBO(34, 41, 49, 1),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            selectedOptions.add(option);
+                          } else {
+                            selectedOptions.remove(option);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Text Field
+                Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: TextField(
+                      controller: feedbackController,
+                      maxLines: 3,
+                      style: const TextStyle(color: Colors.white),
+                      cursorColor: Colors.yellow,
+                      decoration: InputDecoration(
+                        hintText: "Enter your feedback",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        filled: true,
+                        fillColor: const Color.fromRGBO(34, 41, 49, 1),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    )),
+
+                const SizedBox(height: 16),
+
+                // Submit Button
+                Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: ChicletAnimatedButton(
+                      onPressed: selectedOptions.isNotEmpty || hasInput
+                          ? () {
+                              final reasons = selectedOptions.toList();
+                              final message = feedbackController.text.trim();
+                              final checkpointNo =
+                                  greetingDone ? currentCheckpointIndex + 1 : 0;
+
+                              logAITutorExitFeedbackSubmitted(
+                                  conceptCheckpoints[currentCheckpointIndex]
+                                      ['id'],
+                                  widget.conceptId,
+                                  checkpointNo);
+                              saveUserFeedback(lessonFeedback: {
+                                "conceptId": widget.conceptId,
+                                "reasons": reasons,
+                                "feedback": message
+                              });
+                              Navigator.pop(context); // close feedback sheet
+
+                              // 🔁 Handle your backend or analytics here
+                              print("Exit reasons: $reasons");
+                              print("Feedback: $message");
+
+                              if (wasFirstLesson) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => MainPage()),
+                                  (route) => false,
+                                );
+                              } else {
+                                Navigator.pop(context, {"completed": false});
+                              }
+                            }
+                          : null, // Disabled if nothing selected
+                      buttonType: ChicletButtonTypes.roundedRectangle,
+                      width: double.infinity,
+                      height: 50,
+                      backgroundColor: selectedOptions.isNotEmpty || hasInput
+                          ? const Color.fromRGBO(255, 217, 0, 1)
+                          : Colors.grey[700],
+                      child: Text(
+                        "SUBMIT",
+                        style: GoogleFonts.raleway(
+                          color: selectedOptions.isNotEmpty || hasInput
+                              ? Colors.black
+                              : Colors.white54,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
   void _showExitConfirmation(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -1945,16 +2144,27 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
               // 🔄 Cancel Button
               ChicletOutlinedAnimatedButton(
                 onPressed: () {
-                  if (wasFirstLesson) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => MainPage()),
-                      (route) => false,
-                    );
-                  } else {
-                    Navigator.pop(context);
-                    Navigator.pop(context, {"completed": false});
-                  }
+                  HapticFeedback.lightImpact();
+                  Navigator.pop(context); // close XP modal
+                  final checkpointNo =
+                      greetingDone ? currentCheckpointIndex + 1 : 0;
+                  logAITutorExit(
+                      conceptCheckpoints[currentCheckpointIndex]['id'],
+                      widget.conceptId,
+                      checkpointNo);
+                  Future.delayed(Duration(milliseconds: 100), () {
+                    _showExitFeedbackSheet(context); // open feedback sheet
+                  });
+                  // if (wasFirstLesson) {
+                  //   Navigator.pushAndRemoveUntil(
+                  //     context,
+                  //     MaterialPageRoute(builder: (context) => MainPage()),
+                  //     (route) => false,
+                  //   );
+                  // } else {
+                  //   Navigator.pop(context);
+                  //   Navigator.pop(context, {"completed": false});
+                  // }
 
                   // Navigator.pushAndRemoveUntil(
                   //   context,
@@ -2121,13 +2331,16 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                         height: 20,
                       ),
                       if (!greetingDone)
-                        Center(
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
                             child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                              Container(
-                                  color: Color.fromRGBO(19, 31, 36, 1),
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // 🐶 Tutor Avatar
+                                Container(
+                                  color: const Color.fromRGBO(19, 31, 36, 1),
                                   child: Image.asset(
                                     selectedTutor.isNotEmpty
                                         ? getTutorAvatar(
@@ -2137,12 +2350,13 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                             "tutoprime")["imagePath"]!,
                                     height: 150,
                                     fit: BoxFit.scaleDown,
-                                  )),
-                              SizedBox(
-                                height: 10,
-                              ),
-                              if (tutorName.isNotEmpty)
-                                GestureDetector(
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+
+                                // 👨🏽‍🏫 Tutor name + change
+                                if (tutorName.isNotEmpty)
+                                  GestureDetector(
                                     onTap: () {
                                       HapticFeedback.lightImpact();
                                       logAITutorSwitchTutorClick(
@@ -2163,12 +2377,10 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                           ),
                                         ),
                                       ).then((response) async {
-                                        print(response);
                                         if (selectedLanguage !=
                                                 response['language'] ||
                                             selectedVoice !=
                                                 response['voice']) {
-                                          print("Language or voice changed!");
                                           await prefs.setString(
                                               "aiTutorLanguage",
                                               response['language']);
@@ -2186,10 +2398,12 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                           webSocketService.connect();
                                           sessionConnect();
                                         }
+
                                         setState(() {
                                           selectedTutor = response['tutor'];
                                           tutorName = response['tutor']['name'];
                                         });
+
                                         logAITutorSelected(
                                             widget.conceptId,
                                             response['tutor']['id'],
@@ -2201,7 +2415,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                       });
                                     },
                                     child: Container(
-                                      padding: EdgeInsets.symmetric(
+                                      padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
                                         color: Colors.transparent,
@@ -2224,38 +2438,52 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                             style: GoogleFonts.raleway(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
-                                              color: Color.fromRGBO(
+                                              color: const Color.fromRGBO(
                                                   255, 217, 0, 1),
                                             ),
                                           ),
                                         ],
                                       ),
-                                    ))
-                            ])),
-                      if (!greetingDone)
-                        !skipAudioTutor
-                            ? Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 8.0, horizontal: 12.0),
-                                child: GestureDetector(
+                                    ),
+                                  ),
+
+                                const SizedBox(height: 16),
+
+                                // 💬 Greeting Message
+                                if (!skipAudioTutor)
+                                  GestureDetector(
                                     onTap: () {
-                                      // if (conversations.isNotEmpty) {
-                                      //   _showAllConversations(context);
-                                      // }
+                                      // Handle conversation click
                                     },
-                                    child: showDots
-                                        ? loadingMessage("")
-                                        : othersMessage(displayedConversations
-                                            .last["text"])))
-                            : Spacer(),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8.0),
+                                      child: showDots
+                                          ? loadingMessage("")
+                                          : othersMessage(displayedConversations
+                                              .last["text"]),
+                                    ),
+                                  ),
+
+                                const SizedBox(height: 20),
+
+                                // ✅ Learning Objectives
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8.0),
+                                    child: LessonCheckpoints(
+                                        conceptCheckpoints:
+                                            conceptCheckpoints)),
+
+                                const SizedBox(height: 40), // bottom padding
+                              ],
+                            ),
+                          ),
+                        ),
+
                       if (greetingDone)
                         Expanded(
                             child: Container(
-                          // margin: EdgeInsets.symmetric(horizontal: 16),
-                          // decoration: BoxDecoration(
-                          //   color: Colors.black,
-                          //   border: Border.all(color: Colors.white, width: 2),
-                          // ),
                           child: Expanded(
                               child: SingleChildScrollView(
                             child: Column(
@@ -2307,8 +2535,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                     !showJumpToQuestionsButton &&
                                     !showMistakeCorrectionButton &&
                                     !showCheckResultButton)
-                                  Center(
-                                      child: Padding(
+                                  Padding(
                                     padding: EdgeInsets.symmetric(
                                         horizontal: 20, vertical: 10),
                                     child: MarkdownBody(
@@ -2319,9 +2546,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                       builders: {
                                         'latex': LatexElementBuilder(
                                           textStyle: GoogleFonts.raleway(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                          ),
+                                              color: Colors.white,
+                                              fontSize: 16),
                                         ),
                                       },
                                       extensionSet: md.ExtensionSet(
@@ -2329,14 +2555,33 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                         [LatexInlineSyntax()],
                                       ),
                                       styleSheet: MarkdownStyleSheet(
-                                        p: GoogleFonts.raleway(
+                                        p: GoogleFonts.notoSans(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500),
+                                        h1: GoogleFonts.notoSans(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        h2: GoogleFonts.notoSans(
+                                          color: Colors.white,
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        h3: GoogleFonts.notoSans(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        listBullet: GoogleFonts.notoSans(
                                           color: Colors.white,
                                           fontSize: 16,
                                         ),
                                         blockSpacing: 8.0,
                                       ),
                                     ),
-                                  )),
+                                  ),
 
                                 if (!showContinuationButtons &&
                                     !showJumpToQuestionsButton &&

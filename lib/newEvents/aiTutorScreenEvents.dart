@@ -65,6 +65,48 @@ void logAITutorCheckpointStart(
   );
 }
 
+void logAITutorCheckpointEnd(
+    String checkpointId, String conceptId, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_checkpoint_end",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {
+      "checkpointId": checkpointId,
+      "checkpointNo": checkpointNumber,
+      "conceptId": conceptId
+    },
+  );
+}
+
+void logAITutorExit(
+    String checkpointId, String conceptId, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_exit",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {
+      "checkpointId": checkpointId,
+      "checkpointNo": checkpointNumber,
+      "conceptId": conceptId
+    },
+  );
+}
+
+void logAITutorExitFeedbackSubmitted(
+    String checkpointId, String conceptId, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_exit_feedback_submitted",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {
+      "checkpointId": checkpointId,
+      "checkpointNo": checkpointNumber,
+      "conceptId": conceptId
+    },
+  );
+}
+
 void logStoryModeButtonClickFromMenu(String checkpointId, String conceptId) {
   logEvent(
     eventName: "story_mode_clicked_from_menu",

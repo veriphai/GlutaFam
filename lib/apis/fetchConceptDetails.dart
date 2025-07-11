@@ -20,7 +20,8 @@ Future<Map<String, dynamic>> fetchConceptDetails(
     );
 
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      final utf8Body = utf8.decode(response.bodyBytes);
+      return jsonDecode(utf8Body) as Map<String, dynamic>;
     } else {
       print(
           'Failed to fetch concept details. Status code: ${response.statusCode}');

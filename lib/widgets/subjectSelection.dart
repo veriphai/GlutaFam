@@ -146,14 +146,19 @@ class _SubjectTile extends StatelessWidget {
                   )),
             ),
             const SizedBox(height: 8),
-            Text(
-              subjectName,
-              style: GoogleFonts.raleway(
-                color: isSelected ? Colors.yellow : Colors.white,
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
+            SizedBox(
+                width: 80, // match image width
+                child: Text(
+                  subjectName,
+                  style: GoogleFonts.raleway(
+                    color: isSelected ? Colors.yellow : Colors.white,
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                )),
           ],
         ),
       ),

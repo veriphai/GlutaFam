@@ -10,6 +10,7 @@ class ChapterSelection extends StatefulWidget {
   final String selectedSubject;
   final int standard;
   final Function(String, String) onSubjectSelect;
+  final ScrollController scrollController;
 
   const ChapterSelection(
       {Key? key,
@@ -19,6 +20,7 @@ class ChapterSelection extends StatefulWidget {
       required this.subjects,
       required this.selectedSubject,
       required this.standard,
+      required this.scrollController,
       required this.onSubjectSelect})
       : super(key: key);
 
@@ -66,58 +68,54 @@ class _ChapterSelectionState extends State<ChapterSelection> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.5,
       decoration: const BoxDecoration(
-        color: Color.fromRGBO(19, 31, 36, 1), // Adjust color as needed
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
+        color: Color.fromRGBO(19, 31, 36, 1),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
+          controller: widget.scrollController, // ← key line
           children: [
+            // Subject chips row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                    child: Wrap(
-                  spacing: 8.0,
-                  runSpacing: 8.0,
-                  children: widget.subjects.map((subject) {
-                    // bool isSelected = subject == selectedSubject;
-                    bool isSelected = subject['name']! == selectedSubject;
-
-                    return GestureDetector(
-                      onTap: () => _selectSubject(
-                        subject['name'],
-                        subject["id"],
-                      ),
-                      child: Chip(
-                        label: Text(
-                          subject['name']!,
-                          style: GoogleFonts.raleway(
+                  child: Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: widget.subjects.map((subject) {
+                      bool isSelected = subject['name'] == selectedSubject;
+                      return GestureDetector(
+                        onTap: () =>
+                            _selectSubject(subject['name'], subject["id"]),
+                        child: Chip(
+                          label: Text(
+                            subject['name'],
+                            style: GoogleFonts.raleway(
                               color: isSelected ? Colors.black : Colors.white,
                               fontWeight: FontWeight.w700,
-                              fontSize: 16),
-                        ),
-                        backgroundColor: isSelected
-                            ? Color.fromRGBO(255, 217, 0, 1)
-                            : Colors.grey[800],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(
-                            color: isSelected
-                                ? Color.fromRGBO(255, 217, 0, 1)
-                                : Colors.transparent,
+                              fontSize: 16,
+                            ),
+                          ),
+                          backgroundColor: isSelected
+                              ? const Color.fromRGBO(255, 217, 0, 1)
+                              : Colors.grey[800],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? const Color.fromRGBO(255, 217, 0, 1)
+                                  : Colors.transparent,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                )),
+                      );
+                    }).toList(),
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
@@ -128,57 +126,44 @@ class _ChapterSelectionState extends State<ChapterSelection> {
             const SizedBox(height: 16),
 
             // Chapter List
-            Expanded(
-              child: isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: Color.fromRGBO(255, 217, 0, 1),
+            if (isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 32),
+                  child: CircularProgressIndicator(
+                    color: Color.fromRGBO(255, 217, 0, 1),
+                  ),
+                ),
+              )
+            else
+              ...chapterList.asMap().entries.map((entry) {
+                final index = entry.key;
+                final chapter = entry.value;
+                return Column(
+                  children: [
+                    ListTile(
+                      title: Text(
+                        chapter['name'],
+                        style: GoogleFonts.raleway(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
                       ),
-                    )
-                  : ListView.builder(
-                      itemCount: chapterList.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        final chapter = chapterList[index];
-                        return Column(
-                          children: [
-                            ListTile(
-                              // leading: CircleAvatar(
-                              //   backgroundColor: Colors.grey[800],
-                              //   child: Text(
-                              //     '${index + 1}',
-                              //     style: GoogleFonts.raleway(
-                              //       color: Colors.white,
-                              //       fontWeight: FontWeight.bold,
-                              //     ),
-                              //   ),
-                              // ),
-                              title: Text(
-                                chapter['name'],
-                                style: GoogleFonts.raleway(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              onTap: () {
-                                // Trigger callback with chapter index and name
-                                widget.onChapterSelect(index, chapter['name']);
-                                Navigator.pop(
-                                    context); // Close the bottom sheet
-                              },
-                            ),
-                            // Add Divider except for the last item
-                            if (index < chapterList.length - 1)
-                              const Divider(
-                                color: Colors.grey,
-                                thickness: 0.5,
-                                indent: 16.0,
-                                endIndent: 16.0,
-                              ),
-                          ],
-                        );
+                      onTap: () {
+                        widget.onChapterSelect(index, chapter['name']);
+                        Navigator.pop(context);
                       },
                     ),
-            ),
+                    if (index < chapterList.length - 1)
+                      const Divider(
+                        color: Colors.grey,
+                        thickness: 0.5,
+                        indent: 16.0,
+                        endIndent: 16.0,
+                      ),
+                  ],
+                );
+              }).toList(),
           ],
         ),
       ),

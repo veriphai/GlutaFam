@@ -2,8 +2,8 @@ import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 
 Future<String> generateReferralLink(String referralCode) async {
   final DynamicLinkParameters parameters = DynamicLinkParameters(
-    uriPrefix: 'https://glutaclass.page.link',
-    link: Uri.parse('https://glutaclass.com/invite?referralCode=$referralCode'),
+    uriPrefix: 'https://tutosquad.page.link',
+    link: Uri.parse('https://trytuto.com/invite?referralCode=$referralCode'),
     androidParameters: AndroidParameters(
       packageName: 'com.gluta.glutafam',
       minimumVersion: 1,
@@ -14,10 +14,10 @@ Future<String> generateReferralLink(String referralCode) async {
       forcedRedirectEnabled: true, // Force bypassing the app preview page
     ),
     socialMetaTagParameters: SocialMetaTagParameters(
-      title: 'GlutaClass: AI Tutor for NCERT',
-      description: 'Read NCERT in a new and engaging manner!',
+      title: 'Tuto: AI Tutor for Classes 6-12',
+      description: 'Personal Tutor for All Subjects',
       imageUrl:
-          Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/logo_1.png'),
+          Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/tuto-logo.png'),
     ),
   );
   // Generate the short dynamic link
@@ -40,10 +40,10 @@ Future<String> generateProfileLink(String userId) async {
       forcedRedirectEnabled: true, // Force bypassing the app preview page
     ),
     socialMetaTagParameters: SocialMetaTagParameters(
-      title: 'GlutaClass: AI Tutor for NCERT',
-      description: 'Read NCERT in a new and engaging manner!',
+      title: 'Tuto: AI Tutor for Classes 6-12',
+      description: 'Personal Tutor for All Subjects',
       imageUrl:
-          Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/logo_1.png'),
+          Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/tuto-logo.png'),
     ),
   );
   // Generate the short dynamic link
@@ -68,10 +68,10 @@ Future<String> generateAchievementLink(
       forcedRedirectEnabled: true, // Force bypassing the app preview page
     ),
     socialMetaTagParameters: SocialMetaTagParameters(
-      title: 'GlutaClass: AI Tutor for NCERT',
-      description: 'Read NCERT in a new and engaging manner!',
+      title: 'Tuto: AI Tutor for Classes 6-12',
+      description: 'Personal Tutor for All Subjects',
       imageUrl:
-          Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/logo_1.png'),
+          Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/tuto-logo.png'),
     ),
   );
   // Generate the short dynamic link
@@ -95,10 +95,10 @@ Future<String> generateCollectionItemLink(String itemId) async {
       forcedRedirectEnabled: true, // Force bypassing the app preview page
     ),
     socialMetaTagParameters: SocialMetaTagParameters(
-      title: 'GlutaClass: AI Tutor for NCERT',
-      description: 'Read NCERT in a new and engaging manner!',
+      title: 'Tuto: AI Tutor for Classes 6-12',
+      description: 'Personal Tutor for All Subjects',
       imageUrl:
-          Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/logo_1.png'),
+          Uri.parse('https://gluta.s3.ap-south-1.amazonaws.com/tuto-logo.png'),
     ),
   );
   // Generate the short dynamic link

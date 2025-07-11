@@ -684,7 +684,10 @@ class _MistakesCorrectionScreenState extends State<MistakesCorrectionScreen> {
 
                 // Chat Area
                 if (isLoading)
-                  Center(child: CircularProgressIndicator())
+                  Center(
+                      child: CircularProgressIndicator(
+                    color: Color.fromRGBO(255, 217, 0, 1),
+                  ))
                 else
                   ListView.builder(
                     shrinkWrap: true, // Let it take only required space

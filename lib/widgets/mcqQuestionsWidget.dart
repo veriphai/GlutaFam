@@ -481,10 +481,10 @@ class _MCQQuestionsState extends State<MCQQuestions> {
   }
 
   String sanitizeLatex(String input) {
-    return input
-        .replaceAll('ext', r'\text') // Tab + ext
-        .replaceAll('imes', r'\times'); // Tab + imes
-    // .replaceAll('ightarrow', r'\\rightarrow'); // Tab + imes
+    return input;
+    // return input
+    //     .replaceAll('ext', r'\text') // Tab + ext
+    //     .replaceAll('imes', r'\times'); // Tab + imes
   }
 
   @override
@@ -670,10 +670,29 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                                       [LatexInlineSyntax()],
                                     ),
                                     styleSheet: MarkdownStyleSheet(
-                                      p: GoogleFonts.raleway(
+                                      p: GoogleFonts.notoSans(
                                           color: Colors.white,
                                           fontSize: 20,
                                           fontWeight: FontWeight.w700),
+                                      h1: GoogleFonts.notoSans(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      h2: GoogleFonts.notoSans(
+                                        color: Colors.white,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      h3: GoogleFonts.notoSans(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      listBullet: GoogleFonts.notoSans(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
                                       blockSpacing: 8.0,
                                     ),
                                   )),
@@ -760,7 +779,28 @@ class _MCQQuestionsState extends State<MCQQuestions> {
                                                 [LatexInlineSyntax()],
                                               ),
                                               styleSheet: MarkdownStyleSheet(
-                                                p: GoogleFonts.raleway(
+                                                p: GoogleFonts.notoSans(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                                h1: GoogleFonts.notoSans(
+                                                  color: Colors.white,
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                                h2: GoogleFonts.notoSans(
+                                                  color: Colors.white,
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                                h3: GoogleFonts.notoSans(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                                listBullet:
+                                                    GoogleFonts.notoSans(
                                                   color: Colors.white,
                                                   fontSize: 16,
                                                 ),

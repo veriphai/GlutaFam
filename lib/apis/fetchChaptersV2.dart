@@ -12,12 +12,15 @@ Future<List<Map<String, dynamic>>> fetchChaptersV2(
         headers: {'Accept-Encoding': 'gzip'}).timeout(Duration(seconds: 10));
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      final utf8Body =
+          utf8.decode(response.bodyBytes); // ✅ proper UTF-8 decoding
+      final List<dynamic> data = json.decode(utf8Body);
+
       if (data is List) {
         // Ensure the parsed data is a list of maps
         return List<Map<String, dynamic>>.from(data);
       } else {
-        print('Unexpected response format: ${response.body}');
+        print('Unexpected response format: $utf8Body');
         return [];
       }
     } else {

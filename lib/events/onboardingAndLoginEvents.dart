@@ -15,6 +15,20 @@ void logOnboardingScreenView(
   );
 }
 
+void logOnboardingCompleted(
+    String deviceId, String devicePlatform, String userIp) {
+  logEvent(
+    eventName: "onboarding_complete",
+    screenName: "OnboardingScreen",
+    eventType: "auto",
+    eventDetails: {
+      "deviceId": deviceId,
+      "devicePlatform": devicePlatform,
+      "userIp": userIp,
+    },
+  );
+}
+
 void logAudioOnboardingView() {
   logEvent(
     eventName: "audio_onboarding_sv",

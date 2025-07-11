@@ -4,6 +4,7 @@ import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/fetchAchievements.dart';
 import 'package:eureka_app/apis/fetchFriendSuggestions.dart';
 import 'package:eureka_app/apis/addFriend.dart';
+import 'package:eureka_app/apis/getClassOptions.dart';
 import 'package:eureka_app/apis/updateAvatar.dart';
 import 'package:eureka_app/apis/updateStandard.dart';
 import 'package:eureka_app/newEvents/profileScreenEvents.dart';
@@ -49,12 +50,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool isLoading = true;
 
-  final List<Map<String, dynamic>> classOptions = [
-    {"text": "Class 6", "standard": 6},
-    {"text": "Class 7", "standard": 7},
-    {"text": "Class 8", "standard": 8},
-    {"text": "Class 9", "standard": 9},
-    {"text": "Class 10", "standard": 10},
+  late List<Map<String, dynamic>> classOptions = [
+    {"name": "Class 6", "standard": 6},
+    {"name": "Class 7", "standard": 7},
+    {"name": "Class 8", "standard": 8},
+    {"name": "Class 9", "standard": 9},
+    {"name": "Class 10", "standard": 10},
     // {"text": "Class 11 - Science", "standard": 11, "stream": "Science"},
     // {"text": "Class 11 - Commerce", "standard": 11, "stream": "Commerce"},
     // {"text": "Class 11 - Humanities", "standard": 11, "stream": "Humanities"},
@@ -62,6 +63,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // {"text": "Class 12 - Commerce", "standard": 12, "stream": "Commerce"},
     // {"text": "Class 12 - Humanities", "standard": 12, "stream": "Humanities"}
   ];
+
+  Future<void> fetchClassOptions() async {
+    try {
+      // final userProfile = await getProfile();
+      final classesData = await getClassOptions();
+
+      setState(() {
+        classOptions = classesData;
+      });
+    } catch (error) {
+      print("Error fetching class options: $error");
+    }
+  }
 
   Future<void> fetchProfile() async {
     try {
@@ -72,6 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         profileData = userProfile;
         standard = userProfile["standard"];
+        selectedStream = userProfile["stream"];
         prefs.setInt('selected_class', profileData["standard"]);
         friendsCount = userProfile["friends"].length;
         avatar = getAvatar(userProfile["avatar"]);
@@ -116,6 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     logProfileScreenView();
     fetchProfile();
+    fetchClassOptions();
     getAchievements();
     getFriendSuggestions();
   }
@@ -1011,7 +1027,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   itemCount: classOptions.length,
                   itemBuilder: (context, index) {
                     final classOption = classOptions[index];
-                    final String text = classOption['text'];
+                    final String text = classOption['name'];
                     final int standardValue = classOption['standard'];
                     final String? stream = classOption['stream'];
 
@@ -1035,6 +1051,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onTap: () async {
                             HapticFeedback.lightImpact();
                             await prefs.setInt('selected_class', standardValue);
+                            await prefs.setString('bookId', "");
+                            await prefs.setString('subject', "");
+
                             if (stream != null) {
                               await prefs.setString('selected_stream', stream);
                             } else {

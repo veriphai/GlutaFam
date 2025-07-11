@@ -8,6 +8,7 @@ import 'package:eureka_app/popups/popUpManager.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
+import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/cachingUtils.dart';
 import 'package:eureka_app/widgets/chapterSelection.dart';
@@ -21,6 +22,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:eureka_app/utils/generateReferralLink.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -104,12 +106,20 @@ class _HomeScreenState extends State<HomeScreen> {
       final profileData = await refreshProfile();
       prefs = await SharedPreferences.getInstance();
       fetchData(profileData["standard"], profileData["stream"], true);
+      // String referralCode = "PHLQ7Y";
 
       setState(() {
         userProfile = profileData;
       });
+      // String referralLink = await generateReferralLink(referralCode);
+      // print(referralLink);
     } catch (error) {
       print("Error fetching userProfile: $error");
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+        (Route<dynamic> route) => false,
+      );
     }
   }
 
@@ -157,16 +167,21 @@ class _HomeScreenState extends State<HomeScreen> {
         (book) => book["subject"]?.toLowerCase() == "science",
         orElse: () => <String, dynamic>{},
       );
-      if (scienceBook.isNotEmpty) {
-        selectedBookId = scienceBook["id"];
-        prefs.setString("bookId", scienceBook["id"]);
-        _selectedSubject = scienceBook["subject"];
-        prefs.setString("subject", scienceBook["subject"]);
-      } else {
-        selectedBookId = booksData[0]["id"];
-        prefs.setString("bookId", booksData[0]["id"]);
-        _selectedSubject = booksData[0]["subject"];
-        prefs.setString("subject", booksData[0]["subject"]);
+
+      selectedBookId = prefs.getString("bookId") ?? "";
+      _selectedSubject = prefs.getString("subject") ?? "";
+      if (selectedBookId == "") {
+        if (scienceBook.isNotEmpty) {
+          selectedBookId = scienceBook["id"];
+          prefs.setString("bookId", scienceBook["id"]);
+          _selectedSubject = scienceBook["subject"];
+          prefs.setString("subject", scienceBook["subject"]);
+        } else {
+          selectedBookId = booksData[0]["id"];
+          prefs.setString("bookId", booksData[0]["id"]);
+          _selectedSubject = booksData[0]["subject"];
+          prefs.setString("subject", booksData[0]["subject"]);
+        }
       }
       final chapterData = await getChaptersWithCache(
           standard: standard, subject: _selectedSubject);
@@ -526,54 +541,64 @@ class _HomeScreenState extends State<HomeScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return ChapterSelection(
-          chapters: chapters,
-          activeChapter: activeChapter,
-          subjects: books,
-          selectedSubject: _selectedSubject,
-          standard: userProfile["standard"],
-          onChapterSelect: (index, chapterName) {
-            // Handle the selected chapter
-            print("Selected Chapter: $chapterName (Index: $index)");
-            logChapterSelected(chapters[index]['id']);
-            // Get the first topic of the selected chapter
-            final topics = (chapters[index]['topics'] as List<dynamic>)
-                .map((topic) => topic as Map<String, dynamic>)
-                .toList();
-            if (topics.isNotEmpty) {
-              // Find the key for the first topic in the selected chapter
-              final firstTopicIndex = chapters
-                  .take(index) // Take all chapters before the selected chapter
-                  .fold<int>(
-                    0,
-                    (total, chapter) =>
-                        total + (chapter['topics'].length as int),
-                  ); // Calculate cumulative topic index
+        return DraggableScrollableSheet(
+            expand: false,
+            minChildSize: 0.4, // 40% of screen height
+            initialChildSize: 0.5, // 60% when opened
+            maxChildSize: 0.9, // Can grow up to 90%
+            builder: (_, scrollController) {
+              return ChapterSelection(
+                chapters: chapters,
+                activeChapter: activeChapter,
+                subjects: books,
+                selectedSubject: _selectedSubject,
+                standard: userProfile["standard"],
+                scrollController: scrollController,
+                onChapterSelect: (index, chapterName) {
+                  // Handle the selected chapter
+                  print("Selected Chapter: $chapterName (Index: $index)");
+                  logChapterSelected(chapters[index]['id']);
+                  // Get the first topic of the selected chapter
+                  final topics = (chapters[index]['topics'] as List<dynamic>)
+                      .map((topic) => topic as Map<String, dynamic>)
+                      .toList();
+                  if (topics.isNotEmpty) {
+                    // Find the key for the first topic in the selected chapter
+                    final firstTopicIndex = chapters
+                        .take(
+                            index) // Take all chapters before the selected chapter
+                        .fold<int>(
+                          0,
+                          (total, chapter) =>
+                              total + (chapter['topics'].length as int),
+                        ); // Calculate cumulative topic index
 
-              scrollToTopic(firstTopicIndex, index);
+                    scrollToTopic(firstTopicIndex, index);
 
-              // Update the active topic
-              setState(() {
-                activeChapter = chapterName;
-                _activeTopic = topics.first['name']; // Set first topic name
-              });
-            }
+                    // Update the active topic
+                    setState(() {
+                      activeChapter = chapterName;
+                      _activeTopic =
+                          topics.first['name']; // Set first topic name
+                    });
+                  }
 
-            // Navigator.pop(context); // Close the bottom sheet
-          },
-          onSubjectSelect: (selected, bookId) async {
-            logSubjectSelectedFromChaptersList(selected);
-            setState(() {
-              _selectedSubject = selected;
-              selectedBookId = bookId;
-              chapters = [];
+                  // Navigator.pop(context); // Close the bottom sheet
+                },
+                onSubjectSelect: (selected, bookId) async {
+                  logSubjectSelectedFromChaptersList(selected);
+                  setState(() {
+                    _selectedSubject = selected;
+                    selectedBookId = bookId;
+                    chapters = [];
+                  });
+                  await prefs.setString("bookId", bookId);
+                  await prefs.setString("subject", selected);
+                  fetchDataWhenSubjectChanged(
+                      userProfile["standard"], userProfile["stream"], false);
+                },
+              );
             });
-            await prefs.setString("bookId", bookId);
-            await prefs.setString("subject", selected);
-            fetchDataWhenSubjectChanged(
-                userProfile["standard"], userProfile["stream"], false);
-          },
-        );
       },
     );
   }
@@ -1267,10 +1292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                             .toString()
                                                             .endsWith('_1');
 
-                                                final isDisabled =
-                                                    !(isLastCompleted ||
-                                                        isStartOfTopic ||
-                                                        isCompleted);
+                                                const isDisabled = false;
                                                 final GlobalKey buttonKey =
                                                     GlobalKey();
 
@@ -1449,6 +1471,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           16, // Small size kept aligned to the left
                                       fontWeight: FontWeight.w700,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   Text(
                                     _activeTopic,

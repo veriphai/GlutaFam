@@ -4,7 +4,9 @@ import 'dart:convert';
 
 Future<void> saveConceptConversations(
     {required List<Map<String, String>> conversations,
-    required String conceptId}) async {
+    required String conversationsKey,
+    required String conceptId,
+    required String language}) async {
   try {
     const url =
         'https://glutaclass.com:8080/gluta/famV2/save-concept-conversations';
@@ -13,8 +15,10 @@ Future<void> saveConceptConversations(
     String? authToken = await authTokenService.getAuthToken();
 
     final body = {
+      "id": conversationsKey,
       "conversations": conversations,
       "conceptId": conceptId,
+      "language": language,
       "time": DateTime.now().millisecondsSinceEpoch ~/ 1000
     };
 
