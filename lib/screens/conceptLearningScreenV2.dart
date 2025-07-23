@@ -7,9 +7,12 @@ import 'dart:io';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:bubble_box/bubble_box.dart';
+import 'package:chat_bubbles/chat_bubbles.dart';
 import 'package:chiclet/chiclet.dart';
+import 'package:confetti/confetti.dart';
 import 'package:eureka_app/apis/checkConceptCheckpointCompleted.dart';
 import 'package:eureka_app/apis/checkGreetingsAndIntroCompleted.dart';
+import 'package:eureka_app/apis/createTutorAssistPrompt.dart';
 import 'package:eureka_app/apis/fetchConceptDetails.dart';
 import 'package:eureka_app/apis/fetchLanguagesAndVoices.dart';
 import 'package:eureka_app/apis/getAITutorPrompts.dart';
@@ -141,6 +144,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   bool wasFirstLesson = true;
   String tutorName = "Tuto Prime";
   bool showDots = true;
+  late ConfettiController _confettiController;
 
   // Map<String, String> languageOptions = {
   //   "en-US": "English",
@@ -176,6 +180,14 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       languageOptions = {for (var lang in languages) lang['id']: lang['name']};
 
       voiceOptions = {for (var voice in voices) voice['id']: voice['name']};
+      final defaultLang = languages.firstWhere(
+        (lang) => lang['defaultLanguage'] == true,
+        orElse: () => null,
+      );
+
+      if (defaultLang != null) {
+        selectedLanguage = defaultLang['id'];
+      }
 
       setState(() {
         // trigger UI update if needed
@@ -298,6 +310,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
   void initState() {
     super.initState();
     logAITutorScreenView(widget.conceptId);
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 2));
 
     // WakelockPlus.enable();
 
@@ -315,8 +329,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
     _initializeRecorder();
     _initPlayer();
-    selectedLanguage = widget.selectedLanguage ?? "en-US";
-    selectedVoice = widget.selectedVoice ?? "Zephyr";
+    // selectedLanguage = widget.selectedLanguage ?? "en-US";
+    // selectedVoice = widget.selectedVoice ?? "Zephyr";
     selectedTutor = widget.tutorSelected ?? {};
     if (selectedTutor.isNotEmpty) {
       tutorName = selectedTutor['name'];
@@ -380,7 +394,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
             responseStreaming = false;
             responseStarted = false;
             lastResponseTime = DateTime.now();
-            sendAudioResponseForGemini(lastMessageAudio);
+            sendAudioResponseForGemini(lastMessageAudio, "");
           }
         }
       }
@@ -691,6 +705,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       player.stopPlayer();
     }
     player.closePlayer();
+    _confettiController.dispose();
+
     super.dispose();
   }
 
@@ -854,6 +870,48 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       } else {
         print("server content $serverContent");
       }
+    } else if (data.containsKey("toolCall")) {
+//       {
+//   "toolCall": {
+//     "functionCalls": [
+//       {
+//         "name": "skip_ahead",
+//         "args": {},
+//         "id": "function-call-..."
+//       }
+//     ]
+//   }
+// }
+      final toolCall = data["toolCall"];
+      final functionCalls = toolCall["functionCalls"];
+
+      for (final call in functionCalls) {
+        final toolName = call["name"];
+
+        switch (toolName) {
+          case "celebrate":
+            // _triggerConfetti(type, message);
+            print("celebrate");
+            _confettiController.play();
+            break;
+
+          case "show_encouragement":
+            // _showEncouragementOverlay(type, message);
+            break;
+
+          case "skip_ahead":
+            completedCheckpointIndexes.add(currentCheckpointIndex);
+            setState(() {
+              showCheckpointContinueButton = true;
+            });
+            break;
+
+          default:
+            print("⚠️ Unknown tool: $toolName");
+        }
+      }
+
+      // moveToNextCheckpoint();
     } else if (data.containsKey("sessionResumptionUpdate")) {
       Map<String, dynamic> sessionResumtionUpdate =
           data["sessionResumptionUpdate"];
@@ -1313,9 +1371,36 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         },
         "systemInstruction": {
           "parts": [
-            {"text": aiTutorPrompt}
+            {
+              "text":
+                  "$aiTutorPrompt.\n You also have access to tools that you must invoke in specific situations:\n\n1. If the student gives a **correct answer**, invoke the tool named **\"celebrate\"** .\n\n2. If the student gives a **wrong**, **partial**, or **uncertain** answer, invoke the tool named **\"show_encouragement\"**.\n\n3. If the student says anything like **\"I already know this\"**, **\"skip this\"**, **\"move on\"**, or expresses any **clear intent to proceed ahead**, invoke the tool **\"skip_ahead\"** immediately. Do **not** try to explain or challenge them further. Just acknowledge their request kindly and trigger the tool.\n\nUse these tools only when the student's message clearly fits the scenario. Do not invoke them randomly."
+            }
           ]
         },
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "name": "skip_ahead",
+                "description":
+                    "Invoke this tool when the user wants to skip or move to the next checkpoint.",
+                "behavior": "NON_BLOCKING"
+              },
+              {
+                "name": "celebrate",
+                "description":
+                    "Use this when the student gives an correct answer. This should trigger celebratory UI like confetti, sound, and tutor praise.",
+                "behavior": "NON_BLOCKING"
+              },
+              {
+                "name": "show_encouragement",
+                "description":
+                    "Use this when the student gives a wrong or incomplete answer. It helps to show emotional support or guide the student with a soft retry animation.",
+                "behavior": "NON_BLOCKING"
+              }
+            ]
+          }
+        ],
         "realtimeInputConfig": {
           "automaticActivityDetection": {"disabled": true}
         },
@@ -1568,6 +1653,79 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     });
   }
 
+  Future<void> handleTextResponses() async {
+    responseCompleted = false;
+    responseStarted = false;
+    setState(() {
+      _isLoading = true;
+    });
+    final List<Map<String, String>> conversationToSend =
+        List.from(conversations);
+
+    conversationToSend.insert(conversations.length, {
+      "text": userCurrentResponse,
+      "role": "user",
+    });
+    final result = await createTutorAssistPrompt(
+        conversations: conversationToSend,
+        conceptName: widget.conceptName,
+        conceptCheckpoint: conceptCheckpoints[currentCheckpointIndex]);
+
+    print(result);
+    sendTextResponseForGemini(userCurrentResponse, result['message']);
+  }
+
+  void sendTextResponseForGemini(
+      String userCurrentResponse, String tutorAssistMessage) async {
+    setState(() {
+      originalConversation = true;
+    });
+    final activityStartMessage = {
+      "realtimeInput": {"activityStart": {}}
+    };
+    webSocketService.sendMessage(activityStartMessage);
+    // await Future.delayed(Duration(milliseconds: 500));
+
+    List<String> completedObjectives = [];
+    List<String> leftObjectives = [];
+    checkpointLearningObjectiveStatus.forEach((objective, isCompleted) {
+      if (isCompleted) {
+        completedObjectives.add(objective);
+      } else {
+        leftObjectives.add(objective);
+      }
+    });
+
+    String completedStr = completedObjectives.join(", ");
+    String leftStr = leftObjectives.join(", ");
+
+    String additionalPrompt =
+        additionalPrompts['aiTutorPromptForAudio']['content'];
+    additionalPrompt = additionalPrompt
+        .replaceFirst("{completedObjectives}", completedStr)
+        .replaceFirst("{leftObjectives}", leftStr);
+
+    String additionalPromptForTutorAssistance =
+        additionalPrompts['aiTutorPromptForTutorAssistancePrompt']['content'];
+
+    additionalPromptForTutorAssistance = additionalPromptForTutorAssistance
+        .replaceFirst("{tutorAssistMessage}", tutorAssistMessage);
+
+    final textMessage = {
+      "realtimeInput": {
+        "text":
+            "Strudent's response: $userCurrentResponse /n/n/n/n $additionalPrompt /n/n STRICTLY FOLLOW: If there are any images GIVEN, then talk about those images while teaching too, like if the images contain some examples about something, then asking user to also check the image for examples./n $additionalPromptForTutorAssistance"
+      }
+    };
+
+    webSocketService.sendMessage(textMessage);
+
+    final activityEndMessage = {
+      "realtimeInput": {"activityEnd": {}}
+    };
+    webSocketService.sendMessage(activityEndMessage);
+  }
+
   Future<void> _toggleRecording() async {
     if (_isLoading) {
       return;
@@ -1587,15 +1745,30 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         responseStarted = false;
         setState(() {
           firstLesson = false;
+          _isLoading = true;
         });
+
         await prefs.setBool("firstLesson", false);
+        final List<Map<String, String>> conversationToSend =
+            List.from(conversations);
 
-        sendAudioResponseForGemini(base64Audio);
-
-        transcribeAudio(File(_audioPath!)).then((transcribedText) {
+        await transcribeAudio(File(_audioPath!)).then((transcribedText) {
           userCurrentResponse = transcribedText;
+          conversationToSend.insert(conversations.length, {
+            "text": userCurrentResponse,
+            "role": "user",
+          });
+          // userCurrentResponse = "";
           print("User Response: $userCurrentResponse");
         });
+        final result = await createTutorAssistPrompt(
+            conversations: conversationToSend,
+            conceptName: widget.conceptName,
+            conceptCheckpoint: conceptCheckpoints[currentCheckpointIndex]);
+
+        print(result);
+
+        sendAudioResponseForGemini(base64Audio, result['message']);
       } else {
         print('Audio path is null or empty');
       }
@@ -1628,7 +1801,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     }
   }
 
-  void sendAudioResponseForGemini(String base64Audio) async {
+  void sendAudioResponseForGemini(
+      String base64Audio, String tutorAssistMessage) async {
     setState(() {
       originalConversation = true;
       _isLoading = true;
@@ -1666,10 +1840,16 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         .replaceFirst("{completedObjectives}", completedStr)
         .replaceFirst("{leftObjectives}", leftStr);
 
+    String additionalPromptForTutorAssistance =
+        additionalPrompts['aiTutorPromptForTutorAssistancePrompt']['content'];
+
+    additionalPromptForTutorAssistance = additionalPromptForTutorAssistance
+        .replaceFirst("{tutorAssistMessage}", tutorAssistMessage);
+
     final textMessage = {
       "realtimeInput": {
         "text":
-            "$additionalPrompt /n/n STRICTLY FOLLOW: If there are any images GIVEN, then talk about those images while teaching too, like if the images contain some examples about something, then asking user to also check the image for examples."
+            "$additionalPrompt /n/n STRICTLY FOLLOW: If there are any images GIVEN, then talk about those images while teaching too, like if the images contain some examples about something, then asking user to also check the image for examples./n $additionalPromptForTutorAssistance"
       }
     };
 
@@ -1762,6 +1942,11 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
             ),
             textAlign:
                 TextAlign.center, // Center-align the microphone hint text
+          ),
+        if (!showCheckpointContinueButton)
+          AbsorbPointer(
+            absorbing: _isLoading,
+            child: renderMessageBar(),
           ),
       ],
     );
@@ -2224,6 +2409,60 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
     });
   }
 
+  void _handleMessageSend(String message) {
+    if (message.trim().isEmpty) return;
+
+    setState(() {
+      userCurrentResponse = message.trim();
+    });
+
+    _messageController.clear();
+    handleTextResponses();
+  }
+
+  TextEditingController _messageController = TextEditingController();
+
+  Widget renderMessageBar() {
+    return Container(
+      color: const Color.fromRGBO(19, 31, 36, 1),
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              enabled: !_isLoading, // ✅ This disables typing
+              controller: _messageController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "Type your message...",
+                hintStyle: GoogleFonts.raleway(color: Colors.grey.shade400),
+                fillColor: const Color.fromRGBO(30, 42, 48, 1),
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              onFieldSubmitted: _handleMessageSend,
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(Icons.send,
+                color: _isLoading
+                    ? Color.fromRGBO(63, 63, 62, 1)
+                    : Color.fromRGBO(255, 217, 0, 1)),
+            onPressed: _isLoading
+                ? null
+                : () => _handleMessageSend(_messageController.text),
+          )
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayedConversations = List.from(conversations);
@@ -2294,6 +2533,19 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                 body: Stack(children: [
                   Column(
                     children: [
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: ConfettiWidget(
+                          confettiController: _confettiController,
+                          blastDirection: pi / 2, // downward
+                          emissionFrequency: 0.05,
+                          numberOfParticles: 20,
+                          maxBlastForce: 10,
+                          minBlastForce: 5,
+                          gravity: 0.3,
+                          shouldLoop: false,
+                        ),
+                      ),
                       Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
                           child: LayoutBuilder(
@@ -2426,7 +2678,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                             MainAxisAlignment.center,
                                         children: [
                                           Text(
-                                            "You are studing with $tutorName. ",
+                                            "You are studying with $tutorName. ",
                                             style: GoogleFonts.raleway(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -3054,10 +3306,8 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
 
                                       final xpPerQuestion =
                                           (45 / totalQuestions).toInt();
-                                      xpGained =
-                                          questionsAttemptedDetails['totalXp'] +
-                                              xpGained +
-                                              xpPerQuestion * value;
+                                      xpGained = xpGained +
+                                          (xpPerQuestion * value as int);
                                       final Map<String, dynamic>
                                           lessonCompletionResponse =
                                           await markLessonCompletion(
@@ -3065,14 +3315,12 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                               attemptTime:
                                                   questionsAttemptedDetails[
                                                       'attemptTime'],
-                                              timeToComplete:
-                                                  questionsAttemptedDetails[
-                                                          'timeToComplete'] +
-                                                      timeTakenToCompleteLessonWithAiTutor,
+                                              timeToComplete: questionsAttemptedDetails[
+                                                      'timeToComplete'] +
+                                                  timeTakenToCompleteLessonWithAiTutor,
                                               xpGained: questionsAttemptedDetails[
                                                       'totalXp'] +
-                                                  xpGained +
-                                                  3 * value,
+                                                  xpGained,
                                               accuracy:
                                                   questionsAttemptedDetails[
                                                       'accuracy'],
@@ -3142,7 +3390,9 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
                                           builder: (context) =>
                                               ConceptResultScreen(
                                             conceptName: widget.conceptName,
-                                            totalXp: xpGained,
+                                            totalXp: questionsAttemptedDetails[
+                                                    'totalXp'] +
+                                                xpGained,
                                             timeTaken: questionsAttemptedDetails[
                                                     'timeToComplete'] +
                                                 timeTakenToCompleteLessonWithAiTutor,

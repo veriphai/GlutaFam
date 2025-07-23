@@ -17,9 +17,9 @@ class NotificationService {
 
   // Initialize notification service
   Future<void> initNotifications() async {
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print("User tapped the notification: ${message.notification?.title}");
-    });
+    // FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    //   print("User tapped the notification: ${message.notification?.title}");
+    // });
     if (Platform.isAndroid) {
       await requestAndroidNotificationPermission();
     }

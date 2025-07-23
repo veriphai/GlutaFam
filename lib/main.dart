@@ -2,6 +2,8 @@ import 'package:eureka_app/apis/fetchRewardDetails.dart';
 import 'package:eureka_app/apis/refreshAccessToken.dart';
 import 'package:eureka_app/apis/updateFCMToken.dart';
 import 'package:eureka_app/events/genericEvents.dart';
+import 'package:eureka_app/newEvents/notificationEvents.dart';
+import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
@@ -28,6 +30,7 @@ import 'package:eureka_app/widgets/weeklyLeaderboardContent.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -76,6 +79,28 @@ void main() async {
         if (!firstLaunch) {
           updateFCMToken(fcmToken: token ?? "");
         }
+        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+          logNotificationReceived();
+        });
+        FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+          logNotificationTapped();
+          final deeplink = message.data['deeplink'];
+          if (deeplink != null) {
+            _handleDeeplinkFromFCM(Uri.parse(deeplink));
+          }
+        });
+
+        FirebaseMessaging.instance
+            .getInitialMessage()
+            .then((RemoteMessage? message) {
+          if (message != null) {
+            logNotificationTapped();
+            final deeplink = message.data['deeplink'];
+            if (deeplink != null) {
+              _handleDeeplinkFromFCM(Uri.parse(deeplink));
+            }
+          }
+        });
       }
     }
     print("First Launch: $firstLaunch");
@@ -297,6 +322,52 @@ void handleDeeplinks(SharedPreferences prefs, Uri deepLink) {
       deepLink.queryParameters.containsKey('collectionItemId')) {
     String collectionItemId = deepLink.queryParameters['collectionItemId']!;
   }
+}
+
+void _handleDeeplinkFromFCM(Uri deeplink) async {
+  if (deeplink.path == '/lesson' &&
+      deeplink.queryParameters.containsKey('conceptId')) {
+    String conceptId = deeplink.queryParameters['conceptId']!;
+    String conceptName = deeplink.queryParameters['conceptName']!;
+    String name = deeplink.queryParameters['name']!;
+    String? standardStr = deeplink.queryParameters['standard'];
+    int standard = int.tryParse(standardStr ?? '') ?? 0;
+    String subject = deeplink.queryParameters['subject']!;
+    String bookId = deeplink.queryParameters['bookId']!;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString("bookId", bookId);
+    await prefs.setString("subject", subject);
+
+    Navigator.push(
+      navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (context) => ConceptLearningScreenV2(
+            conceptId: conceptId,
+            conceptName: conceptName,
+            maxXP: 90,
+            name: name,
+            subject: subject,
+            standard: standard),
+      ),
+    );
+  } else if (deeplink.path == '/quests') {
+    Navigator.push(
+      navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (context) => MainPage(initialIndex: 1),
+      ),
+    );
+  } else if (deeplink.path == '/leaderboard') {
+    Navigator.push(
+      navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (context) => MainPage(initialIndex: 2),
+      ),
+    );
+  }
+
+  // You can add more FCM deeplink routes here if needed
 }
 
 // Function to navigate to ProfileScreen

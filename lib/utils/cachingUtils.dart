@@ -56,9 +56,11 @@ Future<List<Map<String, dynamic>>> getChaptersWithCache({
         final cachedData = prefs.getString(key);
         if (cachedData != null) {
           final decodedList = jsonDecode(cachedData);
-          return (decodedList as List)
-              .map((item) => item as Map<String, dynamic>)
-              .toList();
+          if (decodedList is List && decodedList.isNotEmpty) {
+            return (decodedList as List)
+                .map((item) => item as Map<String, dynamic>)
+                .toList();
+          }
         }
       }
     }
