@@ -40,6 +40,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import './utils/navigation_utils.dart'; // Import the navigatorKey
+import 'package:url_launcher/url_launcher.dart';
 
 // import 'package:miniplayer/miniplayer.dart'; // Add miniplayer import
 import 'dart:io' show Platform;
@@ -365,6 +366,17 @@ void _handleDeeplinkFromFCM(Uri deeplink) async {
         builder: (context) => MainPage(initialIndex: 2),
       ),
     );
+  } else if (deeplink.path == "/update") {
+    final url = Platform.isAndroid
+        ? Uri.parse(
+            'https://play.google.com/store/apps/details?id=com.gluta.glutafam')
+        : Uri.parse(
+            'https://apps.apple.com/us/app/tuto-ai-tutor-for-class-6-12/id6736943726');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      print("Could not launch app store URL");
+    }
   }
 
   // You can add more FCM deeplink routes here if needed

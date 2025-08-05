@@ -2,11 +2,14 @@ import 'package:bubble_box/bubble_box.dart';
 import 'package:eureka_app/apis/fetchBooks.dart';
 import 'package:eureka_app/apis/fetchChaptersV2.dart';
 import 'package:eureka_app/apis/fetchCompletedConcepts.dart';
+import 'package:eureka_app/apis/getAppVersionDetails.dart';
+import 'package:eureka_app/apis/saveAppVersion.dart';
 import 'package:eureka_app/newEvents/homeScreenEvents.dart';
 import 'package:eureka_app/popups/genericPopupWidget.dart';
 import 'package:eureka_app/popups/popUpManager.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
+import 'package:eureka_app/screens/conceptLearningV3.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
@@ -23,6 +26,9 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:eureka_app/utils/generateReferralLink.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io' show Platform;
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -98,6 +104,191 @@ class _HomeScreenState extends State<HomeScreen> {
         seqNumber++; // Increment for the next topic
       }
     }
+  }
+
+  Future<String> getCurrentAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    return packageInfo.version;
+  }
+
+  bool isVersionLower(String current, String latest) {
+    List<int> c = current.split('.').map(int.parse).toList();
+    List<int> l = latest.split('.').map(int.parse).toList();
+
+    for (int i = 0; i < c.length; i++) {
+      if (c[i] < l[i]) return true;
+      if (c[i] > l[i]) return false;
+    }
+    return false;
+  }
+
+  void launchAppStore() async {
+    final url = Platform.isAndroid
+        ? Uri.parse(
+            'https://play.google.com/store/apps/details?id=com.gluta.glutafam')
+        : Uri.parse(
+            'https://apps.apple.com/us/app/tuto-ai-tutor-for-class-6-12/id6736943726');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      print("Could not launch app store URL");
+    }
+  }
+
+  void checkForAppUpdate(BuildContext context) async {
+    try {
+      final currentVersion = await getCurrentAppVersion();
+      final versionInfo = await getLatestAppVersinDetails();
+
+      // Platform detection
+      final bool isAndroid = Platform.isAndroid;
+      final bool isIOS = Platform.isIOS;
+
+      final String latestVersion = isAndroid
+          ? versionInfo['latestVersionAndroid']
+          : versionInfo['latestVersionIOS'];
+      final String minimumVersion = versionInfo['minimumVersion'];
+      final bool forceUpdate = versionInfo['forceUpdate'];
+      final String message = versionInfo['message'];
+      final List<String> notes =
+          List<String>.from(versionInfo['updateNotes'] ?? []);
+
+      if (isVersionLower(currentVersion, minimumVersion)) {
+        // Force update
+        showUpdateSheet(
+          context,
+          message: message,
+          updateNotes: notes,
+          forceUpdate: true,
+          onUpdate: () {
+            launchAppStore();
+          },
+        );
+      } else if (isVersionLower(currentVersion, latestVersion)) {
+        showUpdateSheet(
+          context,
+          message: message,
+          updateNotes: notes,
+          forceUpdate: forceUpdate,
+          onUpdate: () {
+            launchAppStore();
+          },
+        );
+      }
+    } catch (e) {
+      // Handle error or skip update check
+    }
+  }
+
+  void showUpdateSheet(
+    BuildContext context, {
+    required String message,
+    required List<String> updateNotes,
+    required bool forceUpdate,
+    required VoidCallback onUpdate,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: !forceUpdate,
+      enableDrag: !forceUpdate,
+      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      barrierColor: forceUpdate ? Colors.black.withOpacity(0.7) : null,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => !forceUpdate,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.system_update, size: 40, color: Colors.blueAccent),
+              SizedBox(height: 12),
+              Text(
+                message,
+                style: GoogleFonts.raleway(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+              SizedBox(height: 12),
+              // Text(
+              //   "What's new?",
+              //   style: GoogleFonts.raleway(
+              //     color: Colors.white,
+              //     fontWeight: FontWeight.w700,
+              //     fontSize: 16,
+              //   ),
+              // ),
+              ...updateNotes.map(
+                (note) => Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 2), // Adjust for less space
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.play_arrow_rounded,
+                          size: 12, color: Color.fromRGBO(255, 217, 0, 1)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          note,
+                          style: GoogleFonts.raleway(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 20),
+              ChicletAnimatedButton(
+                onPressed: onUpdate,
+                buttonType: ChicletButtonTypes.roundedRectangle,
+                width: double.infinity,
+                height: 50,
+                buttonColor: Color.fromRGBO(187, 160, 2, 1),
+                backgroundColor: Color.fromRGBO(255, 217, 0, 1),
+                child: Text(
+                  "UPDATE NOW",
+                  style: GoogleFonts.raleway(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (!forceUpdate)
+                ChicletOutlinedAnimatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  buttonType: ChicletButtonTypes.roundedRectangle,
+                  width: double.infinity,
+                  height: 50,
+                  borderColor: Colors.transparent,
+                  backgroundColor: Colors.transparent,
+                  child: Text(
+                    "MAYBE LATER",
+                    style: GoogleFonts.raleway(
+                      color: Color.fromRGBO(255, 217, 0, 1),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> saveCurrentAppVersion() async {
+    final currentAppVersion = await getCurrentAppVersion();
+    saveAppVersion(appVersion: currentAppVersion);
   }
 
   Future<void> fetchProfile() async {
@@ -324,6 +515,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     logHomeScreenView();
+    checkForAppUpdate(context);
+    saveCurrentAppVersion();
     fetchProfile().then((_) {
       fetchCreditsAndLifelines();
     });
@@ -713,6 +906,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time, // 🕒 Clock icon
+                          size: 18,
+                          color: Colors.black,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          "Time to complete : ${concept['expectedCompletionTime']} mins",
+                          style: GoogleFonts.arOneSans(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     ChicletAnimatedButton(
                       onPressed: () {
@@ -756,7 +968,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ConceptLearningScreenV2(
+                            builder: (context) => ConceptLearningScreenV3(
                               conceptId: concept['id'],
                               conceptName: concept['name'],
                               maxXP: totalXPForConcept * xpMultiplier,
@@ -776,10 +988,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       backgroundColor: Colors.lightGreen,
                       child: Text(
                         isCompleted
-                            ? "REVIEW"
+                            ? "Discuss Again"
                             : isLocked
                                 ? "LOCKED"
-                                : "START  +${totalXPForConcept * xpMultiplier} XP",
+                                : "Let's Discuss  +${totalXPForConcept * xpMultiplier} XP",
                         style: GoogleFonts.arOneSans(
                           color: Colors.black,
                           fontSize: 16,

@@ -79,6 +79,55 @@ void logAITutorCheckpointEnd(
   );
 }
 
+void logAITutorCheckpointsCompleted(String conceptId, int totalCheckpoints) {
+  logEvent(
+    eventName: "total_checkpoints_completed",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {
+      "totalCheckpoints": totalCheckpoints,
+      "conceptId": conceptId
+    },
+  );
+}
+
+void logAITutorCheckpointSkipped(
+    String checkpointId, String conceptId, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_checkpoint_skipped",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {
+      "checkpointId": checkpointId,
+      "checkpointNo": checkpointNumber,
+      "conceptId": conceptId
+    },
+  );
+}
+
+void logAITutorCheckpointSkippedOnExit(
+    String checkpointId, String conceptId, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_checkpoint_skipped_on_exit",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {
+      "checkpointId": checkpointId,
+      "checkpointNo": checkpointNumber,
+      "conceptId": conceptId
+    },
+  );
+}
+
+void logAITutorThoughtClicked(String conceptId, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_thoughts_viewed",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"checkpointNo": checkpointNumber, "conceptId": conceptId},
+  );
+}
+
 void logAITutorExit(
     String checkpointId, String conceptId, int checkpointNumber) {
   logEvent(
