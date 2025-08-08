@@ -21,7 +21,7 @@ Future<Map<String, dynamic>> generateTutorResponse(
     bool? allCheckpointCompleted,
     Map<String, dynamic>? questionsData}) async {
   try {
-    const url = 'https://glutaclass.com:8080/gluta/tutor/response';
+    const url = 'https://glutaclass.com:8080/gluta/tutor/responseV2';
     final uri = Uri.parse(url);
 
     final AuthTokenService authTokenService = AuthTokenService();

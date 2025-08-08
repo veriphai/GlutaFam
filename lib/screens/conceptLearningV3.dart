@@ -54,6 +54,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import 'dart:math';
 
+import 'dart:convert';
+
+import 'package:stomp_dart_client/stomp_dart_client.dart';
 // import 'package:wakelock_plus/wakelock_plus.dart';
 
 class ConceptLearningScreenV3 extends StatefulWidget {
@@ -144,6 +147,8 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
 
   late Map<String, dynamic> latestTutorResponse;
 
+  late StompClient stompClient;
+
   @override
   void initState() {
     super.initState();
@@ -153,6 +158,8 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
 
     conceptConversationsKey =
         "${widget.name}_${widget.conceptId}_${DateTime.now().millisecondsSinceEpoch}";
+
+    subscribeToTopic(conceptConversationsKey);
 
     // WakelockPlus.enable();
 
@@ -177,6 +184,40 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
     if (selectedTutor.isNotEmpty) {
       tutorName = selectedTutor['name'];
     }
+  }
+
+  void subscribeToTopic(String conversationKey) {
+    stompClient = StompClient(
+      config: StompConfig(
+        url:
+            'wss://glutaclass.com:8080/gluta/ws', // OR 'ws://localhost:8080/gluta/ws' in local
+        onConnect: (StompFrame frame) {
+          print('✅ Connected to WebSocket');
+
+          stompClient.subscribe(
+            destination: '/topic/$conversationKey',
+            callback: (StompFrame frame) async {
+              final payload = json.decode(frame.body!);
+              print("📩 Received: $payload");
+
+              if (payload['type'] == 'audio') {
+                final base64Audio = payload['payload']['audio'];
+                if (base64Audio != null) {
+                  await _playBase64Audio(base64Audio, conversationKey);
+                }
+                // Call your audio playback here
+              }
+            },
+          );
+        },
+        onWebSocketError: (dynamic error) => print('❌ WebSocket error: $error'),
+        onStompError: (StompFrame frame) =>
+            print('⚠️ STOMP error: ${frame.body}'),
+        onDisconnect: (frame) => print('🔌 Disconnected'),
+      ),
+    );
+
+    stompClient.activate();
   }
 
   Future<void> loadLanguageAndVoiceOptions() async {
@@ -228,7 +269,7 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
           greeting: true);
 
       final message = tutorResponse['message'];
-      final audioBase64 = tutorResponse['audio'];
+      // final audioBase64 = tutorResponse['audio'];
       final List<Map<String, dynamic>> conversationsList =
           (tutorResponse["conversations"] as List?)
                   ?.map((item) =>
@@ -247,9 +288,9 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
         showAfterGreetingContinueButton = true;
       });
 
-      if (audioBase64 != null) {
-        await _playBase64Audio(audioBase64, conceptConversationsKey);
-      }
+      // if (audioBase64 != null) {
+      //   await _playBase64Audio(audioBase64, conceptConversationsKey);
+      // }
     } catch (error) {
       print("Error fetching tutor response: $error");
     }
@@ -373,7 +414,7 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
       latestTutorResponse = tutorResponse;
 
       final message = tutorResponse['message'];
-      final audioBase64 = tutorResponse['audio'];
+      // final audioBase64 = tutorResponse['audio'];
       final List<Map<String, dynamic>> conversationsList =
           (tutorResponse["conversations"] as List?)
                   ?.map((item) =>
@@ -391,9 +432,9 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
         showDots = false;
       });
 
-      if (audioBase64 != null) {
-        await _playBase64Audio(audioBase64, conceptConversationsKey);
-      }
+      // if (audioBase64 != null) {
+      //   await _playBase64Audio(audioBase64, conceptConversationsKey);
+      // }
     } catch (error) {
       print("Error fetching tutor response: $error");
     }
@@ -425,7 +466,7 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
       latestTutorResponse = tutorResponse;
 
       final message = tutorResponse['message'];
-      final audioBase64 = tutorResponse['audio'];
+      // final audioBase64 = tutorResponse['audio'];
       final bool currentCheckpointCompletionStatus =
           tutorResponse['currentCheckpointCompleted'];
       final bool skipAhead = tutorResponse['enableCheckpointContinueButton'];
@@ -445,9 +486,16 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
         if (currentCheckpointCompletionStatus) {
           completedCheckpointIndexes.add(currentCheckpointIndex);
           attemptedCheckpointIndexes.add(currentCheckpointIndex);
-        }
-        if (skipAhead) {
+          logAITutorCheckpointEnd(
+              conceptCheckpoints[currentCheckpointIndex]['id'],
+              widget.conceptId,
+              currentCheckpointIndex + 1);
+        } else if (skipAhead) {
           attemptedCheckpointIndexes.add(currentCheckpointIndex);
+          logAITutorCheckpointSkippedOnUserIntent(
+              conceptCheckpoints[currentCheckpointIndex]['id'],
+              widget.conceptId,
+              currentCheckpointIndex + 1);
         }
         setState(() {
           showCheckpointContinueButton = true;
@@ -461,9 +509,9 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
         showDots = false;
         _isLoading = false;
       });
-      if (audioBase64 != null) {
-        await _playBase64Audio(audioBase64, conceptConversationsKey);
-      }
+      // if (audioBase64 != null) {
+      //   await _playBase64Audio(audioBase64, conceptConversationsKey);
+      // }
     } catch (error) {
       print("Error fetching tutor response: $error");
     }
@@ -762,8 +810,6 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
         showDots = true;
         showCheckpointContinueButton = false;
       });
-      logAITutorCheckpointEnd(conceptCheckpoints[currentCheckpointIndex]['id'],
-          widget.conceptId, currentCheckpointIndex + 1);
 
       currentCheckpointIndex += 1;
 
@@ -774,11 +820,19 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
           conceptCheckpoints[currentCheckpointIndex]['id'],
           widget.conceptId,
           currentCheckpointIndex + 1);
-    } else {
-      String contentText = "Start from where we have left";
+    } else if (attemptedCheckpointIndexes.contains(currentCheckpointIndex)) {
+      setState(() {
+        showDots = true;
+        showCheckpointContinueButton = false;
+      });
+      currentCheckpointIndex += 1;
+      await followUpConversationWithTutor(null, null,
+          newCheckpointStarted: true);
 
-      // conversationItemCreationForUser(contentText);
-      // sendConversationItemToGemini(contentText);
+      logAITutorCheckpointStart(
+          conceptCheckpoints[currentCheckpointIndex]['id'],
+          widget.conceptId,
+          currentCheckpointIndex + 1);
     }
   }
 
@@ -849,8 +903,6 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
         xpGained += 45;
         allCheckpointsCompleted = true;
       });
-      logAITutorCheckpointEnd(conceptCheckpoints[currentCheckpointIndex]['id'],
-          widget.conceptId, currentCheckpointIndex + 1);
       // saveConceptConversations(
       //     conversationsKey: conceptConversationsKey,
       //     conversations: conversations,

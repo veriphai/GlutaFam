@@ -105,6 +105,20 @@ void logAITutorCheckpointSkipped(
   );
 }
 
+void logAITutorCheckpointSkippedOnUserIntent(
+    String checkpointId, String conceptId, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_checkpoint_skipped_on_user_intent",
+    screenName: "AITutorScreen",
+    eventType: "auto",
+    eventDetails: {
+      "checkpointId": checkpointId,
+      "checkpointNo": checkpointNumber,
+      "conceptId": conceptId
+    },
+  );
+}
+
 void logAITutorCheckpointSkippedOnExit(
     String checkpointId, String conceptId, int checkpointNumber) {
   logEvent(
