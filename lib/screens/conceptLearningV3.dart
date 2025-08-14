@@ -266,6 +266,7 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
           conceptConversationsKey: conceptConversationsKey,
           language: selectedLanguage,
           voice: selectedVoice,
+          remainingTime: _timeLeftSeconds,
           greeting: true);
 
       final message = tutorResponse['message'];
@@ -409,6 +410,7 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
           conversations: conversations,
           language: selectedLanguage,
           voice: selectedVoice,
+          remainingTime: _timeLeftSeconds,
           firstConversation: true);
 
       latestTutorResponse = tutorResponse;
@@ -461,6 +463,7 @@ class _ConceptLearningScreenV3State extends State<ConceptLearningScreenV3> {
           conceptConversationsKey: conceptConversationsKey,
           questionsData: questionsData,
           language: selectedLanguage,
+          remainingTime: _timeLeftSeconds,
           voice: selectedVoice);
 
       latestTutorResponse = tutorResponse;

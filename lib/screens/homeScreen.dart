@@ -4,17 +4,20 @@ import 'package:eureka_app/apis/fetchChaptersV2.dart';
 import 'package:eureka_app/apis/fetchCompletedConcepts.dart';
 import 'package:eureka_app/apis/getAppVersionDetails.dart';
 import 'package:eureka_app/apis/saveAppVersion.dart';
+import 'package:eureka_app/models/searchableConcept.dart';
 import 'package:eureka_app/newEvents/homeScreenEvents.dart';
 import 'package:eureka_app/popups/genericPopupWidget.dart';
 import 'package:eureka_app/popups/popUpManager.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/conceptLearningV3.dart';
+import 'package:eureka_app/screens/conceptLearningV4.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/cachingUtils.dart';
 import 'package:eureka_app/widgets/chapterSelection.dart';
+import 'package:eureka_app/widgets/conceptSearchWidget.dart';
 import 'package:eureka_app/widgets/lifelinesWidget.dart';
 import 'package:eureka_app/widgets/shopScreen.dart';
 import 'package:eureka_app/widgets/streakScreen.dart';
@@ -297,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final profileData = await refreshProfile();
       prefs = await SharedPreferences.getInstance();
       fetchData(profileData["standard"], profileData["stream"], true);
-      // String referralCode = "PHLQ7Y";
+      // String referralCode = "HD345B";
 
       setState(() {
         userProfile = profileData;
@@ -968,7 +971,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ConceptLearningScreenV3(
+                            builder: (context) => ConceptLearningScreenV4(
                               conceptId: concept['id'],
                               conceptName: concept['name'],
                               maxXP: totalXPForConcept * xpMultiplier,
@@ -1273,6 +1276,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
+              // ConceptSearchBar(
+              //     chapterJson: chapters,
+              //     onSelect: (concept) {
+              //       print("Selected concept: ${concept.conceptName}");
+              //       // You can start the lesson or navigate now.
+              //     }),
               AnimatedOpacity(
                   opacity: _listOpacity, // Use the opacity variable
                   duration: Duration(milliseconds: 1), // Animation duration

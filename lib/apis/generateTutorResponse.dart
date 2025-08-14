@@ -3,13 +3,14 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:http_parser/http_parser.dart';
-import 'package:path/path.dart'; // for basename()
+import 'package:path/path.dart';
 
 Future<Map<String, dynamic>> generateTutorResponse(
     {required String conceptId,
     required String studentName,
     required int checkpointNo,
     required String conceptConversationsKey,
+    required int remainingTime,
     List<Map<String, dynamic>>? conversations,
     String? studentResponse,
     String? language,
@@ -19,9 +20,11 @@ Future<Map<String, dynamic>> generateTutorResponse(
     File? audioFile,
     bool? newCheckpointStarted,
     bool? allCheckpointCompleted,
-    Map<String, dynamic>? questionsData}) async {
+    bool? resumeLesson,
+    Map<String, dynamic>? questionsData,
+    Map<String, dynamic>? learningObjectivesStatus}) async {
   try {
-    const url = 'https://glutaclass.com:8080/gluta/tutor/responseV2';
+    const url = 'http://localhost:8080/gluta/tutor/responseV2';
     final uri = Uri.parse(url);
 
     final AuthTokenService authTokenService = AuthTokenService();
@@ -41,7 +44,10 @@ Future<Map<String, dynamic>> generateTutorResponse(
       "newCheckpointStarted": newCheckpointStarted,
       "allCheckpointCompleted": allCheckpointCompleted,
       "questionsData": questionsData,
-      "conceptConversationsKey": conceptConversationsKey
+      "conceptConversationsKey": conceptConversationsKey,
+      "learningObjectivesStatus": learningObjectivesStatus,
+      "resumeLesson": resumeLesson,
+      "remainingTime": remainingTime
     };
 
     // Prepare multipart request

@@ -10,6 +10,7 @@ import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
 import 'package:eureka_app/screens/landingScreenWebMobile.dart';
+import 'package:eureka_app/screens/lessonHistoryListScreen.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
@@ -215,7 +216,8 @@ class _MainPageState extends State<MainPage> {
       ProgressReportScreen(),
       ProfileScreen(),
       // OnboardingScreenV4()
-      FeedScreen()
+      ResumeLessonsPage()
+      // FeedScreen()
       // LoginScreen()
     ];
 
