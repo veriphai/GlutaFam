@@ -971,7 +971,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ConceptLearningScreenV4(
+                            builder: (context) => ConceptLearningScreenV3(
                               conceptId: concept['id'],
                               conceptName: concept['name'],
                               maxXP: totalXPForConcept * xpMultiplier,

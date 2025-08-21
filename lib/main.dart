@@ -7,6 +7,8 @@ import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
+import 'package:eureka_app/screens/home/homeScreen.dart';
+import 'package:eureka_app/screens/home/timetableEditorScreen.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
 import 'package:eureka_app/screens/landingScreenWebMobile.dart';
@@ -210,9 +212,10 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     final screens = [
       HomeScreen(),
-      QuestsScreen(),
-
-      WeeklyLeaderboardContent(),
+      HomeScreenV2(),
+      // QuestsScreen(),
+      TimetableEditorScreen(),
+      // WeeklyLeaderboardContent(),
       ProgressReportScreen(),
       ProfileScreen(),
       // OnboardingScreenV4()
