@@ -3,6 +3,7 @@ import 'package:eureka_app/apis/refreshAccessToken.dart';
 import 'package:eureka_app/apis/updateFCMToken.dart';
 import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/newEvents/notificationEvents.dart';
+import 'package:eureka_app/parentDashboard/parentDashboardPage.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/screens/feedsScreen.dart';
@@ -170,18 +171,39 @@ class MyApp extends StatelessWidget {
               observer,
             ],
             debugShowCheckedModeBanner: false,
-            home: firstLaunch
-                ? (kIsWeb
-                    ? (checkIsWebOnDesktop(context)
-                        ? LandingScreenWeb()
-                        : LandingScreenMobile())
-                    : LoginScreen())
-                : MainPage(),
+            onGenerateInitialRoutes: (initialRoute) {
+              Widget start;
+              if (initialRoute == '/parent-dashboard') {
+                start = const ParentDashboardPage();
+              } else {
+                start = firstLaunch
+                    ? (kIsWeb
+                        ? (checkIsWebOnDesktop(context)
+                            ? LandingScreenWeb()
+                            : LandingScreenMobile())
+                        : LoginScreen())
+                    : MainPage();
+              }
+              return [
+                MaterialPageRoute(
+                    builder: (_) => start,
+                    settings: RouteSettings(name: initialRoute)),
+              ];
+            },
+            // home: firstLaunch
+            //     ? (kIsWeb
+            //         ? (checkIsWebOnDesktop(context)
+            //             ? LandingScreenWeb()
+            //             // ? ParentDashboardPage()
+            //             : LandingScreenMobile())
+            //         : LoginScreen())
+            //     : MainPage(),
             routes: {
               '/home': (context) => Chapterscreen(),
               '/chapterDetails': (context) => Sectionscreen(
                     chapterId: "",
                   ),
+              '/parent-dashboard': (_) => ParentDashboardPage(),
             },
           );
         },
