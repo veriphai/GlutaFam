@@ -46586,7 +46586,7 @@ bzt(){var s=0,r=A.n(t.j),q,p,o,n
 var $async$bzt=A.j(function(a,b){if(a===1)return A.k(b,r)
 while(true)switch(s){case 0:o=t.N
 s=3
-return A.e(A.f9(A.b9("http://localhost:8080/gluta/tutor/fetch-all-feedbacks",0,null),A.z(["Accept","application/json","Accept-Encoding","gzip"],o,o)).xu(0,B.aAy),$async$bzt)
+return A.e(A.f9(A.b9("https://glutaclass.com:8080/gluta/tutor/fetch-all-feedbacks",0,null),A.z(["Accept","application/json","Accept-Encoding","gzip"],o,o)).xu(0,B.aAy),$async$bzt)
 case 3:n=b
 o=n.b
 if(o===200){p=B.N.aH(0,A.cW(J.h(A.d2(n.e).c.a,"charset"),B.a5).aH(0,n.w))
@@ -46595,7 +46595,7 @@ if(o.b(p)){q=p
 s=1
 break}if(t.f.b(p)&&o.b(J.h(p,"data"))){q=o.a(J.h(p,"data"))
 s=1
-break}throw A.f(A.ab("Unexpected JSON shape from http://localhost:8080/gluta/tutor/fetch-all-feedbacks"))}throw A.f(A.ab("HTTP "+o+" "+n.c))
+break}throw A.f(A.ab("Unexpected JSON shape from https://glutaclass.com:8080/gluta/tutor/fetch-all-feedbacks"))}throw A.f(A.ab("HTTP "+o+" "+n.c))
 case 1:return A.l(q,r)}})
 return A.m($async$bzt,r)},
 auo(a,b){return A.chI(a,b)},
