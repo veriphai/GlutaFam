@@ -2,6 +2,7 @@ import 'package:eureka_app/apis/fetchRewardDetails.dart';
 import 'package:eureka_app/apis/refreshAccessToken.dart';
 import 'package:eureka_app/apis/updateFCMToken.dart';
 import 'package:eureka_app/events/genericEvents.dart';
+import 'package:eureka_app/homepageWeb/tutoHomePage.dart';
 import 'package:eureka_app/newEvents/notificationEvents.dart';
 import 'package:eureka_app/parentDashboard/parentDashboardPage.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
@@ -179,6 +180,8 @@ class MyApp extends StatelessWidget {
                 start = firstLaunch
                     ? (kIsWeb
                         ? (checkIsWebOnDesktop(context)
+                            // ? TutoHomePage()
+
                             ? LandingScreenWeb()
                             : LandingScreenMobile())
                         : LoginScreen())
@@ -199,7 +202,7 @@ class MyApp extends StatelessWidget {
             //         : LoginScreen())
             //     : MainPage(),
             routes: {
-              '/home': (context) => Chapterscreen(),
+              '/home': (_) => TutoHomePage(),
               '/chapterDetails': (context) => Sectionscreen(
                     chapterId: "",
                   ),

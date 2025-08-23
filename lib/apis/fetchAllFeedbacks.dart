@@ -5,7 +5,7 @@ Future<List<dynamic>> fetchAllFeedbacks() async {
   // final response = await http.get(Uri.parse(url),
   //     headers: {'Accept-Encoding': 'gzip'}).timeout(Duration(seconds: 10));
 
-  const url = "http://localhost:8080/gluta/tutor/fetch-all-feedbacks";
+  const url = "https://glutaclass.com:8080/gluta/tutor/fetch-all-feedbacks";
 
   final res = await http.get(Uri.parse(url), headers: {
     'Accept': 'application/json',
