@@ -176,6 +176,8 @@ class MyApp extends StatelessWidget {
               Widget start;
               if (initialRoute == '/parent-dashboard') {
                 start = const ParentDashboardPage();
+              } else if (initialRoute == '/home') {
+                start = const TutoHomePage();
               } else {
                 start = firstLaunch
                     ? (kIsWeb
