@@ -1,8 +1,5 @@
 import 'package:eureka_app/parentDashboard/checkpointCard.dart';
-import 'package:eureka_app/parentDashboard/gapCard.dart';
-import 'package:eureka_app/parentDashboard/masteryStrip.dart';
 import 'package:eureka_app/parentDashboard/models.dart';
-import 'package:eureka_app/parentDashboard/shiningCard.dart';
 import 'package:flutter/material.dart';
 
 class ConceptOverlay {
@@ -16,172 +13,306 @@ class ConceptOverlay {
       context: context,
       barrierDismissible: true,
       builder: (ctx) {
-        final maxH = MediaQuery.of(ctx).size.height * 0.85;
-        final isWide = MediaQuery.of(ctx).size.width >= 900;
         return Dialog(
           insetPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxH, maxWidth: 1100),
-            child: Column(
-              children: [
-                // Sticky header
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(ctx).cardColor.withOpacity(0.95),
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(16)),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          offset: const Offset(0, 1),
-                          blurRadius: 6)
-                    ],
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
+            constraints: const BoxConstraints(maxWidth: 700, maxHeight: 600),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.red[200]!, width: 2),
+              ),
+              child: Column(
+                children: [
+                  // Header with close button
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.teal,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.book,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(meta.concept,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16)),
-                              const SizedBox(height: 4),
-                              Text('${meta.subject} • ${meta.chapter}',
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey)),
-                              if (meta.desc.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: Text(meta.desc),
+                              Text(
+                                '${meta.subject} › ${meta.concept}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
                                 ),
-                            ]),
-                      ),
-                      IconButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          icon: const Icon(Icons.close)),
-                    ],
-                  ),
-                ),
-
-                // Scrollable body
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // Gaps + Shining moments side by side
-                        LayoutBuilder(builder: (c, box) {
-                          final twoCol = box.maxWidth >= 820;
-                          return Wrap(
-                            spacing: 16,
-                            runSpacing: 16,
-                            children: [
-                              SizedBox(
-                                width: twoCol
-                                    ? (box.maxWidth - 16) / 2
-                                    : box.maxWidth,
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Gaps',
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey)),
-                                      const SizedBox(height: 6),
-                                      ...details.gaps
-                                          .map((g) => GapCard(gap: g)),
-                                    ]),
                               ),
-                              SizedBox(
-                                width: twoCol
-                                    ? (box.maxWidth - 16) / 2
-                                    : box.maxWidth,
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Shining moments',
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey)),
-                                      const SizedBox(height: 6),
-                                      ...details.shining
-                                          .map((s) => ShiningCard(moment: s)),
-                                    ]),
+                              Text(
+                                meta.chapter,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
                               ),
                             ],
-                          );
-                        }),
-
-                        const SizedBox(height: 20),
-                        // Mastery improvement (no box)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: MasteryStrip(mastery: details.mastery),
+                          ),
                         ),
-
-                        const SizedBox(height: 16),
-                        // Resolve plan (simple card for affordance)
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Resolve plan',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey)),
-                                const SizedBox(height: 8),
-                                Text('Talk: ${details.plan.talk}'),
-                                const SizedBox(height: 4),
-                                Text(
-                                    'Mini-drill: ${details.plan.drillIds.join(', ')}'),
-                                const SizedBox(height: 4),
-                                Text('Real-life: ${details.plan.realLife}'),
-                                const SizedBox(height: 8),
-                                Wrap(spacing: 8, children: [
-                                  FilledButton.icon(
-                                      onPressed: () {},
-                                      icon: const Icon(Icons.share, size: 16),
-                                      label: const Text('Send WhatsApp')),
-                                  OutlinedButton.icon(
-                                      onPressed: () {},
-                                      icon: const Icon(Icons.phone_android,
-                                          size: 16),
-                                      label: const Text(
-                                          'Start on child’s device')),
-                                  TextButton.icon(
-                                      onPressed: () {},
-                                      icon: const Icon(
-                                          Icons.bookmark_add_outlined,
-                                          size: 16),
-                                      label: const Text('Save for weekend')),
-                                ]),
-                              ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'CRITICAL',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
                           ),
                         ),
-
-                        const SizedBox(height: 16),
-                        // Checkpoint-wise details toggle
-                        _CheckpointSection(details: details),
+                        IconButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
+
+                  // Stats section
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        _buildStatItem('Discussion', '55'),
+                        const SizedBox(width: 40),
+                        _buildStatItem('Articulation', '48'),
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Icon(Icons.access_time,
+                                size: 16, color: Colors.grey[500]),
+                            const SizedBox(width: 4),
+                            Text(
+                              '05:30',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Metrics grid
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _buildMetricCard('Gaps Identified', '1'),
+                              const SizedBox(height: 12),
+                              _buildMetricCard('Gaps Pending', '1'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              _buildMetricCard('Gaps Rectified', '0'),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'SR',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    Text(
+                                      'OVERDUE',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildMetricCard('Unknown Competencies', '1'),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Progress bar
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
+                              Expanded(flex: 7, child: Container()),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Action buttons
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {},
+                            icon: Icon(Icons.visibility, size: 16),
+                            label: Text('See evidence'),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.grey[400]!),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {},
+                            icon: Icon(Icons.add, size: 16),
+                            label: Text('Add to today'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         );
       },
+    );
+  }
+
+  static Widget _buildStatItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildMetricCard(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
