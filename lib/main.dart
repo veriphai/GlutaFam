@@ -177,15 +177,17 @@ class MyApp extends StatelessWidget {
               if (initialRoute == '/parent-dashboard') {
                 start = const ParentDashboardPage();
               } else if (initialRoute == '/home') {
-                start = const TutoHomePage();
+                // start = const TutoHomePage();
+                start = HomeScreenV2();
               } else {
                 start = firstLaunch
                     ? (kIsWeb
                         ? (checkIsWebOnDesktop(context)
                             // ? TutoHomePage()
-
-                            ? LandingScreenWeb()
-                            : LandingScreenMobile())
+                            ? MainPage()
+                            : MainPage())
+                        // ? LandingScreenWeb()
+                        // : LandingScreenMobile())
                         : LoginScreen())
                     : MainPage();
               }
@@ -238,15 +240,16 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      HomeScreen(),
       HomeScreenV2(),
+      // HomeScreen(),
+
       // QuestsScreen(),
-      TimetableEditorScreen(),
+      // TimetableEditorScreen(),
       // WeeklyLeaderboardContent(),
-      ProgressReportScreen(),
+      // ProgressReportScreen(),
       ProfileScreen(),
       // OnboardingScreenV4()
-      ResumeLessonsPage()
+      // ResumeLessonsPage()
       // FeedScreen()
       // LoginScreen()
     ];

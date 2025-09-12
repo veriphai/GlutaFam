@@ -1,4 +1,5 @@
 import 'package:chiclet/chiclet.dart';
+import 'package:eureka_app/screens/home/homeScreen.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,8 +33,8 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
           alignment: Alignment.centerLeft, // This forces left alignment
           child: Text(
             "Select Your Avatar",
-            style: GoogleFonts.raleway(
-              color: Colors.white,
+            style: GoogleFonts.inter(
+              color: AppColors.ink,
               fontSize: 20,
               fontWeight: FontWeight.w700,
             ),
@@ -42,9 +43,9 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
         iconTheme: IconThemeData(
           color: Colors.grey,
         ),
-        backgroundColor: const Color.fromRGBO(19, 31, 36, 1),
+        backgroundColor: AppColors.bg,
       ),
-      backgroundColor: const Color.fromRGBO(19, 31, 36, 1),
+      backgroundColor: AppColors.bg,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -77,12 +78,12 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                           decoration: BoxDecoration(
                             border: Border.all(
                               color: selectedAvatarKey == avatarKey
-                                  ? const Color.fromRGBO(255, 217, 0, 1)
+                                  ? Color.fromRGBO(29, 78, 216, 1)
                                   : Colors.transparent,
                               width: 3.0,
                             ),
                             borderRadius: BorderRadius.circular(12),
-                            color: Colors.grey[800],
+                            color: AppColors.card,
                           ),
                           padding: const EdgeInsets.all(8.0),
                           child: Image.asset(
@@ -122,12 +123,12 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
               height: 50,
               width: double.infinity,
               padding: const EdgeInsets.all(8),
-              buttonColor: const Color.fromRGBO(187, 160, 2, 1),
-              backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
+              buttonColor: Color.fromRGBO(6, 72, 255, 1),
+              backgroundColor: Color.fromRGBO(29, 78, 216, 1),
               child: Text(
                 "CONFIRM SELECTION",
-                style: GoogleFonts.raleway(
-                  color: Colors.black,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),

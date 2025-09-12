@@ -11,6 +11,7 @@ import 'package:eureka_app/newEvents/profileScreenEvents.dart';
 import 'package:eureka_app/screens/achievementsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/friendsScreen.dart';
+import 'package:eureka_app/screens/home/homeScreen.dart';
 import 'package:eureka_app/utils/achievements.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/avatars.dart';
@@ -222,7 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      backgroundColor: AppColors.bg,
       body: isLoading
           ? Center(
               child: Shimmer.fromColors(
@@ -242,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   Container(
                     height: 230,
-                    color: Colors.orange,
+                    color: AppColors.searchBg,
                     alignment: Alignment.center,
                     padding: EdgeInsets.only(top: 40),
                     child: Stack(
@@ -256,7 +257,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 )
                               : Icon(
                                   Icons.person,
-                                  color: Colors.white,
+                                  color: AppColors.ink,
                                   size: 150,
                                 ),
                         ),
@@ -310,8 +311,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Text(
                               profileData["firstName"],
-                              style: GoogleFonts.raleway(
-                                color: Colors.white,
+                              style: GoogleFonts.inter(
+                                color: AppColors.ink,
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -325,15 +326,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: Row(children: [
                                   Text(
                                     "Class $standard",
-                                    style: GoogleFonts.raleway(
-                                      color: Colors.white,
+                                    style: GoogleFonts.inter(
+                                      color: AppColors.ink,
                                       fontSize: 22,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                   Icon(
                                     Icons.keyboard_arrow_down_rounded,
-                                    color: Colors.white,
+                                    color: AppColors.ink,
                                   )
                                 ])),
                           ],
@@ -341,16 +342,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 4),
                         Text(
                           "@${profileData["userName"]}",
-                          style: GoogleFonts.raleway(
-                            color: Colors.grey,
+                          style: GoogleFonts.inter(
+                            color: AppColors.sub,
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           "Joined ${DateFormat('MMMM yyyy').format(DateTime.fromMillisecondsSinceEpoch(profileData["joiningTime"] * 1000).toLocal())}",
-                          style: GoogleFonts.raleway(
-                            color: Colors.grey,
+                          style: GoogleFonts.inter(
+                            color: AppColors.sub,
                             fontSize: 16,
                           ),
                         ),
@@ -370,8 +371,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               },
                               child: Text(
                                 "$friendsCount Friends",
-                                style: GoogleFonts.arOneSans(
-                                  color: Color.fromRGBO(255, 217, 0, 1),
+                                style: GoogleFonts.inter(
+                                  color: Color.fromRGBO(29, 78, 216, 1),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -409,20 +410,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 buttonType: ChicletButtonTypes.roundedRectangle,
                                 height: 50,
                                 padding: const EdgeInsets.all(8),
-                                buttonColor:
-                                    const Color.fromRGBO(187, 160, 2, 1),
-                                backgroundColor:
-                                    const Color.fromRGBO(255, 217, 0, 1),
+                                buttonColor: Color.fromRGBO(6, 72, 255, 1),
+                                backgroundColor: Color.fromRGBO(29, 78, 216, 1),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     const Icon(Icons.person_add_alt,
-                                        color: Colors.black),
+                                        color: Colors.white),
                                     const SizedBox(width: 10),
                                     Text(
                                       "ADD FRIENDS",
-                                      style: GoogleFonts.raleway(
-                                        color: Colors.black,
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -444,15 +443,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               buttonType: ChicletButtonTypes.roundedRectangle,
                               height: 50,
                               padding: const EdgeInsets.all(8),
-                              buttonColor: const Color.fromRGBO(187, 160, 2, 1),
-                              backgroundColor:
-                                  const Color.fromRGBO(255, 217, 0, 1),
+                              buttonColor: Color.fromRGBO(6, 72, 255, 1),
+                              backgroundColor: Color.fromRGBO(29, 78, 216, 1),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   const Icon(
                                     Icons.ios_share_rounded,
-                                    color: Colors.black,
+                                    color: Colors.white,
                                     size: 30,
                                   ),
                                 ],
@@ -476,8 +474,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
                       "Overview",
-                      style: GoogleFonts.raleway(
-                        color: Colors.white,
+                      style: GoogleFonts.inter(
+                        color: AppColors.ink,
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                       ),
@@ -534,8 +532,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               children: [
                                 Text(
                                   "Achievements",
-                                  style: GoogleFonts.raleway(
-                                    color: Colors.white,
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.ink,
                                     fontSize: 22,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -555,8 +553,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   },
                                   child: Text(
                                     "VIEW ALL",
-                                    style: GoogleFonts.raleway(
-                                      color: Colors.yellow,
+                                    style: GoogleFonts.inter(
+                                      color: Color.fromRGBO(29, 78, 216, 1),
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -640,8 +638,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   children: [
                                                     Text(
                                                       "${level["criteria"]}",
-                                                      style:
-                                                          GoogleFonts.raleway(
+                                                      style: GoogleFonts.inter(
                                                         fontSize: 24,
                                                         fontWeight:
                                                             FontWeight.w700,
@@ -662,14 +659,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                     // Filled Text
                                                     Text(
                                                       "${level["criteria"]}",
-                                                      style:
-                                                          GoogleFonts.raleway(
+                                                      style: GoogleFonts.inter(
                                                         fontSize: 24,
                                                         fontWeight:
                                                             FontWeight.w700,
                                                         color: achievement[
                                                                 "unlocked"]
-                                                            ? Colors.white
+                                                            ? AppColors.ink
                                                             : const Color
                                                                 .fromRGBO(
                                                                 19, 31, 36, 1),
@@ -710,8 +706,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Text(
                             "Friend suggestions",
-                            style: GoogleFonts.raleway(
-                              color: Colors.white,
+                            style: GoogleFonts.inter(
+                              color: AppColors.ink,
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
                             ),
@@ -816,8 +812,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 friendSuggestion["name"] != null
                             ? friendSuggestion["name"]
                             : "Dummy",
-                        style: GoogleFonts.raleway(
-                          color: Colors.white,
+                        style: GoogleFonts.inter(
+                          color: AppColors.ink,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -829,7 +825,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Friend suggestion hint
                       Text(
                         "You may know each other",
-                        style: GoogleFonts.raleway(
+                        style: GoogleFonts.inter(
                           color: Color.fromARGB(255, 91, 91, 91),
                           fontSize: 14,
                         ),
@@ -859,18 +855,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: EdgeInsets.all(0),
                         buttonColor: friends.contains(friendSuggestion["id"])
                             ? const Color.fromRGBO(25, 151, 213, 1)
-                            : Color.fromRGBO(187, 160, 2, 1),
+                            : Color.fromRGBO(6, 72, 255, 1),
                         backgroundColor:
                             friends.contains(friendSuggestion["id"])
                                 ? Color.fromRGBO(74, 193, 249, 1)
-                                : Color.fromRGBO(255, 217, 0, 1),
+                                : Color.fromRGBO(29, 78, 216, 1),
                         borderRadius: 12,
                         child: Text(
                           friends.contains(friendSuggestion["id"])
                               ? "ADDED"
                               : "ADD",
-                          style: GoogleFonts.raleway(
-                            color: Colors.black,
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
@@ -907,8 +903,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(
                     value,
-                    style: GoogleFonts.raleway(
-                      color: Colors.white,
+                    style: GoogleFonts.inter(
+                      color: AppColors.ink,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -916,7 +912,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 6),
                   Text(
                     title,
-                    style: GoogleFonts.raleway(
+                    style: GoogleFonts.inter(
                       color: Colors.grey,
                       fontSize: 14,
                     ),
@@ -944,8 +940,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             "Your Collection",
-            style: GoogleFonts.raleway(
-              color: Colors.white,
+            style: GoogleFonts.inter(
+              color: AppColors.ink,
               fontSize: 22,
               fontWeight: FontWeight.w700,
             ),
@@ -1006,7 +1002,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showClassSelectionBottomSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      backgroundColor: AppColors.bg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1036,16 +1032,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ListTile(
                           title: Text(
                             text,
-                            style: GoogleFonts.raleway(
+                            style: GoogleFonts.inter(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: (standard > 10
                                       ? (standardValue == standard &&
                                           stream == selectedStream)
                                       : (standardValue == standard))
-                                  ? const Color.fromRGBO(
-                                      255, 217, 0, 1) // Selected color
-                                  : Colors.white, // Default color
+                                  ? Color.fromRGBO(
+                                      29, 78, 216, 1) // Selected color
+                                  : AppColors.ink, // Default color
                             ),
                           ),
                           onTap: () async {

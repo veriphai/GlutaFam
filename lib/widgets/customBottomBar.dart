@@ -1,3 +1,4 @@
+import 'package:eureka_app/screens/home/homeScreen.dart';
 import 'package:flutter/material.dart';
 
 class CustomBottomNavBar extends StatefulWidget {
@@ -19,7 +20,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Color.fromRGBO(19, 31, 36, 1),
+        color: AppColors.bg,
         border: Border(
           top: BorderSide(
             color: Color.fromRGBO(66, 66, 66, 1),
@@ -43,31 +44,31 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
               label: 'Home',
               isActive: widget.currentIndex == 0,
             ),
-            _buildNavItem(
-              imagePath: 'lib/assets/questIcon.png',
-              label: 'Quests',
-              isActive: widget.currentIndex == 1,
-            ),
-            _buildNavItem(
-              imagePath: 'lib/assets/leaderboardIcon.png',
-              label: 'Leaderboard',
-              isActive: widget.currentIndex == 2,
-            ),
-            _buildNavItem(
-              imagePath: 'lib/assets/progressReportIcon.png',
-              label: 'Progress Report',
-              isActive: widget.currentIndex == 3,
-            ),
+            // _buildNavItem(
+            //   imagePath: 'lib/assets/questIcon.png',
+            //   label: 'Quests',
+            //   isActive: widget.currentIndex == 1,
+            // ),
+            // _buildNavItem(
+            //   imagePath: 'lib/assets/leaderboardIcon.png',
+            //   label: 'Leaderboard',
+            //   isActive: widget.currentIndex == 2,
+            // ),
+            // _buildNavItem(
+            //   imagePath: 'lib/assets/progressReportIcon.png',
+            //   label: 'Progress Report',
+            //   isActive: widget.currentIndex == 3,
+            // ),
             _buildNavItem(
               imagePath: 'lib/assets/profileIcon.png',
               label: 'Profile',
-              isActive: widget.currentIndex == 4,
+              isActive: widget.currentIndex == 1,
             ),
-            _buildNavItem(
-              imagePath: 'lib/assets/feedIcon.png',
-              label: 'Feeds',
-              isActive: widget.currentIndex == 5,
-            ),
+            // _buildNavItem(
+            //   imagePath: 'lib/assets/feedIcon.png',
+            //   label: 'Feeds',
+            //   isActive: widget.currentIndex == 5,
+            // ),
           ],
           showSelectedLabels: false,
           showUnselectedLabels: false,

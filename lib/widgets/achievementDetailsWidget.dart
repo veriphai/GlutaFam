@@ -1,5 +1,6 @@
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/newEvents/achievementScreenEvents.dart';
+import 'package:eureka_app/screens/home/homeScreen.dart';
 import 'package:eureka_app/utils/achievements.dart';
 import 'package:eureka_app/utils/generateReferralLink.dart';
 import 'package:eureka_app/widgets/rewardScreen.dart';
@@ -72,7 +73,7 @@ class AchievementDetailsWidget extends StatelessWidget {
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.close, color: AppColors.ink),
               ),
               IconButton(
                 onPressed: showShareButton
@@ -98,7 +99,7 @@ class AchievementDetailsWidget extends StatelessWidget {
                     height: 300,
                     width: 300,
                     child: Opacity(
-                      opacity: achievement["unlocked"] ? 1 : 0.1,
+                      opacity: achievement["unlocked"] ? 1 : 0.4,
                       child: Image.asset(
                         getAchievement(achievement["id"])?["imagePath"] ??
                             'lib/assets/placeholder.png',
@@ -166,8 +167,8 @@ class AchievementDetailsWidget extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             achievement["description"] ?? "No description available",
-            style: GoogleFonts.raleway(
-              color: Colors.white,
+            style: GoogleFonts.inter(
+              color: AppColors.ink,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               height: 1.5,

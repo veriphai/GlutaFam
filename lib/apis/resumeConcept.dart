@@ -12,7 +12,7 @@ Future<Map<String, dynamic>> resumeConcept({
   required int remainingTime,
 }) async {
   try {
-    const url = 'http://localhost:8080/gluta/tutor/resume-lesson';
+    const url = 'https://glutaclass.com:8080/gluta/tutor/resume-lesson';
     final uri = Uri.parse(url);
 
     final AuthTokenService authTokenService = AuthTokenService();

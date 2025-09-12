@@ -1,6 +1,7 @@
 import 'package:eureka_app/apis/fetchFriendSuggestions.dart';
 import 'package:eureka_app/apis/addFriend.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
+import 'package:eureka_app/screens/home/homeScreen.dart';
 import 'package:eureka_app/utils/avatars.dart';
 import 'package:eureka_app/utils/generateProfileCardForSharing.dart';
 import 'package:eureka_app/utils/generateReferralLink.dart';
@@ -150,8 +151,8 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
                                 friendSuggestion["name"] != null
                             ? friendSuggestion["name"]
                             : "Dummy",
-                        style: GoogleFonts.raleway(
-                          color: Colors.white,
+                        style: GoogleFonts.inter(
+                          color: AppColors.ink,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -163,8 +164,8 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
                       // Friend suggestion hint
                       Text(
                         "You may know each other",
-                        style: GoogleFonts.raleway(
-                          color: Color.fromARGB(255, 91, 91, 91),
+                        style: GoogleFonts.inter(
+                          color: AppColors.sub,
                           fontSize: 14,
                         ),
                         maxLines: 2,
@@ -189,18 +190,18 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
                         buttonColor:
                             followedFriends.contains(friendSuggestion["id"])
                                 ? Color.fromRGBO(25, 151, 213, 1)
-                                : Color.fromRGBO(187, 160, 2, 1),
+                                : Color.fromRGBO(6, 72, 255, 1),
                         backgroundColor:
                             followedFriends.contains(friendSuggestion["id"])
                                 ? Color.fromRGBO(74, 193, 249, 1)
-                                : Color.fromRGBO(255, 217, 0, 1),
+                                : Color.fromRGBO(29, 78, 216, 1),
                         borderRadius: 12,
                         child: Text(
                           followedFriends.contains(friendSuggestion["id"])
                               ? "ADDED"
                               : "ADD",
-                          style: GoogleFonts.raleway(
-                            color: Colors.black,
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
@@ -217,7 +218,7 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+          backgroundColor: AppColors.bg,
           iconTheme: IconThemeData(
             color: Colors.grey,
           ),
@@ -226,15 +227,15 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
             alignment: Alignment.centerLeft, // This forces left alignment
             child: Text(
               "Find My Friends",
-              style: GoogleFonts.raleway(
-                color: Colors.white,
+              style: GoogleFonts.inter(
+                color: AppColors.ink,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
         ),
-        backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+        backgroundColor: AppColors.bg,
         body: isLoading
             ? Center(
                 child: Shimmer.fromColors(
@@ -341,21 +342,21 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
                         height: 50,
                         width: double.infinity,
                         padding: const EdgeInsets.all(8),
-                        buttonColor: const Color.fromRGBO(187, 160, 2, 1),
-                        backgroundColor: const Color.fromRGBO(255, 217, 0, 1),
+                        buttonColor: Color.fromRGBO(6, 72, 255, 1),
+                        backgroundColor: Color.fromRGBO(29, 78, 216, 1),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Icon(
                               Icons.ios_share_rounded,
-                              color: Colors.black,
+                              color: Colors.white,
                               size: 24,
                             ),
                             const SizedBox(width: 10),
                             Text(
                               "SHARE FOLLOW LINK",
-                              style: GoogleFonts.raleway(
-                                color: Colors.black,
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -372,8 +373,8 @@ class _FindMyFriendsScreenState extends State<FindMyFriendsScreen> {
                             children: [
                               Text(
                                 "Friend suggestions",
-                                style: GoogleFonts.raleway(
-                                  color: Colors.white,
+                                style: GoogleFonts.inter(
+                                  color: AppColors.ink,
                                   fontSize: 22,
                                   fontWeight: FontWeight.w700,
                                 ),

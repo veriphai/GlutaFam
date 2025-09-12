@@ -6,7 +6,7 @@ Future<List<Map<String, dynamic>>> fetchLessonHistoryList(
     {required String onlyIncompleteLessons}) async {
   try {
     final url =
-        'http://localhost:8080/gluta/tutor/lesson-history?onlyIncompleteLessons=$onlyIncompleteLessons';
+        'https://glutaclass.com:8080/gluta/tutor/lesson-history?onlyIncompleteLessons=$onlyIncompleteLessons';
 
     final AuthTokenService authTokenService = AuthTokenService();
     final String? authToken = await authTokenService.getAuthToken();
