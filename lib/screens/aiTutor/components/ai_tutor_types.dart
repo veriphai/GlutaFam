@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ai_tutor_error_manager.dart';
 
 enum InputMode { compact, recording, typing }
 
@@ -61,4 +62,14 @@ class AITutorState {
   // Checkpoint feedback loading state
   Map<int, String> checkpointFeedbackStates = {}; // 'loading', 'ready', 'error'
   Map<int, dynamic> checkpointFeedbackData = {};
+
+  // Error handling fields
+  Map<String, ErrorState> errorStates = {};
+  List<RetryableAction> retryQueue = [];
+  bool hasNetworkConnection = true;
+  DateTime? lastErrorTime;
+  int consecutiveErrors = 0;
+  bool showConnectionErrorOverlay = false;
+  ErrorState? currentCriticalError;
+  Map<String, bool> dismissedErrors = {};
 }
