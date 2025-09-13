@@ -107,9 +107,8 @@ class _SocraticTutorScreenState extends State<SocraticTutorScreenV3> {
       codec: Codec.pcm16,
       numChannels: 1,
       sampleRate: 24000,
-      whenFinished: () {
-        debugPrint('Audio stream finished.');
-      },
+      bufferSize: 8192,
+      interleaved: false,
     );
 
     setState(() {

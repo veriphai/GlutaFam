@@ -20,10 +20,10 @@ class _LandingScreenState extends State<LandingScreen> {
   }
 
   Future<void> _setCurrentScreen() async {
-    await FirebaseAnalytics.instance.setCurrentScreen(
-      screenName: 'LandingScreen',
-      screenClassOverride: 'LandingScreen',
-    );
+    // await FirebaseAnalytics.instance.setCurrentScreen(
+    //   screenName: 'LandingScreen',
+    //   screenClassOverride: 'LandingScreen',
+    // );
   }
 
   @override

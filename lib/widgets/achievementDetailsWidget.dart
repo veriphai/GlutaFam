@@ -20,8 +20,8 @@ class AchievementDetailsWidget extends StatelessWidget {
 
   void _shareAchievement(BuildContext context, int levelCriteria) async {
     try {
-      final achievementLink =
-          await generateAchievementLink(achievement["id"], levelCriteria);
+      final achievementLink = await generateAchievementLink(
+          achievement["id"].toString(), levelCriteria.toString());
 
       // Generate Image with Achievement Details
       final imagePath =

@@ -876,6 +876,8 @@ class _AITutorScreenState extends State<AITutorScreen> {
       codec: Codec.pcm16,
       numChannels: 1,
       sampleRate: 24000,
+      interleaved: false,
+      bufferSize: 8192,
     );
   }
 

@@ -6,35 +6,24 @@ import 'package:eureka_app/homepageWeb/tutoHomePage.dart';
 import 'package:eureka_app/newEvents/notificationEvents.dart';
 import 'package:eureka_app/parentDashboard/parentDashboardPage.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
-import 'package:eureka_app/screens/conceptStartScreen.dart';
-import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
-import 'package:eureka_app/screens/home/homeScreen.dart';
-import 'package:eureka_app/screens/home/timetableEditorScreen.dart';
-import 'package:eureka_app/screens/homeScreen.dart';
-import 'package:eureka_app/screens/landingScreenWeb.dart';
-import 'package:eureka_app/screens/landingScreenWebMobile.dart';
-import 'package:eureka_app/screens/lessonHistoryListScreen.dart';
+import 'package:eureka_app/screens/home/homeScreenV2.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
-import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
-import 'package:eureka_app/screens/onboardingScreenV4.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
-import 'package:eureka_app/screens/progressReportScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
 import 'package:eureka_app/widgets/achievementDetailsWidgetV2.dart';
-import 'package:eureka_app/widgets/aiTeacherSelection.dart';
 import 'package:eureka_app/widgets/collectionDetailsWidget.dart';
 import 'package:eureka_app/widgets/customBottomBar.dart';
 import 'package:eureka_app/widgets/questsScreen.dart';
 import 'package:eureka_app/widgets/weeklyLeaderboardContent.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
-import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+// import 'package:firebase_dynamic_links/firebase_dynamic_links.dart'; // REMOVED: Package discontinued
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -306,27 +295,16 @@ Future<bool> checkIfRealDevice() async {
 }
 
 void initDynamicLinkListener(SharedPreferences prefs) {
-  // Listen for incoming dynamic links
-  FirebaseDynamicLinks.instance.onLink.listen((PendingDynamicLinkData? data) {
-    final Uri? deepLink = data?.link;
-
-    if (deepLink != null) {
-      handleDeeplinks(prefs, deepLink);
-    }
-  }).onError((error) {
-    print('Dynamic Link Error: $error');
-  });
+  // REMOVED: Firebase Dynamic Links functionality
+  // The Firebase Dynamic Links service has been discontinued
+  print('Dynamic Links functionality removed - service discontinued');
 }
 
 // Retrieve initial link (for when the app is opened via a dynamic link)
 Future<void> handleInitialDynamicLink(SharedPreferences prefs) async {
-  final PendingDynamicLinkData? initialLink =
-      await FirebaseDynamicLinks.instance.getInitialLink();
-
-  if (initialLink?.link != null) {
-    final Uri deepLink = initialLink!.link;
-    handleDeeplinks(prefs, deepLink);
-  }
+  // REMOVED: Firebase Dynamic Links functionality
+  // The Firebase Dynamic Links service has been discontinued
+  print('Initial Dynamic Link functionality removed - service discontinued');
 }
 
 void handleDeeplinks(SharedPreferences prefs, Uri deepLink) {

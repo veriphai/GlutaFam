@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
 import 'package:markdown/markdown.dart' as md;
-import 'package:gpt_markdown/gpt_markdown.dart';
+// import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:lottie/lottie.dart';
 import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'text_highlighter.dart';
@@ -366,14 +366,16 @@ class MessageBubbles {
     final List<String> definitions =
         (conversation['definitions'] as List?)?.cast<String>() ?? [];
 
-    // If no highlighting needed, use simple GptMarkdown
+    // If no highlighting needed, use simple MarkdownBody
     if (keywords.isEmpty && phrases.isEmpty && definitions.isEmpty) {
-      return GptMarkdown(
-        text,
-        style: GoogleFonts.raleway(
-          fontSize: 15,
-          height: 1.4,
-          color: const Color(0xFF0B1220),
+      return MarkdownBody(
+        data: text,
+        styleSheet: MarkdownStyleSheet(
+          p: GoogleFonts.raleway(
+            fontSize: 15,
+            height: 1.4,
+            color: const Color(0xFF0B1220),
+          ),
         ),
       );
     }
@@ -412,13 +414,27 @@ class MessageBubbles {
         text.contains(r'\(') || text.contains(r'\[') || text.contains(r'$$');
 
     if (hasLatex) {
-      // Use GptMarkdown for LaTeX rendering (highlighting will be limited)
-      return GptMarkdown(
-        text,
-        style: GoogleFonts.raleway(
-          fontSize: 15,
-          height: 1.4,
-          color: const Color(0xFF0B1220),
+      // Use MarkdownBody for LaTeX rendering (highlighting will be limited)
+      return MarkdownBody(
+        data: text,
+        styleSheet: MarkdownStyleSheet(
+          p: GoogleFonts.raleway(
+            fontSize: 15,
+            height: 1.4,
+            color: const Color(0xFF0B1220),
+          ),
+        ),
+        builders: {
+          'latex': LatexElementBuilder(
+            textStyle: GoogleFonts.raleway(
+              color: const Color(0xFF0B1220),
+              fontSize: 15,
+            ),
+          ),
+        },
+        extensionSet: md.ExtensionSet(
+          [LatexBlockSyntax()],
+          [LatexInlineSyntax()],
         ),
       );
     } else {
