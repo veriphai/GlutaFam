@@ -2,14 +2,19 @@ import 'package:eureka_app/apis/fetchRewardDetails.dart';
 import 'package:eureka_app/apis/refreshAccessToken.dart';
 import 'package:eureka_app/apis/updateFCMToken.dart';
 import 'package:eureka_app/events/genericEvents.dart';
+import 'package:eureka_app/homepageWeb/tutoHomePage.dart';
 import 'package:eureka_app/newEvents/notificationEvents.dart';
+import 'package:eureka_app/parentDashboard/parentDashboardPage.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/conceptStartScreen.dart';
 import 'package:eureka_app/screens/feedsScreen.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
+import 'package:eureka_app/screens/home/homeScreen.dart';
+import 'package:eureka_app/screens/home/timetableEditorScreen.dart';
 import 'package:eureka_app/screens/homeScreen.dart';
 import 'package:eureka_app/screens/landingScreenWeb.dart';
 import 'package:eureka_app/screens/landingScreenWebMobile.dart';
+import 'package:eureka_app/screens/lessonHistoryListScreen.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/chapterListingScreen.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
@@ -40,6 +45,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import './utils/navigation_utils.dart'; // Import the navigatorKey
+import 'package:url_launcher/url_launcher.dart';
 
 // import 'package:miniplayer/miniplayer.dart'; // Add miniplayer import
 import 'dart:io' show Platform;
@@ -166,18 +172,43 @@ class MyApp extends StatelessWidget {
               observer,
             ],
             debugShowCheckedModeBanner: false,
-            home: firstLaunch
-                ? (kIsWeb
-                    ? (checkIsWebOnDesktop(context)
-                        ? LandingScreenWeb()
-                        : LandingScreenMobile())
-                    : LoginScreen())
-                : MainPage(),
+            onGenerateInitialRoutes: (initialRoute) {
+              Widget start;
+              if (initialRoute == '/parent-dashboard') {
+                start = const ParentDashboardPage();
+              } else if (initialRoute == '/home') {
+                start = const TutoHomePage();
+              } else {
+                start = firstLaunch
+                    ? (kIsWeb
+                        ? (checkIsWebOnDesktop(context)
+                            // ? TutoHomePage()
+
+                            ? LandingScreenWeb()
+                            : LandingScreenMobile())
+                        : LoginScreen())
+                    : MainPage();
+              }
+              return [
+                MaterialPageRoute(
+                    builder: (_) => start,
+                    settings: RouteSettings(name: initialRoute)),
+              ];
+            },
+            // home: firstLaunch
+            //     ? (kIsWeb
+            //         ? (checkIsWebOnDesktop(context)
+            //             ? LandingScreenWeb()
+            //             // ? ParentDashboardPage()
+            //             : LandingScreenMobile())
+            //         : LoginScreen())
+            //     : MainPage(),
             routes: {
-              '/home': (context) => Chapterscreen(),
+              '/home': (_) => TutoHomePage(),
               '/chapterDetails': (context) => Sectionscreen(
                     chapterId: "",
                   ),
+              '/parent-dashboard': (_) => ParentDashboardPage(),
             },
           );
         },
@@ -208,13 +239,15 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     final screens = [
       HomeScreen(),
-      QuestsScreen(),
-
-      WeeklyLeaderboardContent(),
+      HomeScreenV2(),
+      // QuestsScreen(),
+      TimetableEditorScreen(),
+      // WeeklyLeaderboardContent(),
       ProgressReportScreen(),
       ProfileScreen(),
       // OnboardingScreenV4()
-      FeedScreen()
+      ResumeLessonsPage()
+      // FeedScreen()
       // LoginScreen()
     ];
 
@@ -365,6 +398,17 @@ void _handleDeeplinkFromFCM(Uri deeplink) async {
         builder: (context) => MainPage(initialIndex: 2),
       ),
     );
+  } else if (deeplink.path == "/update") {
+    final url = Platform.isAndroid
+        ? Uri.parse(
+            'https://play.google.com/store/apps/details?id=com.gluta.glutafam')
+        : Uri.parse(
+            'https://apps.apple.com/us/app/tuto-ai-tutor-for-class-6-12/id6736943726');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      print("Could not launch app store URL");
+    }
   }
 
   // You can add more FCM deeplink routes here if needed

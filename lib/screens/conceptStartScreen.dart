@@ -37,8 +37,8 @@ class ConceptStartScreen extends StatefulWidget {
 
 class _ConceptStartScreenState extends State<ConceptStartScreen> {
   late String selectedAITeacherId = "persona-1";
-  late String selectedLanguage = "en-US";
-  late String selectedVoice = "Zephyr";
+  late String selectedLanguage = "";
+  late String selectedVoice = "";
 
   Map<String, String> languageOptions = {};
   Map<String, String> voiceOptions = {};
@@ -49,22 +49,23 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
 
   bool isLoading = true;
 
-  Future<void> loadDataFromCache() async {
-    prefs = await SharedPreferences.getInstance();
-    selectedLanguage = prefs.getString("aiTutorLanguage") ?? "en-US";
-    selectedVoice = prefs.getString("aiTutorVoice") ?? "Zephyr";
-  }
+  // Future<void> loadDataFromCache() async {
+  //   prefs = await SharedPreferences.getInstance();
+  //   selectedLanguage = prefs.getString("aiTutorLanguage") ?? "en-US";
+  //   selectedVoice = prefs.getString("aiTutorVoice") ?? "Zephyr";
+  // }
 
   @override
   void initState() {
     super.initState();
-    loadDataFromCache();
+    // loadDataFromCache();
     loadLanguageAndVoiceOptions();
     getAITeachers();
   }
 
   Future<void> loadLanguageAndVoiceOptions() async {
     try {
+      prefs = await SharedPreferences.getInstance();
       final data = await fetchLanguagesAndVoices();
 
       final List<dynamic> languages = data['languages'] ?? [];
@@ -72,6 +73,20 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
 
       languageOptions = {for (var lang in languages) lang['id']: lang['name']};
       voiceOptions = {for (var voice in voices) voice['id']: voice['name']};
+
+      selectedLanguage = prefs.getString("aiTutorLanguage") ??
+          (languages.firstWhere(
+                (lang) => lang['defaultLanguage'] == true,
+                orElse: () => {"id": "en-US"},
+              )['id'] ??
+              "en-US");
+
+      selectedVoice = prefs.getString("aiTutorVoice") ??
+          (voices.firstWhere(
+                (voice) => voice['defaultVoice'] == true,
+                orElse: () => {"id": "alloy"},
+              )['id'] ??
+              "alloy");
 
       setState(() {
         isLoading = false;
@@ -160,6 +175,7 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
                         setState(() {
                           selectedLanguage = id;
                         });
+                        // selectedLanguage = id;
                       }
                     },
                     onVoiceSelect: (id, name) async {
@@ -174,7 +190,7 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
 
                   /// Confirm Button
                   ChicletAnimatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (widget.firstLesson) {
                         Navigator.push(
                           context,
@@ -193,9 +209,13 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
                           ),
                         );
                       } else {
+                        final language =
+                            await prefs.getString("aiTutorLanguage");
+                        final voice = await prefs.getString("aiTutorVoice");
+
                         final response = {
-                          "language": selectedLanguage,
-                          "voice": selectedVoice,
+                          "language": language,
+                          "voice": voice,
                           "tutor": selectedAITeacher
                         };
                         Navigator.pop(context, response);

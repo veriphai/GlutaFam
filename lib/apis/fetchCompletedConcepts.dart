@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 Future<Map<String, dynamic>> fetchCompletedConcepts(
     {required String bookId, required String subject}) async {
   final url =
-      'https://glutaclass.com:8080/gluta/famV2/completed-concepts?bookId=$bookId&subject=$subject';
+      'http://localhost:8080/gluta/famV2/completed-concepts?bookId=$bookId&subject=$subject';
 
   try {
     final AuthTokenService authTokenService = AuthTokenService();
