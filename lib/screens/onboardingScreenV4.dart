@@ -6,6 +6,7 @@ import 'package:eureka_app/apis/getClassOptions.dart';
 import 'package:eureka_app/apis/saveProfile.dart';
 import 'package:eureka_app/events/onboardingAndLoginEvents.dart';
 import 'package:eureka_app/main.dart';
+import 'package:eureka_app/screens/home/homeScreen.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/widgets/schoolSelectionWidget.dart';
 import 'package:flutter/material.dart';
@@ -455,7 +456,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+        backgroundColor: AppColors.bg,
         elevation: 0,
         title: currentData["type"] != "info_message"
             ? LayoutBuilder(
@@ -490,7 +491,7 @@ class _OnboardingScreenV4State extends State<OnboardingScreenV4> {
             : null,
         automaticallyImplyLeading: false,
       ),
-      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      backgroundColor: AppColors.bg,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _buildPageContent(currentData),

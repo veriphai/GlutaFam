@@ -270,3 +270,26 @@ void logQuestionsNotCompleted(String conceptId) {
     eventDetails: {"conceptId": conceptId},
   );
 }
+
+void logAITutorHintRequested(String conceptId, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_hint_requested",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {"conceptId": conceptId, "checkpointNo": checkpointNumber},
+  );
+}
+
+void logAITutorPromptSelected(
+    String conceptId, String promptType, int checkpointNumber) {
+  logEvent(
+    eventName: "tutor_prompt_selected",
+    screenName: "AITutorScreen",
+    eventType: "button_click",
+    eventDetails: {
+      "conceptId": conceptId,
+      "promptType": promptType,
+      "checkpointNo": checkpointNumber
+    },
+  );
+}

@@ -22,9 +22,13 @@ Future<Map<String, dynamic>> generateTutorResponse(
     bool? allCheckpointCompleted,
     bool? resumeLesson,
     Map<String, dynamic>? questionsData,
-    Map<String, dynamic>? learningObjectivesStatus}) async {
+    Map<String, dynamic>? learningObjectivesStatus,
+    bool? hintRequest,
+    String? userPromptType}) async {
   try {
-    const url = 'http://localhost:8080/gluta/tutor/responseV2';
+    const url = 'https://glutaclass.com:8080/gluta/tutor/responseV2';
+    // const url = 'http://localhost:8080/gluta/tutor/responseV2';
+
     final uri = Uri.parse(url);
 
     final AuthTokenService authTokenService = AuthTokenService();
@@ -47,7 +51,10 @@ Future<Map<String, dynamic>> generateTutorResponse(
       "conceptConversationsKey": conceptConversationsKey,
       "learningObjectivesStatus": learningObjectivesStatus,
       "resumeLesson": resumeLesson,
-      "remainingTime": remainingTime
+      "remainingTime": remainingTime,
+      // New fields for hint and prompt types
+      "hintRequest": hintRequest,
+      "userPromptType": userPromptType
     };
 
     // Prepare multipart request

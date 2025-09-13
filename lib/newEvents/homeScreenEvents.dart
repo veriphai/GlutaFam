@@ -106,3 +106,39 @@ void logSubjectSelectedFromChaptersList(String subject) {
     eventDetails: {"subject": subject},
   );
 }
+
+void logSearchOpened() {
+  logEvent(
+    eventName: "home_search_opened",
+    screenName: "HomeScreenV2",
+    eventType: "button_click",
+    eventDetails: {},
+  );
+}
+
+void logViewAllClicked(String sectionName) {
+  logEvent(
+    eventName: "home_view_all_clicked",
+    screenName: "HomeScreenV2",
+    eventType: "button_click",
+    eventDetails: {"section": sectionName},
+  );
+}
+
+void logSubjectFilterClicked(String filter) {
+  logEvent(
+    eventName: "home_subject_filter_clicked",
+    screenName: "HomeScreenV2",
+    eventType: "button_click",
+    eventDetails: {"filter": filter},
+  );
+}
+
+void logLessonResumed(String conceptId) {
+  logEvent(
+    eventName: "home_lesson_resumed",
+    screenName: "HomeScreenV2",
+    eventType: "button_click",
+    eventDetails: {"conceptId": conceptId},
+  );
+}

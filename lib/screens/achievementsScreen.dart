@@ -1,4 +1,5 @@
 import 'package:eureka_app/apis/fetchAchievements.dart';
+import 'package:eureka_app/screens/home/homeScreen.dart';
 import 'package:eureka_app/utils/achievements.dart';
 import 'package:eureka_app/widgets/achievementDetailsWidget.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      backgroundColor: AppColors.bg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -55,13 +56,13 @@ class _AchievementsPageState extends State<AchievementsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+        backgroundColor: AppColors.bg,
         title: Align(
             alignment: Alignment.centerLeft, // This forces left alignment
             child: Text(
               "Achievements",
-              style: GoogleFonts.raleway(
-                color: Colors.white,
+              style: GoogleFonts.inter(
+                color: AppColors.ink,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
@@ -71,7 +72,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
         ),
         elevation: 0,
       ),
-      backgroundColor: Color.fromRGBO(19, 31, 36, 1),
+      backgroundColor: AppColors.bg,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -126,7 +127,7 @@ class _AchievementsPageState extends State<AchievementsPage> {
                                 height: 100, // Maintain fixed image size
                                 width: 100,
                                 child: Opacity(
-                                  opacity: achievement["unlocked"] ? 1 : 0.1,
+                                  opacity: achievement["unlocked"] ? 1 : 0.4,
                                   child: Image.asset(
                                     getAchievement(
                                             achievement["id"])?["imagePath"] ??
@@ -177,8 +178,8 @@ class _AchievementsPageState extends State<AchievementsPage> {
                         // Achievement Name
                         Text(
                           achievement["name"] ?? "Achievement",
-                          style: GoogleFonts.raleway(
-                            color: Colors.white,
+                          style: GoogleFonts.inter(
+                            color: AppColors.ink,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
