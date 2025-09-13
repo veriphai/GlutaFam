@@ -24,6 +24,8 @@ import 'package:eureka_app/services/checkpointFeedbackService.dart';
 
 import 'components/ai_tutor_types.dart';
 import 'components/ai_tutor_helpers.dart';
+import 'components/ai_tutor_error_manager.dart';
+import 'components/error_ui_components.dart';
 
 import 'components/input_island.dart';
 import 'components/message_bubbles.dart';
@@ -121,6 +123,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     _state.resumeLesson = widget.resumeLesson ?? false;
     _state.viewLessonHistory = widget.viewLessonHistory ?? false;
 
+    // Initialize network monitoring
+    _startNetworkMonitoring();
+
     _bootstrap();
   }
 
@@ -190,30 +195,100 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
 
   // ---------- Backend integrations ----------
   void _subscribeToTopic(String conversationKey) {
-    stompClient = StompClient(
-      config: StompConfig(
-        url: 'wss://glutaclass.com:8080/gluta/ws',
-        onConnect: (frame) {
-          stompClient.subscribe(
-            destination: '/topic/$conversationKey',
-            callback: (message) async {
-              final payload = json.decode(message.body!);
-              await _handleWebSocketMessage(payload, conversationKey);
-            },
-          );
-        },
-        onWebSocketError: (error) => debugPrint('WS error: $error'),
-      ),
-    );
-    stompClient.activate();
+    try {
+      stompClient = StompClient(
+        config: StompConfig(
+          url: 'wss://glutaclass.com:8080/gluta/ws',
+          onConnect: (frame) {
+            debugPrint('WebSocket connected successfully');
+            setState(() {
+              _state.hasNetworkConnection = true;
+            });
+            
+            stompClient.subscribe(
+              destination: '/topic/$conversationKey',
+              callback: (message) async {
+                try {
+                  final payload = json.decode(message.body!);
+                  await _handleWebSocketMessage(payload, conversationKey);
+                } catch (e) {
+                  final error = AITutorErrorManager.createError(
+                    type: ErrorType.websocket,
+                    context: 'message_processing',
+                    technicalDetails: e.toString(),
+                    originalError: e,
+                  );
+                  _showError(error);
+                }
+              },
+            );
+          },
+          onWebSocketError: (error) {
+            debugPrint('WebSocket error: $error');
+            final errorState = AITutorErrorManager.createError(
+              type: ErrorType.websocket,
+              context: 'connection_error',
+              technicalDetails: error.toString(),
+              originalError: error,
+            );
+            _showError(errorState, isGlobal: true);
+            
+            setState(() {
+              _state.hasNetworkConnection = false;
+            });
+            
+            // Attempt to reconnect after delay
+            _scheduleWebSocketReconnect(conversationKey);
+          },
+          onDisconnect: (frame) {
+            debugPrint('WebSocket disconnected');
+            setState(() {
+              _state.hasNetworkConnection = false;
+            });
+            
+            // Attempt to reconnect
+            _scheduleWebSocketReconnect(conversationKey);
+          },
+        ),
+      );
+      
+      stompClient.activate();
+    } catch (e) {
+      final error = AITutorErrorManager.createError(
+        type: ErrorType.websocket,
+        context: 'connection_setup',
+        technicalDetails: e.toString(),
+        originalError: e,
+      );
+      _showError(error, isGlobal: true);
+    }
+  }
+
+  // Schedule WebSocket reconnection
+  void _scheduleWebSocketReconnect(String conversationKey) {
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && !_state.hasNetworkConnection) {
+        debugPrint('Attempting WebSocket reconnection...');
+        _subscribeToTopic(conversationKey);
+      }
+    });
   }
 
   Future<void> _handleWebSocketMessage(
       Map<String, dynamic> payload, String conversationKey) async {
-    if (payload['type'] == 'transcription_complete') {
-      final transcribed_text = payload['payload']['transcribed_text'];
-      _updateTranscription(transcribed_text);
-    } else if (payload['type'] == 'audio') {
+    try {
+      if (payload['type'] == 'transcription_complete') {
+        final transcribed_text = payload['payload']['transcribed_text'];
+        if (transcribed_text != null && transcribed_text.isNotEmpty) {
+          _updateTranscription(transcribed_text);
+        } else {
+          // Handle empty transcription as an error
+          _handleTranscriptionError();
+        }
+      } else if (payload['type'] == 'transcription_failed') {
+        // Handle explicit transcription failure
+        _handleTranscriptionError();
+      } else if (payload['type'] == 'audio') {
       final base64Audio = payload['payload']['audio'];
       if (base64Audio != null) {
         await _playBase64Audio(base64Audio, conversationKey);
@@ -676,8 +751,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   }
 
   Future<void> _initializeSession() async {
-    try {
-      final tutorResponse = await generateTutorResponse(
+    final result = await _safeApiCall(
+      () => generateTutorResponse(
           conceptId: widget.conceptId,
           studentName: _state.studentName,
           checkpointNo: 0,
@@ -685,10 +760,14 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           language: _state.selectedLanguage,
           voice: _state.selectedVoice,
           remainingTime: _state.timeLeftSeconds,
-          greeting: true);
+          greeting: true),
+      'initialize_session',
+      isCritical: true,
+    );
 
+    if (result != null) {
       final List<Map<String, dynamic>> conversationsList =
-          (tutorResponse["conversations"] as List?)
+          (result["conversations"] as List?)
                   ?.map((item) => Map<String, dynamic>.from(item as Map))
                   .toList() ??
               [];
@@ -698,8 +777,11 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         _state.showDots = false;
         _state.showAfterGreetingContinueButton = true;
       });
-    } catch (e) {
-      debugPrint("Error initializeSession: $e");
+    } else {
+      // Handle initialization failure
+      setState(() {
+        _state.showDots = false;
+      });
     }
   }
 
@@ -744,19 +826,45 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   }
 
   Future<void> _getConceptDetails() async {
-    try {
-      final details = await fetchConceptDetails(conceptId: widget.conceptId);
+    final result = await _safeApiCall(
+      () => fetchConceptDetails(conceptId: widget.conceptId),
+      'get_concept_details',
+      isCritical: true,
+    );
+
+    if (result != null) {
       setState(() {
-        _state.conceptDetails = details;
-        _state.conceptCheckpoints = (details["conceptCheckpoints"] as List)
+        _state.conceptDetails = result;
+        _state.conceptCheckpoints = (result["conceptCheckpoints"] as List)
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
-        _state.timeLeftSeconds = ((details["expectedCompletionTime"] ??
+        _state.timeLeftSeconds = ((result["expectedCompletionTime"] ??
                 _state.conceptCheckpoints.length * 5) as int) *
             60;
       });
-    } catch (e) {
-      debugPrint("Error fetching concept details: $e");
+    } else {
+      // Critical error loading concept details
+      final error = AITutorErrorManager.createError(
+        type: ErrorType.network,
+        context: 'concept_loading_failed',
+        customActions: [
+          ErrorAction(
+            label: 'Retry',
+            icon: Icons.refresh,
+            onTap: () {
+              _dismissError('concept_loading_failed');
+              _getConceptDetails();
+            },
+            isPrimary: true,
+          ),
+          ErrorAction(
+            label: 'Go Back',
+            icon: Icons.arrow_back,
+            onTap: () => _navigateBack(),
+          ),
+        ],
+      );
+      _handleCriticalError(error);
     }
   }
 
@@ -805,7 +913,6 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
       bool? hintRequest,
       String? userPromptType,
       String? userPromptText}) async {
-    try {
       // If userPromptText is provided, add it as a user message first
       if (userPromptText != null && userPromptText.isNotEmpty) {
         setState(() {
@@ -847,92 +954,170 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         _scrollToBottom();
       });
 
-      final tutorResponse = await generateTutorResponse(
-          conceptId: widget.conceptId,
-          studentName: _state.studentName,
-          checkpointNo: _state.currentCheckpointIndex,
-          conversations: _state.conversations,
-          audioFile: audioFile,
-          newCheckpointStarted: newCheckpointStarted,
-          allCheckpointCompleted: allCheckpointCompleted,
-          studentResponse: text,
-          conceptConversationsKey: _state.conceptConversationsKey,
-          questionsData: questionsData,
-          language: _state.selectedLanguage,
-          learningObjectivesStatus: learningObjectivesStatus,
-          resumeLesson: resumeLesson,
-          remainingTime: _state.timeLeftSeconds,
-          voice: _state.selectedVoice,
-          hintRequest: hintRequest,
-          userPromptType: userPromptType);
+      final tutorResponse = await _safeApiCall(
+        () => generateTutorResponse(
+            conceptId: widget.conceptId,
+            studentName: _state.studentName,
+            checkpointNo: _state.currentCheckpointIndex,
+            conversations: _state.conversations,
+            audioFile: audioFile,
+            newCheckpointStarted: newCheckpointStarted,
+            allCheckpointCompleted: allCheckpointCompleted,
+            studentResponse: text,
+            conceptConversationsKey: _state.conceptConversationsKey,
+            questionsData: questionsData,
+            language: _state.selectedLanguage,
+            learningObjectivesStatus: learningObjectivesStatus,
+            resumeLesson: resumeLesson,
+            remainingTime: _state.timeLeftSeconds,
+            voice: _state.selectedVoice,
+            hintRequest: hintRequest,
+            userPromptType: userPromptType),
+        'follow_up_conversation',
+      );
 
-      _state.latestTutorResponse = tutorResponse;
+      if (tutorResponse != null) {
+        _state.latestTutorResponse = tutorResponse;
 
-      final bool currentCheckpointCompletionStatus =
-          tutorResponse['currentCheckpointCompleted'];
-      final bool skipAhead = tutorResponse['enableCheckpointContinueButton'];
-      final List<Map<String, dynamic>> conversationsList =
-          (tutorResponse["conversations"] as List?)
-                  ?.map((item) => Map<String, dynamic>.from(item as Map))
-                  .toList() ??
-              [];
+        final bool currentCheckpointCompletionStatus =
+            tutorResponse['currentCheckpointCompleted'] ?? false;
+        final bool skipAhead = tutorResponse['enableCheckpointContinueButton'] ?? false;
+        final List<Map<String, dynamic>> conversationsList =
+            (tutorResponse["conversations"] as List?)
+                    ?.map((item) => Map<String, dynamic>.from(item as Map))
+                    .toList() ??
+                [];
 
-      if (conversationsList.isNotEmpty &&
-          conversationsList.length >= 2 &&
-          conversationsList[conversationsList.length - 2]['role'] == 'user') {
-        conversationsList[conversationsList.length - 2]['latest'] = false;
-      }
-
-      if (currentCheckpointCompletionStatus || skipAhead) {
-        if (currentCheckpointCompletionStatus) {
-          _state.completedCheckpointIndexes.add(_state.currentCheckpointIndex);
-          _state.attemptedCheckpointIndexes.add(_state.currentCheckpointIndex);
-          logAITutorCheckpointEnd(
-              _state.conceptCheckpoints[_state.currentCheckpointIndex]['id'],
-              widget.conceptId,
-              _state.currentCheckpointIndex + 1);
-        } else if (skipAhead) {
-          _state.attemptedCheckpointIndexes.add(_state.currentCheckpointIndex);
-          logAITutorCheckpointSkippedOnUserIntent(
-              _state.conceptCheckpoints[_state.currentCheckpointIndex]['id'],
-              widget.conceptId,
-              _state.currentCheckpointIndex + 1);
+        if (conversationsList.isNotEmpty &&
+            conversationsList.length >= 2 &&
+            conversationsList[conversationsList.length - 2]['role'] == 'user') {
+          conversationsList[conversationsList.length - 2]['latest'] = false;
         }
+
+        if (currentCheckpointCompletionStatus || skipAhead) {
+          if (currentCheckpointCompletionStatus) {
+            _state.completedCheckpointIndexes.add(_state.currentCheckpointIndex);
+            _state.attemptedCheckpointIndexes.add(_state.currentCheckpointIndex);
+            logAITutorCheckpointEnd(
+                _state.conceptCheckpoints[_state.currentCheckpointIndex]['id'],
+                widget.conceptId,
+                _state.currentCheckpointIndex + 1);
+          } else if (skipAhead) {
+            _state.attemptedCheckpointIndexes.add(_state.currentCheckpointIndex);
+            logAITutorCheckpointSkippedOnUserIntent(
+                _state.conceptCheckpoints[_state.currentCheckpointIndex]['id'],
+                widget.conceptId,
+                _state.currentCheckpointIndex + 1);
+          }
+          setState(() {
+            _state.showCheckpointContinueButton = true;
+            _state.showDots = false;
+            _state.showTextBox = false;
+          });
+        }
+
         setState(() {
-          _state.showCheckpointContinueButton = true;
+          _mergeConversationsPreservingFeedback(conversationsList,
+              isHintResponse: hintRequest == true);
           _state.showDots = false;
-          _state.showTextBox = false;
+          _state.isLoading = false;
+        });
+      } else {
+        // Handle API call failure
+        setState(() {
+          // Remove the loading message
+          if (_state.conversations.isNotEmpty &&
+              _state.conversations.last['isLoading'] == true) {
+            _state.conversations.removeLast();
+          }
+          
+          _state.showDots = false;
+          _state.isLoading = false;
         });
       }
-
-      setState(() {
-        _mergeConversationsPreservingFeedback(conversationsList,
-            isHintResponse: hintRequest == true);
-        _state.showDots = false;
-        _state.isLoading = false;
-      });
-    } catch (e) {
-      debugPrint("Error followUp: $e");
-    }
   }
 
   Future<void> _playBase64Audio(String base64Audio, String uniqueKey) async {
-    try {
-      final audioBytes = base64Decode(base64Audio);
-      final tempDir = await getTemporaryDirectory();
-      final audioFile = File('${tempDir.path}/${uniqueKey}_response_audio.wav');
-      await audioFile.writeAsBytes(audioBytes);
-      await player.openPlayer();
-      await player.startPlayer(fromURI: audioFile.path);
-    } catch (e) {
-      debugPrint('Error playing audio: $e');
+    final result = await _safeApiCall(
+      () async {
+        final audioBytes = base64Decode(base64Audio);
+        final tempDir = await getTemporaryDirectory();
+        final audioFile = File('${tempDir.path}/${uniqueKey}_response_audio.wav');
+        await audioFile.writeAsBytes(audioBytes);
+        
+        if (!player.isInited) {
+          await player.openPlayer();
+        }
+        
+        await player.startPlayer(fromURI: audioFile.path);
+        return true;
+      },
+      'play_audio',
+      showErrorUI: false, // Don't show UI error for audio playback failures
+    );
+
+    if (result == null) {
+      // Audio playback failed - show a subtle error
+      final error = AITutorErrorManager.createError(
+        type: ErrorType.audio,
+        context: 'audio_playback_failed',
+        customActions: [
+          ErrorAction(
+            label: 'Continue without audio',
+            icon: Icons.volume_off,
+            onTap: () => _dismissError('audio_playback_failed'),
+            isPrimary: true,
+          ),
+        ],
+      );
+      _showError(error);
     }
   }
 
   Future<void> _initializeRecorder() async {
-    await Permission.microphone.request();
-    await _recorder!.openRecorder();
-    _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
+    final result = await _safeApiCall(
+      () async {
+        final status = await Permission.microphone.request();
+        if (status != PermissionStatus.granted) {
+          throw Exception('Microphone permission denied');
+        }
+        
+        await _recorder!.openRecorder();
+        _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
+        return true;
+      },
+      'initialize_recorder',
+    );
+
+    if (result == null) {
+      // Recording initialization failed
+      final error = AITutorErrorManager.createError(
+        type: ErrorType.device,
+        context: 'microphone_initialization_failed',
+        customActions: [
+          ErrorAction(
+            label: 'Try Again',
+            icon: Icons.refresh,
+            onTap: () {
+              _dismissError('microphone_initialization_failed');
+              _initializeRecorder();
+            },
+            isPrimary: true,
+          ),
+          ErrorAction(
+            label: 'Use Text Only',
+            icon: Icons.keyboard,
+            onTap: () {
+              _dismissError('microphone_initialization_failed');
+              setState(() {
+                _state.inputMode = InputMode.typing;
+              });
+            },
+          ),
+        ],
+      );
+      _showError(error);
+    }
   }
 
   Future<void> _initPlayer() async {
@@ -1002,29 +1187,65 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   Future<void> _startRecording() async {
     if (_state.isLoading) return;
 
-    await player.stopPlayer();
-    final session = await AudioSession.instance;
-    await session.configure(AudioSessionConfiguration(
-      avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-      avAudioSessionCategoryOptions:
-          AVAudioSessionCategoryOptions.defaultToSpeaker,
-      avAudioSessionMode: AVAudioSessionMode.defaultMode,
-      androidWillPauseWhenDucked: false,
-    ));
-    final tempDir = await getTemporaryDirectory();
-    _audioPath = '${tempDir.path}/audio_record.wav';
-    await _recorder!.startRecorder(
-        toFile: _audioPath, codec: Codec.pcm16WAV, sampleRate: 24000);
+    final result = await _safeApiCall(
+      () async {
+        await player.stopPlayer();
+        final session = await AudioSession.instance;
+        await session.configure(AudioSessionConfiguration(
+          avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
+          avAudioSessionCategoryOptions:
+              AVAudioSessionCategoryOptions.defaultToSpeaker,
+          avAudioSessionMode: AVAudioSessionMode.defaultMode,
+          androidWillPauseWhenDucked: false,
+        ));
+        final tempDir = await getTemporaryDirectory();
+        _audioPath = '${tempDir.path}/audio_record.wav';
+        await _recorder!.startRecorder(
+            toFile: _audioPath, codec: Codec.pcm16WAV, sampleRate: 24000);
+        return true;
+      },
+      'start_recording',
+    );
 
-    setState(() {
-      _state.isRecording = true;
-      _state.inputMode = InputMode.recording;
-      _state.recordingSeconds = 0;
-    });
+    if (result != null) {
+      setState(() {
+        _state.isRecording = true;
+        _state.inputMode = InputMode.recording;
+        _state.recordingSeconds = 0;
+      });
 
-    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() => _state.recordingSeconds++);
-    });
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() => _state.recordingSeconds++);
+      });
+    } else {
+      // Recording start failed
+      final error = AITutorErrorManager.createError(
+        type: ErrorType.audio,
+        context: 'recording_start_failed',
+        customActions: [
+          ErrorAction(
+            label: 'Try Again',
+            icon: Icons.mic,
+            onTap: () {
+              _dismissError('recording_start_failed');
+              _startRecording();
+            },
+            isPrimary: true,
+          ),
+          ErrorAction(
+            label: 'Type Instead',
+            icon: Icons.keyboard,
+            onTap: () {
+              _dismissError('recording_start_failed');
+              setState(() {
+                _state.inputMode = InputMode.typing;
+              });
+            },
+          ),
+        ],
+      );
+      _showError(error);
+    }
   }
 
   Future<void> _stopRecording() async {
@@ -1083,6 +1304,24 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   void _onSendText() {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
+
+    // Validate message length
+    if (text.length > 1000) {
+      final error = AITutorErrorManager.createError(
+        type: ErrorType.validation,
+        context: 'message_too_long',
+        customActions: [
+          ErrorAction(
+            label: 'Shorten Message',
+            icon: Icons.edit,
+            onTap: () => _dismissError('message_too_long'),
+            isPrimary: true,
+          ),
+        ],
+      );
+      _showError(error);
+      return;
+    }
 
     setState(() {
       _state.inputMode = InputMode.compact;
@@ -1809,6 +2048,383 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     }
   }
 
+  // ========== ERROR HANDLING METHODS ==========
+
+  // Safe API call wrapper with automatic retry and error handling
+  Future<T?> _safeApiCall<T>(
+    Future<T> Function() apiCall,
+    String operation, {
+    bool showErrorUI = true,
+    int maxRetries = 3,
+    bool isCritical = false,
+  }) async {
+    int attempts = 0;
+    
+    while (attempts < maxRetries) {
+      try {
+        // Check network connection before making call
+        if (!_state.hasNetworkConnection && !_isNetworkIndependentOperation(operation)) {
+          throw Exception('No network connection');
+        }
+        
+        final result = await apiCall();
+        
+        // Reset error counters on success
+        if (_state.consecutiveErrors > 0) {
+          setState(() {
+            _state.consecutiveErrors = 0;
+            _state.lastErrorTime = null;
+          });
+        }
+        
+        return result;
+      } catch (e) {
+        attempts++;
+        
+        final errorType = _getErrorTypeFromException(e);
+        final errorState = AITutorErrorManager.createError(
+          type: errorType,
+          context: operation,
+          technicalDetails: e.toString(),
+          originalError: e,
+        );
+
+        // Update error statistics
+        setState(() {
+          _state.consecutiveErrors++;
+          _state.lastErrorTime = DateTime.now();
+        });
+
+        if (attempts >= maxRetries) {
+          if (showErrorUI) {
+            _showError(errorState, isGlobal: isCritical);
+          }
+          
+          // Log error for analytics
+          _logError(errorState, operation);
+          return null;
+        }
+
+        // Wait before retry with exponential backoff
+        final delay = AITutorErrorManager.getRetryDelay(
+          errorState.copyWith(retryCount: attempts - 1)
+        );
+        await Future.delayed(delay);
+      }
+    }
+
+    return null;
+  }
+
+  // Determine error type from exception
+  ErrorType _getErrorTypeFromException(dynamic exception) {
+    final errorString = exception.toString().toLowerCase();
+    
+    if (errorString.contains('network') || 
+        errorString.contains('connection') ||
+        errorString.contains('timeout') ||
+        errorString.contains('failed host lookup')) {
+      return ErrorType.network;
+    } else if (errorString.contains('websocket') || 
+               errorString.contains('stomp')) {
+      return ErrorType.websocket;
+    } else if (errorString.contains('audio') || 
+               errorString.contains('transcription')) {
+      return ErrorType.transcription;
+    } else if (errorString.contains('unauthorized') || 
+               errorString.contains('authentication')) {
+      return ErrorType.authentication;
+    } else if (errorString.contains('validation') || 
+               errorString.contains('invalid')) {
+      return ErrorType.validation;
+    } else if (errorString.contains('storage') || 
+               errorString.contains('preferences')) {
+      return ErrorType.storage;
+    } else if (errorString.contains('permission') || 
+               errorString.contains('device')) {
+      return ErrorType.device;
+    } else if (errorString.contains('timeout')) {
+      return ErrorType.timeout;
+    } else if (errorString.contains('500') || 
+               errorString.contains('502') || 
+               errorString.contains('503') || 
+               errorString.contains('server')) {
+      return ErrorType.serverError;
+    }
+    
+    return ErrorType.unknown;
+  }
+
+  // Check if operation can work without network
+  bool _isNetworkIndependentOperation(String operation) {
+    const networkIndependentOps = [
+      'save_preferences',
+      'load_preferences',
+      'validate_input',
+      'format_time',
+      'calculate_progress',
+    ];
+    return networkIndependentOps.contains(operation);
+  }
+
+  // Show error in UI
+  void _showError(ErrorState error, {bool isGlobal = false}) {
+    // Create default actions if none provided
+    ErrorState errorWithActions = error;
+    if (error.actions.isEmpty) {
+      errorWithActions = error.copyWith(
+        actions: _getDefaultActionsForError(error),
+      );
+    }
+    
+    if (error.severity == ErrorSeverity.critical || isGlobal) {
+      setState(() {
+        _state.currentCriticalError = errorWithActions;
+        _state.showConnectionErrorOverlay = true;
+      });
+    } else {
+      setState(() {
+        _state.errorStates[errorWithActions.id] = errorWithActions;
+        
+        // Add error to conversations for inline display
+        if (error.type == ErrorType.transcription) {
+          // Handle transcription errors specially
+          _handleTranscriptionError();
+        } else {
+          // Add general error message
+          _state.wsEvents.add({
+            'role': 'error',
+            'data': errorWithActions,
+            'ts': DateTime.now().millisecondsSinceEpoch,
+          });
+        }
+      });
+    }
+  }
+
+  // Get default actions for errors with proper callbacks
+  List<ErrorAction> _getDefaultActionsForError(ErrorState error) {
+    switch (error.type) {
+      case ErrorType.transcription:
+        return [
+          ErrorAction(
+            label: 'Try Again',
+            icon: Icons.mic,
+            onTap: () => _retryTranscription(),
+            isPrimary: true,
+          ),
+          ErrorAction(
+            label: 'Type Instead',
+            icon: Icons.keyboard,
+            onTap: () {
+              _dismissError(error.id);
+              setState(() => _state.inputMode = InputMode.typing);
+            },
+          ),
+        ];
+      case ErrorType.network:
+      case ErrorType.websocket:
+      case ErrorType.timeout:
+      case ErrorType.serverError:
+        return [
+          ErrorAction(
+            label: 'Retry',
+            icon: Icons.refresh,
+            onTap: () => _retryOperation(error),
+            isPrimary: true,
+          ),
+        ];
+      case ErrorType.audio:
+        return [
+          ErrorAction(
+            label: 'Continue without audio',
+            icon: Icons.volume_off,
+            onTap: () => _dismissError(error.id),
+            isPrimary: true,
+          ),
+        ];
+      case ErrorType.device:
+        return [
+          ErrorAction(
+            label: 'Try Again',
+            icon: Icons.refresh,
+            onTap: () => _retryOperation(error),
+            isPrimary: true,
+          ),
+          ErrorAction(
+            label: 'Use Text Only',
+            icon: Icons.keyboard,
+            onTap: () {
+              _dismissError(error.id);
+              setState(() => _state.inputMode = InputMode.typing);
+            },
+          ),
+        ];
+      case ErrorType.validation:
+        return [
+          ErrorAction(
+            label: 'Dismiss',
+            icon: Icons.close,
+            onTap: () => _dismissError(error.id),
+            isPrimary: true,
+          ),
+        ];
+      default:
+        return [
+          ErrorAction(
+            label: 'Dismiss',
+            icon: Icons.close,
+            onTap: () => _dismissError(error.id),
+            isPrimary: true,
+          ),
+        ];
+    }
+  }
+
+  // Handle transcription specific errors
+  void _handleTranscriptionError() {
+    setState(() {
+      // Find and update the transcribing message
+      for (int i = 0; i < _state.conversations.length; i++) {
+        if (_state.conversations[i]['role'] == 'user' &&
+            _state.conversations[i]['isTranscribing'] == true) {
+          _state.conversations[i] = {
+            'role': 'user',
+            'content': '',
+            'text': '',
+            'transcriptionFailed': true,
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+            'retryRecording': () => _retryRecording(i),
+            'switchToText': () => _switchToTextInput(i),
+          };
+          break;
+        }
+      }
+    });
+  }
+
+  // Retry recording after transcription error
+  void _retryRecording(int messageIndex) {
+    setState(() {
+      _state.conversations.removeAt(messageIndex);
+    });
+    _startRecording();
+  }
+
+  // Switch to text input after transcription error
+  void _switchToTextInput(int messageIndex) {
+    setState(() {
+      _state.conversations.removeAt(messageIndex);
+      _state.inputMode = InputMode.typing;
+    });
+  }
+
+  // Dismiss error
+  void _dismissError(String errorId) {
+    setState(() {
+      _state.errorStates.remove(errorId);
+      _state.dismissedErrors[errorId] = true;
+      _state.wsEvents.removeWhere((event) => 
+          event['role'] == 'error' && event['data'].id == errorId);
+    });
+  }
+
+  // Retry failed operation
+  void _retryOperation(ErrorState error) {
+    _dismissError(error.id);
+    
+    // Find and retry the operation based on context
+    switch (error.id.split('_').first) {
+      case ErrorType.network.toString():
+        _retryNetworkOperation();
+        break;
+      case ErrorType.transcription.toString():
+        _retryTranscription();
+        break;
+      case ErrorType.websocket.toString():
+        _retryWebSocketConnection();
+        break;
+      default:
+        // Generic retry - refresh the current state
+        _refreshCurrentState();
+        break;
+    }
+  }
+
+  // Retry network operations
+  void _retryNetworkOperation() {
+    // Retry the last failed network operation
+    if (_state.conversations.isNotEmpty) {
+      final lastMessage = _state.conversations.last;
+      if (lastMessage['role'] == 'assistant' && lastMessage['isLoading'] == true) {
+        // Retry getting tutor response
+        _followUpConversation(null, null);
+      }
+    }
+  }
+
+  // Retry transcription
+  void _retryTranscription() {
+    _startRecording();
+  }
+
+  // Retry WebSocket connection
+  void _retryWebSocketConnection() {
+    _subscribeToTopic(_state.conceptConversationsKey);
+  }
+
+  // Refresh current state
+  void _refreshCurrentState() {
+    // Reload current checkpoint state
+    setState(() {
+      _state.showDots = true;
+    });
+    _followUpConversation(null, null);
+  }
+
+  // Log error for analytics
+  void _logError(ErrorState error, String operation) {
+    // Add your analytics logging here
+    debugPrint('AI Tutor Error: ${error.type} in $operation - ${error.message}');
+    
+    // You can extend this to send to your analytics service
+    // logEvent('ai_tutor_error', {
+    //   'error_type': error.type.toString(),
+    //   'error_severity': error.severity.toString(),
+    //   'error_message': error.message,
+    //   'operation': operation,
+    //   'concept_id': widget.conceptId,
+    //   'checkpoint_index': _state.currentCheckpointIndex,
+    //   'consecutive_errors': _state.consecutiveErrors,
+    // });
+  }
+
+  // Network connection monitoring
+  void _startNetworkMonitoring() {
+    // You can implement connectivity monitoring here
+    // For now, we'll assume network is available
+    setState(() {
+      _state.hasNetworkConnection = true;
+    });
+  }
+
+  // Handle critical errors that require lesson exit
+  void _handleCriticalError(ErrorState error) {
+    setState(() {
+      _state.currentCriticalError = error;
+      _state.showConnectionErrorOverlay = true;
+    });
+  }
+
+  // Recovery from overlay errors
+  void _recoverFromOverlayError() {
+    setState(() {
+      _state.showConnectionErrorOverlay = false;
+      _state.currentCriticalError = null;
+    });
+  }
+
+
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       // Use a small delay to ensure the new message is rendered
@@ -1821,6 +2437,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
       });
     }
   }
+
 
   @override
   void dispose() {
@@ -1915,82 +2532,98 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
-              child: Column(
-                children: [
-                  LessonStartComponents.buildGreetingBubble(
-                    _state.conversations,
-                    _state.showDots,
-                    widget.resumeLesson == true,
+          Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+                  child: Column(
+                    children: [
+                      LessonStartComponents.buildGreetingBubble(
+                        _state.conversations,
+                        _state.showDots,
+                        widget.resumeLesson == true,
+                      ),
+                      const SizedBox(height: 12),
+                      LessonStartComponents.buildLessonInfoCard(
+                          _state.conceptCheckpoints,
+                          _state.conceptDetails,
+                          widget.resumeLesson == true
+                              ? (widget.dataToResume?["checkpointNo"] as int? ?? 0)
+                              : _state.viewLessonHistory == true
+                                  ? _state.conceptCheckpoints.length
+                                  : 0),
+                      const SizedBox(height: 12),
+                      LessonStartComponents.buildLearningObjectivesCard(
+                        _state.conceptCheckpoints,
+                        _state.objectivesExpanded,
+                        _state.expandedObjectives,
+                        () => setState(() =>
+                            _state.objectivesExpanded = !_state.objectivesExpanded),
+                        (expand) => setState(() {
+                          for (final checkpoint in _state.conceptCheckpoints) {
+                            _state.expandedObjectives[checkpoint['id']] = expand;
+                          }
+                        }),
+                        (id, expanded) => setState(
+                            () => _state.expandedObjectives[id] = expanded),
+                      ),
+                      const SizedBox(height: 12),
+                      LessonStartComponents.buildTutorControlsCard(
+                          _state.isLoadingLanguageVoice,
+                          _state.languageOptions,
+                          _state.voiceOptions,
+                          _state.selectedLanguage,
+                          _state.selectedVoice,
+                          _state.tutorAudioEnabled,
+                          () => CommonUIComponents.showLanguageBottomSheet(
+                                context,
+                                _state.languageOptions,
+                                _state.selectedLanguage,
+                                _onLanguageSelected,
+                              ),
+                          () => CommonUIComponents.showVoiceBottomSheet(
+                                context,
+                                _state.voiceOptions,
+                                _state.selectedVoice,
+                                _onVoiceSelected,
+                              ),
+                          () => _onTutorAudioToggle),
+                      const SizedBox(height: 12),
+                      LessonStartComponents.buildBestPracticesCard(),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  LessonStartComponents.buildLessonInfoCard(
-                      _state.conceptCheckpoints,
-                      _state.conceptDetails,
-                      widget.resumeLesson == true
-                          ? (widget.dataToResume?["checkpointNo"] as int? ?? 0)
-                          : _state.viewLessonHistory == true
-                              ? _state.conceptCheckpoints.length
-                              : 0),
-                  const SizedBox(height: 12),
-                  LessonStartComponents.buildLearningObjectivesCard(
-                    _state.conceptCheckpoints,
-                    _state.objectivesExpanded,
-                    _state.expandedObjectives,
-                    () => setState(() =>
-                        _state.objectivesExpanded = !_state.objectivesExpanded),
-                    (expand) => setState(() {
-                      for (final checkpoint in _state.conceptCheckpoints) {
-                        _state.expandedObjectives[checkpoint['id']] = expand;
-                      }
-                    }),
-                    (id, expanded) => setState(
-                        () => _state.expandedObjectives[id] = expanded),
-                  ),
-                  const SizedBox(height: 12),
-                  LessonStartComponents.buildTutorControlsCard(
-                      _state.isLoadingLanguageVoice,
-                      _state.languageOptions,
-                      _state.voiceOptions,
-                      _state.selectedLanguage,
-                      _state.selectedVoice,
-                      _state.tutorAudioEnabled,
-                      () => CommonUIComponents.showLanguageBottomSheet(
-                            context,
-                            _state.languageOptions,
-                            _state.selectedLanguage,
-                            _onLanguageSelected,
-                          ),
-                      () => CommonUIComponents.showVoiceBottomSheet(
-                            context,
-                            _state.voiceOptions,
-                            _state.selectedVoice,
-                            _onVoiceSelected,
-                          ),
-                      () => _onTutorAudioToggle),
-                  const SizedBox(height: 12),
-                  LessonStartComponents.buildBestPracticesCard(),
-                ],
+                ),
               ),
-            ),
+              !_state.viewLessonHistory
+                  ? LessonStartComponents.buildStartButton(
+                      widget.resumeLesson == true,
+                      _startDiscussion,
+                    )
+                  : Row(
+                      children: [
+                        LessonStartComponents.buildButtonsForLessonHistory(
+                            false, fetchConceptConversations),
+                        LessonStartComponents.buildButtonsForLessonHistory(
+                            false, fetchConceptConversations)
+                      ],
+                    )
+            ],
           ),
-          !_state.viewLessonHistory
-              ? LessonStartComponents.buildStartButton(
-                  widget.resumeLesson == true,
-                  _startDiscussion,
-                )
-              : Row(
-                  children: [
-                    LessonStartComponents.buildButtonsForLessonHistory(
-                        false, fetchConceptConversations),
-                    LessonStartComponents.buildButtonsForLessonHistory(
-                        false, fetchConceptConversations)
-                  ],
-                )
+          // Connection Error Overlay for lesson start screen
+          if (_state.showConnectionErrorOverlay && _state.currentCriticalError != null)
+            ConnectionErrorOverlay(
+              onRetry: () {
+                _recoverFromOverlayError();
+                _retryOperation(_state.currentCriticalError!);
+              },
+              onOfflineMode: () {
+                _recoverFromOverlayError();
+                // Handle offline mode if needed
+              },
+            ),
         ],
       ),
     );
@@ -2049,19 +2682,36 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () {
-                        logAITutorMenuButtonClick(widget.conceptId);
-                        CommonUIComponents.showMenuSheet(
-                          context,
-                          _onJumpToNext,
-                          _onStartQuestions,
-                          _onShowGaps,
-                          _onShowCpFeedback,
-                        );
-                      },
-                      icon: const Icon(Icons.more_vert),
-                      color: const Color(0xFF0B1220),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Network status indicator
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _state.hasNetworkConnection 
+                                ? Colors.green 
+                                : Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {
+                            logAITutorMenuButtonClick(widget.conceptId);
+                            CommonUIComponents.showMenuSheet(
+                              context,
+                              _onJumpToNext,
+                              _onStartQuestions,
+                              _onShowGaps,
+                              _onShowCpFeedback,
+                            );
+                          },
+                          icon: const Icon(Icons.more_vert),
+                          color: const Color(0xFF0B1220),
+                        ),
+                      ],
                     )
                   ],
                 ),
@@ -2153,6 +2803,13 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
                           _onToggleBoard,
                         );
                       } else if (role == 'user') {
+                        // Handle transcription failed user messages
+                        if (convo['transcriptionFailed'] == true) {
+                          return TranscriptionErrorBubble(
+                            onRetry: convo['retryRecording'] ?? () {},
+                            onSwitchToText: convo['switchToText'] ?? () {},
+                          );
+                        }
                         return MessageBubbles.userBubble(convo['text'] ?? "",
                             convo, _onToggleFeedback, index);
                       } else if (role == 'checkpoint_feedback') {
@@ -2240,6 +2897,13 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
                                   event['checkpointIndex'] as int),
                           onTap: () => _viewCheckpointFeedback(
                               event['checkpointIndex'] as int),
+                        );
+                      } else if (role == 'error') {
+                        final errorState = event['data'] as ErrorState;
+                        return ErrorMessageBubble(
+                          error: errorState,
+                          onRetry: () => _retryOperation(errorState),
+                          isAssistant: errorState.type != ErrorType.transcription,
                         );
                         // return FeedbackCards.checkpointFeedbackCard(
                         //   event['checkpointIndex'] as int,
@@ -2340,6 +3004,19 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
                   ),
                 ),
               ),
+            ),
+
+          // Connection Error Overlay
+          if (_state.showConnectionErrorOverlay && _state.currentCriticalError != null)
+            ConnectionErrorOverlay(
+              onRetry: () {
+                _recoverFromOverlayError();
+                _retryOperation(_state.currentCriticalError!);
+              },
+              onOfflineMode: () {
+                _recoverFromOverlayError();
+                // Handle offline mode if needed
+              },
             ),
         ],
       ),
