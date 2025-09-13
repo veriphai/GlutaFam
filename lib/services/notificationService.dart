@@ -30,7 +30,8 @@ class NotificationService {
     const AndroidInitializationSettings androidInitSettings =
         AndroidInitializationSettings('@mipmap/logo');
 
-    const IOSInitializationSettings iosInitSettings = IOSInitializationSettings(
+    const DarwinInitializationSettings iosInitSettings =
+        DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -43,7 +44,7 @@ class NotificationService {
 
     await _flutterLocalNotificationsPlugin.initialize(
       initSettings,
-      onSelectNotification: (String? payload) async {
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
         // Handle notification tapped logic here
         // You could navigate to a specific screen based on payload
       },
@@ -94,8 +95,8 @@ class NotificationService {
       showWhen: true,
     );
 
-    const IOSNotificationDetails iosNotificationDetails =
-        IOSNotificationDetails(
+    const DarwinNotificationDetails iosNotificationDetails =
+        DarwinNotificationDetails(
       presentAlert: true, // Display alert for foreground notifications
       presentBadge: true, // Display badge for foreground notifications
       presentSound: true, // Play sound for foreground notifications

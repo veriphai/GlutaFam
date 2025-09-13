@@ -34,7 +34,7 @@ import 'package:eureka_app/widgets/questsScreen.dart';
 import 'package:eureka_app/widgets/weeklyLeaderboardContent.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
-import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+// import 'package:firebase_dynamic_links/firebase_dynamic_links.dart'; // REMOVED: Package discontinued
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -306,27 +306,16 @@ Future<bool> checkIfRealDevice() async {
 }
 
 void initDynamicLinkListener(SharedPreferences prefs) {
-  // Listen for incoming dynamic links
-  FirebaseDynamicLinks.instance.onLink.listen((PendingDynamicLinkData? data) {
-    final Uri? deepLink = data?.link;
-
-    if (deepLink != null) {
-      handleDeeplinks(prefs, deepLink);
-    }
-  }).onError((error) {
-    print('Dynamic Link Error: $error');
-  });
+  // REMOVED: Firebase Dynamic Links functionality
+  // The Firebase Dynamic Links service has been discontinued
+  print('Dynamic Links functionality removed - service discontinued');
 }
 
 // Retrieve initial link (for when the app is opened via a dynamic link)
 Future<void> handleInitialDynamicLink(SharedPreferences prefs) async {
-  final PendingDynamicLinkData? initialLink =
-      await FirebaseDynamicLinks.instance.getInitialLink();
-
-  if (initialLink?.link != null) {
-    final Uri deepLink = initialLink!.link;
-    handleDeeplinks(prefs, deepLink);
-  }
+  // REMOVED: Firebase Dynamic Links functionality
+  // The Firebase Dynamic Links service has been discontinued
+  print('Initial Dynamic Link functionality removed - service discontinued');
 }
 
 void handleDeeplinks(SharedPreferences prefs, Uri deepLink) {
