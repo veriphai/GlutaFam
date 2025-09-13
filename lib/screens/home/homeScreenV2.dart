@@ -102,9 +102,21 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   List<ChapterData> chapterStats = [];
   List<dynamic> allChapters = [];
 
+  // Analytics tracking variables
+  late DateTime _screenStartTime;
+  DateTime? _searchStartTime;
+  Map<String, DateTime> _overlayStartTimes = {};
+  Map<String, int> _sessionMetrics = {
+    'lessonsViewed': 0,
+    'chaptersViewed': 0,
+    'searchesPerformed': 0,
+  };
+  Set<String> _sectionsVisited = {};
+
   @override
   void initState() {
     super.initState();
+    _screenStartTime = DateTime.now();
     _initializeAnimations();
     _initializeData();
     logHomeScreenView();
@@ -137,6 +149,16 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   @override
   void dispose() {
+    // Log session duration before disposing
+    final sessionDuration = DateTime.now().difference(_screenStartTime).inMilliseconds;
+    logSessionDuration(
+      timeSpentMs: sessionDuration,
+      lessonsViewed: _sessionMetrics['lessonsViewed'] ?? 0,
+      chaptersViewed: _sessionMetrics['chaptersViewed'] ?? 0,
+      searchesPerformed: _sessionMetrics['searchesPerformed'] ?? 0,
+      sectionsVisited: _sectionsVisited.toList(),
+    );
+    
     _searchAnimationController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -144,6 +166,8 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   Future<void> _initializeData() async {
+    final startTime = DateTime.now();
+    
     try {
       await _fetchProfile();
       await _fetchSubjectsAndChapters();
@@ -154,8 +178,23 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         _fetchAllChapters(),
       ]);
       _buildUIData();
+      
+      // Log successful screen load
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+      logHomeScreenLoaded(
+        totalLessons: recommendedLessons.length + continueLearningLessons.length,
+        totalChapters: chapterStats.length,
+        availableSubjects: subjects.map((s) => s.name).toList(),
+        loadTimeMs: loadTime,
+      );
+      
     } catch (error) {
       print("Error initializing data: $error");
+      logHomeScreenError(
+        errorType: "initialization_error",
+        errorMessage: error.toString(),
+        failedOperation: "initialize_data",
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -166,6 +205,9 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   Future<void> _fetchProfile() async {
+    final startTime = DateTime.now();
+    logAPICallStarted(apiName: "fetchProfile", parameters: {});
+    
     try {
       final profileData = await refreshProfile();
       prefs = await SharedPreferences.getInstance();
@@ -173,8 +215,31 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       setState(() {
         userProfile = profileData;
       });
+      
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
+      logAPICallCompleted(
+        apiName: "fetchProfile",
+        durationMs: duration,
+        success: true,
+      );
+      
     } catch (error) {
       print("Error fetching userProfile: $error");
+      
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
+      logAPICallCompleted(
+        apiName: "fetchProfile",
+        durationMs: duration,
+        success: false,
+        errorMessage: error.toString(),
+      );
+      
+      logHomeScreenError(
+        errorType: "api_failure",
+        errorMessage: error.toString(),
+        failedOperation: "fetch_profile",
+      );
+      
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -199,15 +264,26 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
 
       if (selectedBookId.isEmpty) {
+        String reason;
         if (scienceBook.isNotEmpty) {
           selectedBookId = scienceBook["id"];
           _selectedSubject = scienceBook["subject"];
+          reason = "science_preferred";
         } else {
           selectedBookId = booksData[0]["id"];
           _selectedSubject = booksData[0]["subject"];
+          reason = "fallback_first";
         }
         await prefs.setString("bookId", selectedBookId);
         await prefs.setString("subject", _selectedSubject);
+        
+        // Log default subject setting
+        logDefaultSubjectSet(
+          subjectName: _selectedSubject,
+          subjectId: selectedBookId,
+          reason: reason,
+          availableSubjects: booksData.map<String>((book) => book["subject"].toString()).toList(),
+        );
       }
 
       final chapterData = await getChaptersWithCache(
@@ -227,6 +303,11 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       });
     } catch (error) {
       print("Error fetching subjects and chapters: $error");
+      logHomeScreenError(
+        errorType: "api_failure",
+        errorMessage: error.toString(),
+        failedOperation: "fetch_subjects_and_chapters",
+      );
       rethrow;
     }
   }
@@ -239,6 +320,11 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       });
     } catch (error) {
       print("Error fetching recommended lessons: $error");
+      logHomeScreenError(
+        errorType: "api_failure",
+        errorMessage: error.toString(),
+        failedOperation: "fetch_recommended_lessons",
+      );
     }
   }
 
@@ -250,6 +336,11 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       });
     } catch (error) {
       print("Error fetching chapters to resume: $error");
+      logHomeScreenError(
+        errorType: "api_failure",
+        errorMessage: error.toString(),
+        failedOperation: "fetch_chapters_to_resume",
+      );
     }
   }
 
@@ -262,7 +353,12 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         _initializeSearchData();
       });
     } catch (error) {
-      print("Error fetching chapters to resume: $error");
+      print("Error fetching all chapters: $error");
+      logHomeScreenError(
+        errorType: "api_failure",
+        errorMessage: error.toString(),
+        failedOperation: "fetch_all_chapters",
+      );
     }
   }
 
@@ -393,6 +489,11 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       });
     } catch (error) {
       print("Error fetching lesson history: $error");
+      logHomeScreenError(
+        errorType: "api_failure",
+        errorMessage: error.toString(),
+        failedOperation: "fetch_lesson_history",
+      );
     }
   }
 
@@ -582,6 +683,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   void _openSearch() {
+    _searchStartTime = DateTime.now();
     setState(() {
       _isSearchOpen = true;
     });
@@ -592,6 +694,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
     });
 
     logSearchOpened();
+    _sessionMetrics['searchesPerformed'] = (_sessionMetrics['searchesPerformed'] ?? 0) + 1;
   }
 
   void _showKeyboardForSearch() {
@@ -623,6 +726,18 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   void _closeSearch() {
+    // Log search cancellation
+    if (_searchStartTime != null) {
+      final timeSpent = DateTime.now().difference(_searchStartTime!).inMilliseconds;
+      final hadResults = _matchedChapters.isNotEmpty || _matchedTopics.isNotEmpty || _matchedConcepts.isNotEmpty;
+      
+      logSearchCancelled(
+        searchQuery: _searchQuery,
+        timeSpentMs: timeSpent,
+        hadResults: hadResults,
+      );
+    }
+    
     _searchFocusNode.unfocus();
     _searchAnimationController.reverse().then((_) {
       if (mounted) {
@@ -639,6 +754,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   void _performSearch(String query) {
+    final searchStartTime = DateTime.now();
     final q = query.trim().toLowerCase();
 
     if (q.isEmpty) {
@@ -678,6 +794,26 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       for (var c in [...exactConcepts, ...fuzzyConcepts]) c.conceptName: c
     }.values.toList();
 
+    final searchDuration = DateTime.now().difference(searchStartTime).inMilliseconds;
+    
+    // Log search query performance
+    logSearchQueryEntered(
+      query: query,
+      chaptersFound: allChapters.length,
+      topicsFound: allTopics.length,
+      conceptsFound: allConcepts.length,
+      queryLength: query.length,
+      searchTimeMs: searchDuration,
+    );
+    
+    // Log no results if nothing found
+    if (allChapters.isEmpty && allTopics.isEmpty && allConcepts.isEmpty) {
+      logSearchNoResults(
+        query: query,
+        queryLength: query.length,
+      );
+    }
+
     setState(() {
       _searchQuery = query;
       _matchedChapters = allChapters;
@@ -689,6 +825,19 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   Future<void> _onTapLesson(LessonData lesson) async {
     // Navigate to concept learning screen
     if (mounted) {
+      // Track lesson viewed
+      _sessionMetrics['lessonsViewed'] = (_sessionMetrics['lessonsViewed'] ?? 0) + 1;
+      
+      logLessonViewed(
+        lessonId: lesson.id,
+        lessonName: lesson.name,
+        sectionType: lesson.recommended ? 'recommended' : (lesson.resumeLesson == true ? 'continue' : 'other'),
+        subject: lesson.subject,
+        chapter: lesson.chapter,
+        currentProgress: lesson.progress,
+        estimatedMinutes: lesson.minutes,
+      );
+      
       if (lesson.resumeLesson == true) {
         logLessonResumed(lesson.id);
         final datatoResumeConcept = await resumeConcept(
@@ -806,6 +955,28 @@ class _HomeScreenV2State extends State<HomeScreenV2>
     const totalCheckpoints = 3;
     final isCompleted = checkpointsCompleted >= totalCheckpoints;
     final progress = checkpointsCompleted / totalCheckpoints;
+    
+    // Log lesson progress update
+    logLessonProgressUpdated(
+      lessonId: conceptId,
+      oldProgress: originalLesson.progress,
+      newProgress: progress.clamp(0.0, 1.0),
+      checkpointsCompleted: checkpointsCompleted,
+      totalCheckpoints: totalCheckpoints,
+      isCompleted: isCompleted,
+    );
+    
+    // Log lesson completion if applicable
+    if (isCompleted) {
+      logLessonCompleted(
+        lessonId: conceptId,
+        timeSpentMs: completionData['timeSpentMs'] ?? 0,
+        checkpointsCompleted: checkpointsCompleted,
+        subject: originalLesson.subject,
+        chapter: originalLesson.chapter,
+        completionSource: 'home_screen',
+      );
+    }
 
     // Update the lesson in both recommended and continue learning lists
     setState(() {
@@ -915,9 +1086,34 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 matchedConcepts: _matchedConcepts,
                 onSearchChanged: _performSearch,
                 onClose: _closeSearch,
-                onConceptTap: _onTapSearchConcept,
+                onConceptTap: (concept) {
+                  // Log search result click
+                  final position = _matchedConcepts.indexOf(concept) + 1;
+                  logSearchResultClicked(
+                    resultType: "concept",
+                    itemName: concept.conceptName,
+                    itemId: concept.conceptName, // Using name as ID since we may not have the actual ID
+                    subject: concept.subject,
+                    resultPosition: position,
+                    searchQuery: _searchQuery,
+                  );
+                  
+                  _onTapSearchConcept(concept);
+                },
                 onTopicTap: (topic) {
                   logTopicButtonClick(topic.topicName);
+                  
+                  // Log search result click
+                  final position = _matchedTopics.indexOf(topic) + 1;
+                  logSearchResultClicked(
+                    resultType: "topic",
+                    itemName: topic.topicName,
+                    itemId: topic.topicName,
+                    subject: topic.subject,
+                    resultPosition: position,
+                    searchQuery: _searchQuery,
+                  );
+                  
                   setState(() {
                     _chapterView = {
                       'subjectId': _getSubjectIdByName(topic.subject),
@@ -929,6 +1125,18 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 },
                 onChapterTap: (chapter) {
                   logChapterSelected(chapter.chapterName);
+                  
+                  // Log search result click
+                  final position = _matchedChapters.indexOf(chapter) + 1;
+                  logSearchResultClicked(
+                    resultType: "chapter",
+                    itemName: chapter.chapterName,
+                    itemId: chapter.chapterName,
+                    subject: chapter.subject,
+                    resultPosition: position,
+                    searchQuery: _searchQuery,
+                  );
+                  
                   setState(() {
                     _chapterView = {
                       'subjectId': _getSubjectIdByName(chapter.subject),
@@ -966,7 +1174,20 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                     };
                   });
                 },
-                onClose: () => setState(() => _viewAll = null),
+                onClose: () {
+                  // Log overlay closed with timing
+                  final sectionKey = _viewAll ?? 'unknown';
+                  if (_overlayStartTimes.containsKey(sectionKey)) {
+                    final timeSpent = DateTime.now().difference(_overlayStartTimes[sectionKey]!).inMilliseconds;
+                    logViewAllOverlayClosed(
+                      sectionType: sectionKey,
+                      timeSpentMs: timeSpent,
+                      itemSelected: false,
+                    );
+                    _overlayStartTimes.remove(sectionKey);
+                  }
+                  setState(() => _viewAll = null);
+                },
                 onFilterClicked: logSubjectFilterClicked,
               ),
 
@@ -1050,6 +1271,19 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             onSubjectTap: (subjectId) {
               final subject = subjects.firstWhere((s) => s.id == subjectId);
               logSubjectSelected(subject.name);
+              
+              // Track section visited
+              _sectionsVisited.add('subjects');
+              
+              // Log subject chapters opened
+              final subjectChapters = allChapters.where((ch) => 
+                ch['subject']?.toLowerCase() == subject.name.toLowerCase()).length;
+              logSubjectChaptersOpened(
+                subjectName: subject.name,
+                subjectId: subjectId,
+                totalChapters: subjectChapters,
+              );
+              
               setState(() {
                 _subjectView = subjectId;
               });
@@ -1067,7 +1301,25 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   List<Widget> _buildContinueChapters() {
     final continueChapters = chapterStats;
-    if (continueChapters.isEmpty) return [];
+    if (continueChapters.isEmpty) {
+      // Log empty section
+      logEmptySectionShown(
+        sectionName: "continue_chapters",
+        emptyReason: "no_data",
+      );
+      return [];
+    }
+
+    // Track section visited
+    _sectionsVisited.add('continue_chapters');
+    
+    // Log section viewed
+    logSectionViewed(
+      sectionName: "continue_chapters",
+      itemCount: continueChapters.length,
+      isEmpty: false,
+      scrollPosition: 0,
+    );
 
     return [
       SectionHeader(
@@ -1076,13 +1328,43 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         actionLabel: "View all",
         onAction: () {
           logViewAllClicked("continue_chapters");
+          
+          // Log view all overlay opened
+          logViewAllOverlayOpened(
+            sectionType: "continue_chapters",
+            totalItems: continueChapters.length,
+          );
+          
+          _overlayStartTimes["continue_chapters"] = DateTime.now();
           setState(() => _viewAll = "continue_chapters");
         },
       ),
       const SizedBox(height: 12),
       SubjectFilterBar(
         value: _filterContinueChapters,
-        onChanged: (value) => setState(() => _filterContinueChapters = value),
+        onChanged: (value) {
+          final previousFilter = _filterContinueChapters;
+          setState(() => _filterContinueChapters = value);
+          
+          // Log filter application
+          final filteredCount = continueChapters.where((c) => 
+            value == "all" || c.subjectId == value).length;
+          
+          if (value == "all" && previousFilter != "all") {
+            logFilterCleared(
+              sectionType: "continue_chapters",
+              previousFilter: previousFilter,
+              totalItemCount: continueChapters.length,
+            );
+          } else if (value != "all") {
+            logSubjectFilterApplied(
+              sectionType: "continue_chapters",
+              selectedSubject: value,
+              previousFilter: previousFilter,
+              filteredItemCount: filteredCount,
+            );
+          }
+        },
         allowedSubjectIds:
             continueChapters.map((c) => c.subjectId).toSet().toList(),
         subjects: subjects,
@@ -1098,6 +1380,33 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             .toList(),
         onChapterTap: (chapter) {
           logChapterSelected(chapter.key);
+          
+          // Track chapter viewed
+          _sessionMetrics['chaptersViewed'] = (_sessionMetrics['chaptersViewed'] ?? 0) + 1;
+          
+          // Log chapter interactions
+          final completionPercentage = chapter.total > 0 
+              ? (chapter.completed / chapter.total) * 100 
+              : 0.0;
+          
+          logChapterViewed(
+            chapterId: chapter.key,
+            chapterName: chapter.chapter,
+            subject: chapter.subject,
+            totalLessons: chapter.total,
+            completedLessons: chapter.completed,
+            inProgressLessons: chapter.inProgress,
+            completionPercentage: completionPercentage,
+          );
+          
+          logChapterOverlayOpened(
+            chapterName: chapter.chapter,
+            subject: chapter.subject,
+            chapterId: chapter.key,
+            totalLessons: chapter.total,
+            completedLessons: chapter.completed,
+          );
+          
           setState(() {
             _chapterView = {
               'subjectId': chapter.subjectId,
@@ -1113,7 +1422,24 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   List<Widget> _buildContinueLearning() {
     final continueLessons = continueLearningLessons.toList();
-    if (continueLessons.isEmpty) return [];
+    if (continueLessons.isEmpty) {
+      logEmptySectionShown(
+        sectionName: "continue_learning",
+        emptyReason: "no_data",
+      );
+      return [];
+    }
+
+    // Track section visited
+    _sectionsVisited.add('continue_learning');
+    
+    // Log section viewed
+    logSectionViewed(
+      sectionName: "continue_learning",
+      itemCount: continueLessons.length,
+      isEmpty: false,
+      scrollPosition: 0,
+    );
 
     return [
       SectionHeader(
@@ -1122,13 +1448,42 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         actionLabel: "View all",
         onAction: () {
           logViewAllClicked("continue_learning");
+          
+          logViewAllOverlayOpened(
+            sectionType: "continue",
+            totalItems: continueLessons.length,
+          );
+          
+          _overlayStartTimes["continue"] = DateTime.now();
           setState(() => _viewAll = "continue");
         },
       ),
       const SizedBox(height: 12),
       SubjectFilterBar(
         value: _filterContinue,
-        onChanged: (value) => setState(() => _filterContinue = value),
+        onChanged: (value) {
+          final previousFilter = _filterContinue;
+          setState(() => _filterContinue = value);
+          
+          // Log filter application
+          final filteredCount = continueLessons.where((l) => 
+            value == "all" || l.subjectId == value).length;
+          
+          if (value == "all" && previousFilter != "all") {
+            logFilterCleared(
+              sectionType: "continue_learning",
+              previousFilter: previousFilter,
+              totalItemCount: continueLessons.length,
+            );
+          } else if (value != "all") {
+            logSubjectFilterApplied(
+              sectionType: "continue_learning",
+              selectedSubject: value,
+              previousFilter: previousFilter,
+              filteredItemCount: filteredCount,
+            );
+          }
+        },
         allowedSubjectIds:
             continueLessons.map((l) => l.subjectId).toSet().toList(),
         subjects: subjects,
@@ -1149,6 +1504,30 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   Widget _buildRecommendedSection() {
+    // Track section visited
+    _sectionsVisited.add('recommended');
+    
+    // Log section viewed
+    logSectionViewed(
+      sectionName: "recommended",
+      itemCount: recommendedLessons.length,
+      isEmpty: recommendedLessons.isEmpty,
+      scrollPosition: 0,
+    );
+    
+    // Log recommendations shown
+    for (int i = 0; i < recommendedLessons.take(2).length; i++) {
+      final lesson = recommendedLessons[i];
+      logRecommendationShown(
+        lessonId: lesson.id,
+        lessonName: lesson.name,
+        recommendationReason: lesson.recommendationReason,
+        priorityScore: lesson.priorityScore,
+        positionInList: i + 1,
+        subject: lesson.subject,
+      );
+    }
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1158,13 +1537,42 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           actionLabel: "View all",
           onAction: () {
             logViewAllClicked("recommended_for_you");
+            
+            logViewAllOverlayOpened(
+              sectionType: "recommended",
+              totalItems: recommendedLessons.length,
+            );
+            
+            _overlayStartTimes["recommended"] = DateTime.now();
             setState(() => _viewAll = "recommended");
           },
         ),
         const SizedBox(height: 12),
         SubjectFilterBar(
           value: _filterRecommended,
-          onChanged: (value) => setState(() => _filterRecommended = value),
+          onChanged: (value) {
+            final previousFilter = _filterRecommended;
+            setState(() => _filterRecommended = value);
+            
+            // Log filter application
+            final filteredCount = recommendedLessons.where((l) => 
+              value == "all" || l.subjectId == value).length;
+            
+            if (value == "all" && previousFilter != "all") {
+              logFilterCleared(
+                sectionType: "recommended",
+                previousFilter: previousFilter,
+                totalItemCount: recommendedLessons.length,
+              );
+            } else if (value != "all") {
+              logSubjectFilterApplied(
+                sectionType: "recommended",
+                selectedSubject: value,
+                previousFilter: previousFilter,
+                filteredItemCount: filteredCount,
+              );
+            }
+          },
           allowedSubjectIds:
               recommendedLessons.map((l) => l.subjectId).toSet().toList(),
           subjects: subjects,
@@ -1189,7 +1597,35 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   List<Widget> _buildFromParentsSection() {
     final parentsLessons =
         recommendedLessons.where((l) => l.fromParent).toList();
-    if (parentsLessons.isEmpty) return [];
+    if (parentsLessons.isEmpty) {
+      logEmptySectionShown(
+        sectionName: "from_parents",
+        emptyReason: "no_data",
+      );
+      return [];
+    }
+
+    // Track section visited
+    _sectionsVisited.add('from_parents');
+    
+    // Log section viewed
+    logSectionViewed(
+      sectionName: "from_parents",
+      itemCount: parentsLessons.length,
+      isEmpty: false,
+      scrollPosition: 0,
+    );
+    
+    // Log parent recommendations viewed
+    for (int i = 0; i < parentsLessons.length; i++) {
+      final lesson = parentsLessons[i];
+      logParentRecommendationViewed(
+        lessonId: lesson.id,
+        lessonName: lesson.name,
+        subject: lesson.subject,
+        positionInList: i + 1,
+      );
+    }
 
     return [
       SectionHeader(
@@ -1198,13 +1634,42 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         actionLabel: "View all",
         onAction: () {
           logViewAllClicked("from_parents");
+          
+          logViewAllOverlayOpened(
+            sectionType: "parents",
+            totalItems: parentsLessons.length,
+          );
+          
+          _overlayStartTimes["parents"] = DateTime.now();
           setState(() => _viewAll = "parents");
         },
       ),
       const SizedBox(height: 12),
       SubjectFilterBar(
         value: _filterParents,
-        onChanged: (value) => setState(() => _filterParents = value),
+        onChanged: (value) {
+          final previousFilter = _filterParents;
+          setState(() => _filterParents = value);
+          
+          // Log filter application
+          final filteredCount = parentsLessons.where((l) => 
+            value == "all" || l.subjectId == value).length;
+          
+          if (value == "all" && previousFilter != "all") {
+            logFilterCleared(
+              sectionType: "parents",
+              previousFilter: previousFilter,
+              totalItemCount: parentsLessons.length,
+            );
+          } else if (value != "all") {
+            logSubjectFilterApplied(
+              sectionType: "parents",
+              selectedSubject: value,
+              previousFilter: previousFilter,
+              filteredItemCount: filteredCount,
+            );
+          }
+        },
         allowedSubjectIds:
             parentsLessons.map((l) => l.subjectId).toSet().toList(),
         subjects: subjects,
@@ -1270,29 +1735,68 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           List<String>.from(versionInfo['updateNotes'] ?? []);
 
       if (isVersionLower(currentVersion, minimumVersion)) {
-        // Force update
+        // Log and show force update
+        logUpdatePromptShown(
+          currentVersion: currentVersion,
+          latestVersion: latestVersion,
+          isForced: true,
+          platform: Platform.isAndroid ? 'android' : 'ios',
+          updateNotes: notes,
+        );
+        
         showUpdateSheet(
           context,
           message: message,
           updateNotes: notes,
           forceUpdate: true,
           onUpdate: () {
+            logUpdateAccepted(
+              currentVersion: currentVersion,
+              latestVersion: latestVersion,
+              wasForced: true,
+            );
             launchAppStore();
           },
         );
       } else if (isVersionLower(currentVersion, latestVersion)) {
+        // Log and show optional update
+        logUpdatePromptShown(
+          currentVersion: currentVersion,
+          latestVersion: latestVersion,
+          isForced: forceUpdate,
+          platform: Platform.isAndroid ? 'android' : 'ios',
+          updateNotes: notes,
+        );
+        
         showUpdateSheet(
           context,
           message: message,
           updateNotes: notes,
           forceUpdate: forceUpdate,
           onUpdate: () {
+            logUpdateAccepted(
+              currentVersion: currentVersion,
+              latestVersion: latestVersion,
+              wasForced: forceUpdate,
+            );
             launchAppStore();
+          },
+          onDismiss: () {
+            logUpdateDismissed(
+              currentVersion: currentVersion,
+              latestVersion: latestVersion,
+              wasForced: forceUpdate,
+            );
           },
         );
       }
     } catch (e) {
-      // Handle error or skip update check
+      // Log update check failure
+      final currentVersion = await getCurrentAppVersion();
+      logUpdateCheckFailed(
+        error: e.toString(),
+        currentVersion: currentVersion,
+      );
     }
   }
 
@@ -1302,6 +1806,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
     required List<String> updateNotes,
     required bool forceUpdate,
     required VoidCallback onUpdate,
+    VoidCallback? onDismiss,
   }) {
     showModalBottomSheet(
       context: context,
@@ -1370,7 +1875,10 @@ class _HomeScreenV2State extends State<HomeScreenV2>
               ),
               if (!forceUpdate)
                 ChicletOutlinedAnimatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    if (onDismiss != null) onDismiss();
+                  },
                   buttonType: ChicletButtonTypes.roundedRectangle,
                   width: double.infinity,
                   height: 50,
