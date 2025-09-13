@@ -35,6 +35,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import './utils/navigation_utils.dart'; // Import the navigatorKey
 import 'package:url_launcher/url_launcher.dart';
+import 'services/deep_link_service.dart';
 
 // import 'package:miniplayer/miniplayer.dart'; // Add miniplayer import
 import 'dart:io' show Platform;
@@ -109,9 +110,10 @@ void main() async {
     await authTokenService.setAuthToken(refreshTokenResponse['token'] ?? "");
 
     logAppLaunchEvent(deviceId, platform, userIP, firstLaunch);
+    // Initialize deep link service (replaces Firebase Dynamic Links)
     if (!kIsWeb) {
-      initDynamicLinkListener(prefs);
-      await handleInitialDynamicLink(prefs);
+      final deepLinkService = DeepLinkService();
+      await deepLinkService.initialize();
     }
   });
 
