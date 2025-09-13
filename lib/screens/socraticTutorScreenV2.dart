@@ -146,6 +146,7 @@ For h(x) = 1/x, let’s check what happens as x approaches 0:
       numChannels: 1,
       sampleRate: 24000,
       bufferSize: 8192,
+      interleaved: false,
     );
 
     setState(() {
