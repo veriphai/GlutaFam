@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
 import 'package:markdown/markdown.dart' as md;
+// import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:lottie/lottie.dart';
 import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'text_highlighter.dart';
@@ -72,8 +73,7 @@ class MessageBubbles {
                       ),
                     )
                   else
-                    TextHighlighter.buildHighlightedTextWithInlineQuestion(
-                        text, conversations[index]),
+                    _buildHighlightedMarkdownText(text, conversations[index]),
                   // Show color legend if there are highlighted terms
                   if (!isLoading && _hasHighlights(conversations[index])) ...[
                     const SizedBox(height: 8),
@@ -217,7 +217,7 @@ class MessageBubbles {
                     // Show feedback legend if there are highlighted terms
                     if (hasFeedback) ...[
                       const SizedBox(height: 8),
-                      _buildMasteryAndVerdict(conversation!),
+                      _buildMasteryAndVerdict(conversation),
                       const SizedBox(height: 8),
                       _buildUserFeedbackLegend(
                           conversation, onToggleFeedback, messageIndex),
@@ -304,6 +304,234 @@ class MessageBubbles {
   static bool _hasUserFeedback(Map<String, dynamic> conversation) {
     return conversation['correctEvidence'] != null ||
         conversation['incorrectEvidence'] != null;
+  }
+
+  // New method to handle both highlighting and markdown/LaTeX rendering
+  static Widget _buildHighlightedMarkdownText(
+      String text, Map<String, dynamic> conversation) {
+    final String? extractedQuestion = conversation['extractedQuestion'];
+    final bool isLoading = conversation['isLoading'] == true;
+
+    if (isLoading) {
+      // Use regular highlighting without question replacement during loading
+      return _buildGptMarkdownWithHighlights(text, conversation);
+    }
+
+    // If there's no extracted question, just show the regular highlighted markdown text
+    if (extractedQuestion == null || extractedQuestion.isEmpty) {
+      return _buildGptMarkdownWithHighlights(text, conversation);
+    }
+
+    // Show the text with the question at the end
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Show the full original text with highlighting and markdown
+        _buildGptMarkdownWithHighlights(text, conversation),
+
+        const SizedBox(height: 8),
+
+        // Show the question as a separate interactive section
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0x1A1D4ED8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF1D4ED8)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Your turn',
+                  style: GoogleFonts.raleway(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1D4ED8))),
+              _buildGptMarkdownWithHighlights(extractedQuestion, {}),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper method to build markdown with highlighting using gpt_markdown
+  static Widget _buildGptMarkdownWithHighlights(
+      String text, Map<String, dynamic> conversation) {
+    // Get highlighting terms
+    final List<String> keywords =
+        (conversation['keywords'] as List?)?.cast<String>() ?? [];
+    final List<String> phrases =
+        (conversation['phrases'] as List?)?.cast<String>() ?? [];
+    final List<String> definitions =
+        (conversation['definitions'] as List?)?.cast<String>() ?? [];
+
+    // If no highlighting needed, use simple MarkdownBody
+    if (keywords.isEmpty && phrases.isEmpty && definitions.isEmpty) {
+      return MarkdownBody(
+        data: text,
+        styleSheet: MarkdownStyleSheet(
+          p: GoogleFonts.raleway(
+            fontSize: 15,
+            height: 1.4,
+            color: const Color(0xFF0B1220),
+          ),
+        ),
+      );
+    }
+
+    // For now, we'll create a hybrid approach:
+    // Use GptMarkdown for LaTeX rendering, but apply highlighting manually
+    // This is a temporary solution until we can better integrate both features
+
+    // Create highlight map
+    final Map<String, Color> highlightTerms = {};
+
+    // Add keywords with blue highlighting
+    for (final keyword in keywords) {
+      if (keyword.trim().isNotEmpty) {
+        highlightTerms[keyword.trim().toLowerCase()] = const Color(0xFF1D4ED8);
+      }
+    }
+
+    // Add phrases with green highlighting
+    for (final phrase in phrases) {
+      if (phrase.trim().isNotEmpty) {
+        highlightTerms[phrase.trim().toLowerCase()] = const Color(0xFF059669);
+      }
+    }
+
+    // Add definitions with purple highlighting
+    for (final definition in definitions) {
+      if (definition.trim().isNotEmpty) {
+        highlightTerms[definition.trim().toLowerCase()] =
+            const Color(0xFF7C3AED);
+      }
+    }
+
+    // Check if text contains LaTeX (simple heuristic)
+    final hasLatex =
+        text.contains(r'\(') || text.contains(r'\[') || text.contains(r'$$');
+
+    if (hasLatex) {
+      // Use MarkdownBody for LaTeX rendering (highlighting will be limited)
+      return MarkdownBody(
+        data: text,
+        styleSheet: MarkdownStyleSheet(
+          p: GoogleFonts.raleway(
+            fontSize: 15,
+            height: 1.4,
+            color: const Color(0xFF0B1220),
+          ),
+        ),
+        builders: {
+          'latex': LatexElementBuilder(
+            textStyle: GoogleFonts.raleway(
+              color: const Color(0xFF0B1220),
+              fontSize: 15,
+            ),
+          ),
+        },
+        extensionSet: md.ExtensionSet(
+          [LatexBlockSyntax()],
+          [LatexInlineSyntax()],
+        ),
+      );
+    } else {
+      // Use custom highlighting for non-LaTeX text
+      return RichText(
+        text: TextSpan(
+          children: _buildHighlightedTextSpans(
+              text,
+              highlightTerms,
+              GoogleFonts.raleway(
+                fontSize: 15,
+                height: 1.4,
+                color: const Color(0xFF0B1220),
+              )),
+        ),
+      );
+    }
+  }
+
+  // Helper method to build highlighted text spans
+  static List<TextSpan> _buildHighlightedTextSpans(
+      String text, Map<String, Color> highlightTerms, TextStyle? baseStyle) {
+    if (highlightTerms.isEmpty) {
+      return [TextSpan(text: text, style: baseStyle)];
+    }
+
+    // Sort terms by length (longest first) to handle overlapping matches correctly
+    final sortedTerms = highlightTerms.keys.toList()
+      ..sort((a, b) => b.length.compareTo(a.length));
+
+    final List<TextSpan> spans = [];
+    int currentIndex = 0;
+
+    while (currentIndex < text.length) {
+      bool foundMatch = false;
+
+      // Try to find a match at the current position
+      for (final term in sortedTerms) {
+        final lowerText = text.toLowerCase();
+        final matchIndex = lowerText.indexOf(term, currentIndex);
+
+        if (matchIndex == currentIndex) {
+          // Found a match at current position
+          final originalTerm =
+              text.substring(matchIndex, matchIndex + term.length);
+
+          spans.add(TextSpan(
+            text: originalTerm,
+            style: baseStyle?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              backgroundColor: highlightTerms[term]!.withOpacity(0.8),
+              height: 1.0,
+            ),
+          ));
+
+          currentIndex = matchIndex + term.length;
+          foundMatch = true;
+          break;
+        }
+      }
+
+      if (!foundMatch) {
+        // No match found, add the current character and move on
+        final nextMatchIndex =
+            _findNextHighlightMatch(text, currentIndex, sortedTerms);
+        final endIndex = nextMatchIndex != -1 ? nextMatchIndex : text.length;
+
+        if (endIndex > currentIndex) {
+          spans.add(TextSpan(
+            text: text.substring(currentIndex, endIndex),
+            style: baseStyle,
+          ));
+          currentIndex = endIndex;
+        }
+      }
+    }
+
+    return spans;
+  }
+
+  // Helper method to find the next match position for highlighting
+  static int _findNextHighlightMatch(
+      String text, int startIndex, List<String> terms) {
+    int nearestMatch = -1;
+    final lowerText = text.toLowerCase();
+
+    for (final term in terms) {
+      final matchIndex = lowerText.indexOf(term, startIndex);
+      if (matchIndex != -1) {
+        if (nearestMatch == -1 || matchIndex < nearestMatch) {
+          nearestMatch = matchIndex;
+        }
+      }
+    }
+
+    return nearestMatch;
   }
 
   static Widget _buildHighlightLegend(Map<String, dynamic> conversation) {
@@ -436,7 +664,7 @@ class MessageBubbles {
               .map((evidence) => Padding(
                     padding: const EdgeInsets.only(left: 14, bottom: 2),
                     child: Text(
-                      '• ${evidence ?? ''}',
+                      '• $evidence',
                       style: GoogleFonts.raleway(
                         fontSize: 10,
                         color: const Color(0xFF374151),
@@ -470,7 +698,7 @@ class MessageBubbles {
               .map((evidence) => Padding(
                     padding: const EdgeInsets.only(left: 14, bottom: 2),
                     child: Text(
-                      '• ${evidence ?? ''}',
+                      '• $evidence',
                       style: GoogleFonts.raleway(
                         fontSize: 10,
                         color: const Color(0xFF374151),
@@ -504,7 +732,7 @@ class MessageBubbles {
               .map((evidence) => Padding(
                     padding: const EdgeInsets.only(left: 14, bottom: 2),
                     child: Text(
-                      '• ${evidence ?? ''}',
+                      '• $evidence',
                       style: GoogleFonts.raleway(
                         fontSize: 10,
                         color: const Color(0xFF374151),
