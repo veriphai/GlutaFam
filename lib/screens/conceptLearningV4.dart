@@ -26,7 +26,7 @@ import 'package:eureka_app/widgets/tutorMessage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:taudio/taudio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';

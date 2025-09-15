@@ -11,7 +11,7 @@ import 'package:eureka_app/newEvents/aiTutorScreenEvents.dart';
 import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:taudio/taudio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
@@ -502,6 +502,9 @@ class _AITutorScreenState extends State<AITutorScreen> {
                       // Remove the extracted question from the original message text to avoid duplication
                       final originalText =
                           conversations[targetAssistantIndex]['text'] ?? '';
+                      // Store the original text for inline question positioning
+                      conversations[targetAssistantIndex]['originalText'] =
+                          originalText;
                       final cleanedText =
                           _removeQuestionFromText(originalText, question);
                       conversations[targetAssistantIndex]['text'] = cleanedText;

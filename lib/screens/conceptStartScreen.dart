@@ -192,22 +192,22 @@ class _ConceptStartScreenState extends State<ConceptStartScreen> {
                   ChicletAnimatedButton(
                     onPressed: () async {
                       if (widget.firstLesson) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ConceptLearningScreenV2(
-                              conceptId: widget.conceptId,
-                              conceptName: widget.conceptName,
-                              maxXP: widget.maxXP,
-                              name: widget.name,
-                              subject: widget.subject,
-                              standard: widget.standard,
-                              tutorSelected: selectedAITeacher,
-                              selectedLanguage: selectedLanguage,
-                              selectedVoice: selectedVoice,
-                            ),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => ConceptLearningScreenV2(
+                        //       conceptId: widget.conceptId,
+                        //       conceptName: widget.conceptName,
+                        //       maxXP: widget.maxXP,
+                        //       name: widget.name,
+                        //       subject: widget.subject,
+                        //       standard: widget.standard,
+                        //       tutorSelected: selectedAITeacher,
+                        //       selectedLanguage: selectedLanguage,
+                        //       selectedVoice: selectedVoice,
+                        //     ),
+                        //   ),
+                        // );
                       } else {
                         final language =
                             await prefs.getString("aiTutorLanguage");

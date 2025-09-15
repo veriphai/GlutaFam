@@ -4,7 +4,7 @@ description: "Tuto: AI Tutor for Classes 6-12"
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.2.11+55
+version: 1.2.12+56
 
 environment:
   sdk: ^3.5.0
@@ -46,7 +46,8 @@ dependencies:
   flutter_native_splash: ^2.4.1
   libphonenumber_plugin: ^0.3.3
   pdfx: ^2.6.0
-  flutter_sound: ^9.6.0
+  # flutter_sound: ^9.6.0 - Migrated to taudio
+  taudio: ^10.3.8
   flutter_audio_waveforms: ^1.2.1+8
   path_provider: ^2.1.4
   http_parser: ^4.0.2

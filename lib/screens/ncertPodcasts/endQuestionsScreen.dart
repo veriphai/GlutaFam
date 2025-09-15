@@ -3,7 +3,7 @@ import 'package:eureka_app/events/bookEndQnaEvents.dart';
 import 'package:eureka_app/screens/ncertPodcasts/resultsScreen.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:taudio/taudio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;

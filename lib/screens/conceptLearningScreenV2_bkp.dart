@@ -26,7 +26,8 @@ import 'package:eureka_app/widgets/mcqQuestionsWidget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_sound/flutter_sound.dart';
+// import 'package:flutter_sound/flutter_sound.dart';
+import 'package:taudio/taudio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
@@ -618,7 +619,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
         }
 
         Uint8List silence = generateSilence(durationMs: 1000); // 300ms silence
-        player.foodSink?.add(FoodData(silence));
+        // player.foodSink?.add(FoodData(silence));
         setState(() {
           _isLoading = false;
           if (conversations.isNotEmpty &&
@@ -662,7 +663,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
           // transcribeBase64Audio(base64Audio);
           Uint8List rawData = base64Decode(base64Audio);
           // Send the chunk into the audio stream
-          player.foodSink?.add(FoodData(rawData));
+          // player.foodSink?.add(FoodData(rawData));
         }
       } else if (serverContent.containsKey("outputTranscription")) {
         String deltaText = serverContent["outputTranscription"]["text"] ?? "";
@@ -836,7 +837,7 @@ class _ConceptLearningScreenState extends State<ConceptLearningScreenV2> {
       if (base64Audio.isNotEmpty && _isPlayerReady && !isMuted) {
         Uint8List rawData = base64Decode(base64Audio);
         // Send the chunk into the audio stream
-        player.foodSink?.add(FoodData(rawData));
+        // player.foodSink?.add(FoodData(rawData));
       }
     } else if (data['type'] == 'response.done') {
       print("Conversation complete");

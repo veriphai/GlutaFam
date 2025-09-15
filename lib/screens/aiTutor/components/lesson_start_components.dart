@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import 'ai_tutor_helpers.dart';
 
 class LessonStartComponents {
@@ -90,14 +91,7 @@ class LessonStartComponents {
                         ),
                       ],
                     )
-                  : Text(
-                      greetingMessage,
-                      style: GoogleFonts.raleway(
-                        fontSize: 15,
-                        color: const Color(0xFF0B1220),
-                        height: 1.4,
-                      ),
-                    ),
+                  : _buildGreetingText(greetingMessage),
             ),
           ),
         ],
@@ -479,6 +473,65 @@ class LessonStartComponents {
         ),
       ),
     );
+  }
+
+  // Helper method to render greeting text with LaTeX support
+  static Widget _buildGreetingText(String text) {
+    // Convert $...$ to \(...\) for better compatibility
+    final processedText = _convertDollarLatexToParentheses(text);
+
+    // Check if text contains LaTeX
+    final hasLatex = processedText.contains(r'\(') ||
+        processedText.contains(r'\[') ||
+        processedText.contains(r'$$');
+
+    if (hasLatex) {
+      return GptMarkdown(
+        processedText,
+        style: GoogleFonts.raleway(
+          fontSize: 15,
+          color: const Color(0xFF0B1220),
+          height: 1.4,
+        ),
+      );
+    } else {
+      return Text(
+        processedText,
+        style: GoogleFonts.raleway(
+          fontSize: 15,
+          color: const Color(0xFF0B1220),
+          height: 1.4,
+        ),
+      );
+    }
+  }
+
+  // Convert $...$ LaTeX to \(...\) for better compatibility
+  static String _convertDollarLatexToParentheses(String text) {
+    // First, temporarily replace $$...$$ with placeholders to avoid conflicts
+    final Map<String, String> blockLatexPlaceholders = {};
+    int placeholderIndex = 0;
+
+    // Find and replace $$...$$ with placeholders
+    text = text.replaceAllMapped(RegExp(r'\$\$([^$]*?)\$\$'), (match) {
+      final placeholder = '___BLOCK_LATEX_${placeholderIndex}___';
+      blockLatexPlaceholders[placeholder] = match.group(0)!;
+      placeholderIndex++;
+      return placeholder;
+    });
+
+    // Now replace remaining single $...$ with \(...\)
+    text = text.replaceAllMapped(RegExp(r'\$([^$\n]+?)\$'), (match) {
+      final content = match.group(1)!;
+      return '\\($content\\)';
+    });
+
+    // Restore the $$...$$ blocks
+    blockLatexPlaceholders.forEach((placeholder, original) {
+      text = text.replaceAll(placeholder, original);
+    });
+
+    return text;
   }
 
   // Helper widgets

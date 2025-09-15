@@ -12,7 +12,7 @@ import 'package:eureka_app/apis/resolveGap.dart';
 import 'package:eureka_app/newEvents/aiTutorScreenEvents.dart';
 import 'package:eureka_app/screens/aiTutor/components/compact_feedback_card.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:taudio/taudio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -109,8 +109,11 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
 
     player = FlutterSoundPlayer();
     _recorder = FlutterSoundRecorder();
-    _initializeRecorder();
     _initPlayer();
+    _initializeRecorder();
+
+    // Initialize recorder without requesting permission yet
+    // _initializeRecorderWithoutPermission();
 
     // Add listener to text controller for send button state
     _messageController.addListener(() {
@@ -126,6 +129,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     await _loadPrefsAndOptions();
     await _getConceptDetails();
     await _loadLanguageAndVoiceOptions();
+
+    // Test permission request after bootstrap is complete
+    await _testPermissionRequest();
 
     if (widget.resumeLesson == true) {
       _state.conceptConversationsKey =
@@ -273,6 +279,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
             question;
         final originalText =
             _state.conversations[targetAssistantIndex]['text'] ?? '';
+        // Store the original text for inline question positioning
+        _state.conversations[targetAssistantIndex]['originalText'] =
+            originalText;
         final cleanedText =
             AITutorHelpers.removeQuestionFromText(originalText, question);
         _state.conversations[targetAssistantIndex]['text'] = cleanedText;
@@ -923,10 +932,109 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     }
   }
 
+  /// Initialize recorder without requesting permission (called in initState)
+  Future<void> _initializeRecorderWithoutPermission() async {
+    try {
+      // Check if permission is already granted
+      final currentStatus = await Permission.microphone.status;
+      debugPrint('🎤 Current microphone permission status: $currentStatus');
+
+      if (currentStatus.isGranted) {
+        await _recorder!.openRecorder();
+        _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
+        debugPrint(
+            '🎤 Recorder initialized successfully (permission already granted)');
+      } else {
+        debugPrint('🎤 Recorder not initialized - permission not granted yet');
+      }
+    } catch (e) {
+      debugPrint('🎤 Error initializing recorder: $e');
+    }
+  }
+
   Future<void> _initializeRecorder() async {
-    await Permission.microphone.request();
+    final x = await Permission.microphone.request();
+    print('🎤 Permission request result: $x');
     await _recorder!.openRecorder();
     _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
+  }
+
+  /// Initialize recorder and request permission if needed
+  // Future<void> _initializeRecorder() async {
+  //   try {
+  //     // Check current status first
+  //     final currentStatus = await Permission.microphone.status;
+  //     debugPrint('🎤 Current microphone permission status: $currentStatus');
+
+  //     // Only request if not already granted
+  //     if (currentStatus != PermissionStatus.granted) {
+  //       debugPrint('🎤 Requesting microphone permission...');
+  //       final permission = await Permission.microphone.request();
+  //       debugPrint('🎤 Permission request result: $permission');
+
+  //       if (permission.isGranted) {
+  //         await _recorder!.openRecorder();
+  //         _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
+  //         debugPrint('🎤 Recorder initialized successfully');
+  //       } else {
+  //         debugPrint('🎤 Microphone permission not granted: $permission');
+  //       }
+  //     } else {
+  //       // Permission already granted
+  //       if (!_recorder!.isRecording) {
+  //         await _recorder!.openRecorder();
+  //         _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
+  //       }
+  //       debugPrint(
+  //           '🎤 Recorder initialized successfully (permission already granted)');
+  //     }
+  //   } catch (e) {
+  //     debugPrint('🎤 Error initializing recorder: $e');
+  //   }
+  // }
+
+  /// Check if microphone permission is available before starting recording
+  Future<bool> _checkMicrophonePermission() async {
+    final status = await Permission.microphone.status;
+    debugPrint('🎤 Checking microphone permission: $status');
+
+    if (status.isGranted) {
+      return true;
+    } else if (status.isDenied) {
+      debugPrint('🎤 Permission denied, requesting permission...');
+      // Request permission and let system show the native dialog
+      final newStatus = await Permission.microphone.request();
+      debugPrint('🎤 Permission request result: $newStatus');
+      return newStatus.isGranted;
+    } else if (status.isPermanentlyDenied) {
+      debugPrint('🎤 Microphone permission permanently denied');
+      return false;
+    }
+
+    return false;
+  }
+
+  /// Force request microphone permission (for testing/debugging)
+  Future<void> _forceRequestPermission() async {
+    debugPrint('🎤 Force requesting microphone permission...');
+    final status = await Permission.microphone.request();
+    debugPrint('🎤 Force request result: $status');
+  }
+
+  /// Test permission request on screen load (call this manually for testing)
+  Future<void> _testPermissionRequest() async {
+    debugPrint('🎤 Testing permission request...');
+
+    // Add a small delay to ensure screen is fully loaded
+    await Future.delayed(const Duration(seconds: 1));
+
+    final status = await Permission.microphone.request();
+    debugPrint('🎤 Test permission result: $status');
+
+    if (status.isGranted) {
+      debugPrint('🎤 Permission granted! Initializing recorder...');
+      await _initializeRecorder();
+    }
   }
 
   Future<void> _initPlayer() async {
@@ -995,6 +1103,15 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   // Audio recording methods
   Future<void> _startRecording() async {
     if (_state.isLoading) return;
+
+    // Initialize recorder and request permission if needed - this will show the dialog
+    await _initializeRecorder();
+
+    // Check microphone permission before starting recording
+    if (!await _checkMicrophonePermission()) {
+      debugPrint('Cannot start recording: microphone permission not granted');
+      return;
+    }
 
     await player.stopPlayer();
     final session = await AudioSession.instance;
@@ -1114,7 +1231,11 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
       // Check if this is the last checkpoint
       if (_state.currentCheckpointIndex ==
           _state.conceptCheckpoints.length - 1) {
-        // This is the last checkpoint - navigate to all feedback screen
+        // This is the last checkpoint
+        final lastCheckpointIndex = _state.currentCheckpointIndex;
+        final lastCheckpointState =
+            _state.checkpointFeedbackStates[lastCheckpointIndex];
+
         setState(() {
           _state.xpGained += 45;
           _state.showCheckpointContinueButton = false;
@@ -1122,8 +1243,18 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         logAITutorCheckpointsCompleted(
             widget.conceptId, _state.completedCheckpointIndexes.length);
 
-        // Navigate to all checkpoint feedback screen
-        _showAllCheckpointFeedback();
+        // Check if feedback for last checkpoint already exists
+        if (lastCheckpointState == 'ready') {
+          // Feedback already exists, directly navigate to all feedback screen
+          _showAllCheckpointFeedback();
+        } else {
+          // Feedback doesn't exist, generate it first then navigate
+          _addCheckpointFeedbackCard(lastCheckpointIndex);
+          _loadCheckpointFeedback(lastCheckpointIndex);
+
+          // Navigate to all feedback screen
+          _showAllCheckpointFeedback();
+        }
       } else {
         // Start loading feedback for current checkpoint
         _addCheckpointFeedbackCard(_state.currentCheckpointIndex);
@@ -1677,8 +1808,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   }
 
   // Show all checkpoint feedback screen
-  void _showAllCheckpointFeedback() {
-    Navigator.pushAndRemoveUntil(
+  void _showAllCheckpointFeedback() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AllCheckpointFeedbackScreen(
@@ -1689,8 +1820,27 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           conceptId: widget.conceptId,
         ),
       ),
-      (route) => false, // Remove all previous routes
     );
+
+    // When user comes back from AllCheckpointFeedbackScreen
+    if (result != null && result is Map) {
+      // Update feedback states with the latest data from AllCheckpointFeedbackScreen
+      setState(() {
+        _state.checkpointFeedbackStates =
+            Map<int, String>.from(result['feedbackStates'] ?? {});
+        _state.checkpointFeedbackData =
+            Map<int, dynamic>.from(result['feedbackData'] ?? {});
+
+        // Always enable continue button when user comes back
+        _state.showCheckpointContinueButton = true;
+      });
+    } else if (result == null) {
+      // User pressed back or popped the screen without returning data
+      setState(() {
+        // Always enable continue button when user comes back
+        _state.showCheckpointContinueButton = true;
+      });
+    }
   }
 
   void _showCheckpointFeedback() async {
@@ -1974,351 +2124,483 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     );
   }
 
-  Widget _buildChatScreen() {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6EDDA),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(84),
-        child: SafeArea(
-          bottom: false,
+  void _showBackButtonSheet() {
+    bool hasNextCheckpoint =
+        _state.currentCheckpointIndex < _state.conceptCheckpoints.length - 1;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFFFFFBF2),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        logAITutorExit(
-                            _state.conceptCheckpoints[
-                                _state.currentCheckpointIndex]['id'],
-                            widget.conceptId,
-                            _state.currentCheckpointIndex + 1);
-                        _navigateBack();
-                      },
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE7DEC9)),
+              // 🎯 Image at the top
+              Container(
+                height: 200,
+                width: 200,
+                child: Center(
+                  child: Image.asset(
+                    "lib/assets/lesson-quit-new.png",
+                    height: 200,
+                  ),
+                ),
+              ),
+
+              // ⚠️ Warning Text with reduced gap
+              Transform.translate(
+                offset: const Offset(0, -30),
+                child: Text(
+                  "Quit and you'll lose your mastery in this lesson!",
+                  style: GoogleFonts.raleway(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(
+                        0xFF2D3748), // Dark text for light background
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Jump to next checkpoint button (if available)
+              hasNextCheckpoint
+                  ? ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1D4ED8),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Icon(Icons.chevron_left,
-                            color: Color(0xFF0B1220), size: 18),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        minimumSize: const Size(double.infinity, 0),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _onJumpToNext();
+                      },
+                      child: Text(
+                        "BORED? JUMP AHEAD",
+                        style: GoogleFonts.raleway(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1D4ED8),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        minimumSize: const Size(double.infinity, 0),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        "KEEP GOING",
+                        style: GoogleFonts.raleway(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Time to complete",
+
+              const SizedBox(height: 24),
+
+              // 🔄 Exit Text (centered)
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  logAITutorExit(
+                      _state.conceptCheckpoints[_state.currentCheckpointIndex]
+                          ['id'],
+                      widget.conceptId,
+                      _state.currentCheckpointIndex + 1);
+                  _navigateBack();
+                },
+                child: Center(
+                  child: Text(
+                    "EXIT",
+                    style: GoogleFonts.raleway(
+                      color: const Color(0xFF2D3748),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildChatScreen() {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _showBackButtonSheet();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6EDDA),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(84),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          _showBackButtonSheet();
+                        },
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE7DEC9)),
+                          ),
+                          child: const Icon(Icons.chevron_left,
+                              color: Color(0xFF0B1220), size: 18),
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Time to complete",
+                                style: GoogleFonts.raleway(
+                                    fontSize: 12,
+                                    color: const Color(0xFF70695B))),
+                            const SizedBox(height: 2),
+                            Text(
+                                AITutorHelpers.formatTime(
+                                    _state.timeLeftSeconds),
+                                style: GoogleFonts.raleway(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF0B1220))),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          logAITutorMenuButtonClick(widget.conceptId);
+                          CommonUIComponents.showMenuSheet(
+                            context,
+                            _onJumpToNext,
+                            _onStartQuestions,
+                            _onShowGaps,
+                            _onShowCpFeedback,
+                            currentCheckpointIndex:
+                                _state.currentCheckpointIndex,
+                            totalCheckpoints: _state.conceptCheckpoints.length,
+                          );
+                        },
+                        icon: const Icon(Icons.more_vert),
+                        color: const Color(0xFF0B1220),
+                      )
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Container(
+                    height: 10,
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFEADFC8),
+                        borderRadius: BorderRadius.circular(999)),
+                    clipBehavior: Clip.antiAlias,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: LayoutBuilder(builder: (context, c) {
+                        final w = c.maxWidth *
+                            AITutorHelpers.calculateProgress(
+                                _state.currentCheckpointIndex,
+                                _state.conceptCheckpoints.length);
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          width: w,
+                          decoration: BoxDecoration(
+                              color: const Color(0xFF1D4ED8),
+                              borderRadius: BorderRadius.circular(999)),
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFE7DEC9)),
+                            borderRadius: BorderRadius.circular(999)),
+                        child: Row(children: [
+                          Text("Studying with ",
                               style: GoogleFonts.raleway(
                                   fontSize: 12,
                                   color: const Color(0xFF70695B))),
-                          const SizedBox(height: 2),
-                          Text(
-                              AITutorHelpers.formatTime(_state.timeLeftSeconds),
+                          Text(_state.tutorName,
                               style: GoogleFonts.raleway(
-                                  fontSize: 18,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF0B1220))),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        logAITutorMenuButtonClick(widget.conceptId);
-                        CommonUIComponents.showMenuSheet(
-                          context,
-                          _onJumpToNext,
-                          _onStartQuestions,
-                          _onShowGaps,
-                          _onShowCpFeedback,
-                        );
-                      },
-                      icon: const Icon(Icons.more_vert),
-                      color: const Color(0xFF0B1220),
-                    )
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Container(
-                  height: 10,
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFEADFC8),
-                      borderRadius: BorderRadius.circular(999)),
-                  clipBehavior: Clip.antiAlias,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: LayoutBuilder(builder: (context, c) {
-                      final w = c.maxWidth *
-                          AITutorHelpers.calculateProgress(
-                              _state.currentCheckpointIndex,
-                              _state.conceptCheckpoints.length);
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        width: w,
-                        decoration: BoxDecoration(
-                            color: const Color(0xFF1D4ED8),
-                            borderRadius: BorderRadius.circular(999)),
-                      );
-                    }),
+                        ]),
+                      )
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFFE7DEC9)),
-                          borderRadius: BorderRadius.circular(999)),
-                      child: Row(children: [
-                        Text("Studying with ",
-                            style: GoogleFonts.raleway(
-                                fontSize: 12, color: const Color(0xFF70695B))),
-                        Text(_state.tutorName,
-                            style: GoogleFonts.raleway(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0B1220))),
-                      ]),
-                    )
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 140),
-                  itemCount:
-                      _state.conversations.length + _state.wsEvents.length,
-                  itemBuilder: (context, index) {
-                    if (index < _state.conversations.length) {
-                      final convo = _state.conversations[index];
-                      if (convo['greeting']) return const SizedBox.shrink();
-                      final role = convo['role'];
-                      if (role == 'assistant') {
-                        return MessageBubbles.assistantBubble(
-                          convo['text'] ?? "",
-                          index,
-                          _state.conversations,
-                          _state.conceptCheckpoints,
-                          _state.currentCheckpointIndex,
-                          _state.latestTutorResponse,
-                          _state.selectedTutor,
-                          _onToggleNotes,
-                          _onToggleBoard,
-                        );
-                      } else if (role == 'user') {
-                        return MessageBubbles.userBubble(convo['text'] ?? "",
-                            convo, _onToggleFeedback, index);
-                      } else if (role == 'checkpoint_feedback') {
-                        // return FeedbackCards.checkpointFeedbackCard(
-                        //   convo['checkpointIndex'] as int,
-                        //   convo['state'] as String,
-                        //   convo['data'],
-                        //   () => _viewCheckpointFeedback(
-                        //       convo['checkpointIndex'] as int),
-                        //   showDismissButton:
-                        //       false, // No dismiss button for conversation cards
-                        // );
-                        final feedbackData = _state.checkpointFeedbackData[
-                            convo['checkpointIndex'] as int];
-                        return convo['state'] as String == 'ready' &&
-                                feedbackData != null
-                            ? CompactFeedbackCard(
-                                report: feedbackData,
-                                checkpointNumber:
-                                    convo['checkpointIndex'] as int,
-                                onTap: () => _viewCheckpointFeedback(
-                                    convo['checkpointIndex'] as int),
-                              )
-                            : FeedbackCards.checkpointFeedbackCard(
-                                convo['checkpointIndex'] as int,
-                                convo['state'] as String,
-                                feedbackData,
-                                () => _viewCheckpointFeedback(
-                                    convo['checkpointIndex'] as int),
-                                showDismissButton:
-                                    false, // No dismiss button in this screen
-                              );
-                      }
-                      return const SizedBox.shrink();
-                    } else {
-                      final event =
-                          _state.wsEvents[index - _state.conversations.length];
-                      final role = event['role'];
-                      if (role == 'gap') {
-                        return FeedbackCards.gapCard(
-                          event['data'] as Map<String, dynamic>,
-                          event['turnIndex'] as int,
-                          _state.resolvedGaps,
-                          _onResolveGap,
-                          _onDismissGap,
-                          gapConversations: _state.gapConversations,
-                          expandedGaps: _state.expandedGaps,
-                          gapTextControllers: _state.gapTextControllers,
-                          gapLoadingStates: _state.gapLoadingStates,
-                          onSendGapMessage: _onSendGapMessage,
-                          onSendGapAudio: _onSendGapAudio,
-                          onToggleGapExpansion: _onToggleGapExpansion,
-                          conceptId: widget.conceptId,
-                          studentName: _state.studentName,
-                          checkpointNo: _state.currentCheckpointIndex,
-                          conceptConversationsKey:
-                              _state.conceptConversationsKey,
-                          remainingTime: _state.timeLeftSeconds,
-                          language: _state.selectedLanguage,
-                          voice: _state.selectedVoice,
-                        );
-                      } else if (role == 'turn_feedback') {
-                        return FeedbackCards.turnFeedbackCard(
-                          event['data'] as Map<String, dynamic>,
-                          _onResolveTurnFeedback,
-                          _onDismissTurnFeedback,
-                        );
-                      } else if (role == 'cp_feedback') {
-                        return FeedbackCards.cumulativeFeedbackCard(
-                          event['data'] as Map<String, dynamic>,
-                          _onResolveCumulativeFeedback,
-                          _onDismissCumulativeFeedback,
-                        );
-                      } else if (role == 'checkpoint_feedback_notification') {
-                        final feedbackData = _state.checkpointFeedbackData[
-                            event['checkpointIndex'] as int];
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 140),
+                    itemCount:
+                        _state.conversations.length + _state.wsEvents.length,
+                    itemBuilder: (context, index) {
+                      if (index < _state.conversations.length) {
+                        final convo = _state.conversations[index];
+                        if (convo['greeting']) return const SizedBox.shrink();
+                        final role = convo['role'];
+                        if (role == 'assistant') {
+                          return MessageBubbles.assistantBubble(
+                            convo['text'] ?? "",
+                            index,
+                            _state.conversations,
+                            _state.conceptCheckpoints,
+                            _state.currentCheckpointIndex,
+                            _state.latestTutorResponse,
+                            _state.selectedTutor,
+                            _onToggleNotes,
+                            _onToggleBoard,
+                          );
+                        } else if (role == 'user') {
+                          return MessageBubbles.userBubble(convo['text'] ?? "",
+                              convo, _onToggleFeedback, index);
+                        } else if (role == 'checkpoint_feedback') {
+                          // return FeedbackCards.checkpointFeedbackCard(
+                          //   convo['checkpointIndex'] as int,
+                          //   convo['state'] as String,
+                          //   convo['data'],
+                          //   () => _viewCheckpointFeedback(
+                          //       convo['checkpointIndex'] as int),
+                          //   showDismissButton:
+                          //       false, // No dismiss button for conversation cards
+                          // );
+                          final feedbackData = _state.checkpointFeedbackData[
+                              convo['checkpointIndex'] as int];
+                          return convo['state'] as String == 'ready' &&
+                                  feedbackData != null
+                              ? CompactFeedbackCard(
+                                  report: feedbackData,
+                                  checkpointNumber:
+                                      convo['checkpointIndex'] as int,
+                                  onTap: () => _viewCheckpointFeedback(
+                                      convo['checkpointIndex'] as int),
+                                )
+                              : FeedbackCards.checkpointFeedbackCard(
+                                  convo['checkpointIndex'] as int,
+                                  convo['state'] as String,
+                                  feedbackData,
+                                  () => _viewCheckpointFeedback(
+                                      convo['checkpointIndex'] as int),
+                                  showDismissButton:
+                                      false, // No dismiss button in this screen
+                                );
+                        }
+                        return const SizedBox.shrink();
+                      } else {
+                        final event = _state
+                            .wsEvents[index - _state.conversations.length];
+                        final role = event['role'];
+                        // if (role == 'gap') {
+                        //   return FeedbackCards.gapCard(
+                        //     event['data'] as Map<String, dynamic>,
+                        //     event['turnIndex'] as int,
+                        //     _state.resolvedGaps,
+                        //     _onResolveGap,
+                        //     _onDismissGap,
+                        //     gapConversations: _state.gapConversations,
+                        //     expandedGaps: _state.expandedGaps,
+                        //     gapTextControllers: _state.gapTextControllers,
+                        //     gapLoadingStates: _state.gapLoadingStates,
+                        //     onSendGapMessage: _onSendGapMessage,
+                        //     onSendGapAudio: _onSendGapAudio,
+                        //     onToggleGapExpansion: _onToggleGapExpansion,
+                        //     conceptId: widget.conceptId,
+                        //     studentName: _state.studentName,
+                        //     checkpointNo: _state.currentCheckpointIndex,
+                        //     conceptConversationsKey:
+                        //         _state.conceptConversationsKey,
+                        //     remainingTime: _state.timeLeftSeconds,
+                        //     language: _state.selectedLanguage,
+                        //     voice: _state.selectedVoice,
+                        //   );
+                        // }
+                        if (role == 'turn_feedback') {
+                          return FeedbackCards.turnFeedbackCard(
+                            event['data'] as Map<String, dynamic>,
+                            _onResolveTurnFeedback,
+                            _onDismissTurnFeedback,
+                          );
+                        } else if (role == 'cp_feedback') {
+                          return FeedbackCards.cumulativeFeedbackCard(
+                            event['data'] as Map<String, dynamic>,
+                            _onResolveCumulativeFeedback,
+                            _onDismissCumulativeFeedback,
+                          );
+                        } else if (role == 'checkpoint_feedback_notification') {
+                          final feedbackData = _state.checkpointFeedbackData[
+                              event['checkpointIndex'] as int];
 
-                        return CompactFeedbackCard(
-                          report: feedbackData,
-                          checkpointNumber: event['checkpointIndex'] as int,
-                          showDismissButton:
-                              true, // Show dismiss button for notification cards
-                          onDismiss: () =>
-                              _dismissCheckpointFeedbackNotification(
-                                  event['checkpointIndex'] as int),
-                          onTap: () => _viewCheckpointFeedback(
-                              event['checkpointIndex'] as int),
-                        );
-                        // return FeedbackCards.checkpointFeedbackCard(
-                        //   event['checkpointIndex'] as int,
-                        //   event['state'] as String,
-                        //   event['data'],
-                        //   () => _viewCheckpointFeedback(
-                        //       event['checkpointIndex'] as int),
-                        //   showDismissButton:
-                        //       true, // Show dismiss button for notification cards
-                        //   onDismiss: () =>
-                        //       _dismissCheckpointFeedbackNotification(
-                        //           event['checkpointIndex'] as int),
-                        // );
+                          return CompactFeedbackCard(
+                            report: feedbackData,
+                            checkpointNumber: event['checkpointIndex'] as int,
+                            showDismissButton:
+                                true, // Show dismiss button for notification cards
+                            onDismiss: () =>
+                                _dismissCheckpointFeedbackNotification(
+                                    event['checkpointIndex'] as int),
+                            onTap: () => _viewCheckpointFeedback(
+                                event['checkpointIndex'] as int),
+                          );
+                          // return FeedbackCards.checkpointFeedbackCard(
+                          //   event['checkpointIndex'] as int,
+                          //   event['state'] as String,
+                          //   event['data'],
+                          //   () => _viewCheckpointFeedback(
+                          //       event['checkpointIndex'] as int),
+                          //   showDismissButton:
+                          //       true, // Show dismiss button for notification cards
+                          //   onDismiss: () =>
+                          //       _dismissCheckpointFeedbackNotification(
+                          //           event['checkpointIndex'] as int),
+                          // );
+                        }
+                        return const SizedBox.shrink();
                       }
-                      return const SizedBox.shrink();
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          // Floating hint/simplify buttons
-          if (!_state.viewLessonHistory)
-            Positioned(
-              right: 12,
-              bottom: 120,
-              child: Column(
-                children: [
-                  CommonUIComponents.circleAction(
-                    icon: Icons.lightbulb_outline,
-                    onTap: () {
-                      logAITutorHintRequested(
-                          widget.conceptId, _state.currentCheckpointIndex + 1);
-                      _followUpConversation(null, null, hintRequest: true);
                     },
                   ),
-                  const SizedBox(height: 10),
-                  CommonUIComponents.circleAction(
-                    icon: Icons.auto_fix_high_outlined,
-                    onTap: () => CommonUIComponents.showPromptSheet(
-                        context, _onPromptSelected),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
 
-          // Interactive Island Input UI
-          if (!_state.viewLessonHistory)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: (_state.showAfterGreetingContinueButton ||
-                          _state.showCheckpointContinueButton) &&
-                      !_state.showDots
-                  ? 90
-                  : 12,
-              child: InputIsland(
-                inputMode: _state.inputMode,
-                isLoading: _state.isLoading,
-                recordingSeconds: _state.recordingSeconds,
-                messageController: _messageController,
-                onStartRecording: _startRecording,
-                onSendRecording: _sendRecording,
-                onCancelRecording: _cancelRecording,
-                onSwitchToTyping: _switchToTyping,
-                onSwitchToCompact: _switchToCompact,
-                onSendText: _onSendText,
-              ),
-            ),
+            // Floating hint/simplify buttons
+            // if (!_state.viewLessonHistory)
+            //   Positioned(
+            //     right: 12,
+            //     bottom: 120,
+            //     child: Column(
+            //       children: [
+            //         CommonUIComponents.circleAction(
+            //           icon: Icons.lightbulb_outline,
+            //           onTap: () {
+            //             logAITutorHintRequested(widget.conceptId,
+            //                 _state.currentCheckpointIndex + 1);
+            //             _followUpConversation(null, null, hintRequest: true);
+            //           },
+            //         ),
+            //         const SizedBox(height: 10),
+            //         CommonUIComponents.circleAction(
+            //           icon: Icons.auto_fix_high_outlined,
+            //           onTap: () => CommonUIComponents.showPromptSheet(
+            //               context, _onPromptSelected),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
 
-          // Continue CTA (at the very bottom)
-          if ((_state.showAfterGreetingContinueButton ||
-                  _state.showCheckpointContinueButton) &&
-              !_state.showDots)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 20,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D4ED8),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+            // Interactive Island Input UI
+            if (!_state.viewLessonHistory)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: (_state.showAfterGreetingContinueButton ||
+                            _state.showCheckpointContinueButton) &&
+                        !_state.showDots
+                    ? 90
+                    : 20,
+                child: InputIsland(
+                  inputMode: _state.inputMode,
+                  isLoading: _state.isLoading,
+                  recordingSeconds: _state.recordingSeconds,
+                  messageController: _messageController,
+                  onStartRecording: _startRecording,
+                  onSendRecording: _sendRecording,
+                  onCancelRecording: _cancelRecording,
+                  onSwitchToTyping: _switchToTyping,
+                  onSwitchToCompact: _switchToCompact,
+                  onSendText: _onSendText,
+                ),
+              ),
+
+            // Continue CTA (at the very bottom)
+            if ((_state.showAfterGreetingContinueButton ||
+                    _state.showCheckpointContinueButton) &&
+                !_state.showDots)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 20,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1D4ED8),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: _continueFlow,
-                  child: Text(
-                    _state.showAfterGreetingContinueButton
-                        ? "CONTINUE"
-                        : "CONTINUE",
-                    style: GoogleFonts.raleway(
-                        fontSize: 14, fontWeight: FontWeight.w700),
+                    onPressed: _continueFlow,
+                    child: Text(
+                      _state.showAfterGreetingContinueButton
+                          ? "CONTINUE"
+                          : "CONTINUE",
+                      style: GoogleFonts.raleway(
+                          fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

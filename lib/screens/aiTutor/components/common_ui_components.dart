@@ -318,8 +318,10 @@ class CommonUIComponents {
     VoidCallback onJumpToNext,
     VoidCallback onStartQuestions,
     VoidCallback onShowGaps,
-    VoidCallback onShowCpFeedback,
-  ) {
+    VoidCallback onShowCpFeedback, {
+    required int currentCheckpointIndex,
+    required int totalCheckpoints,
+  }) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFFFFFBF2),
@@ -349,14 +351,16 @@ class CommonUIComponents {
                 },
               ),
               const SizedBox(height: 8),
-              menuItem(
-                icon: Icons.skip_next,
-                text: "Jump to next checkpoint",
-                onTap: () {
-                  Navigator.pop(context);
-                  onJumpToNext();
-                },
-              ),
+              // Only show "Jump to next checkpoint" if not on the last checkpoint
+              if (currentCheckpointIndex < totalCheckpoints - 1)
+                menuItem(
+                  icon: Icons.skip_next,
+                  text: "Jump to next checkpoint",
+                  onTap: () {
+                    Navigator.pop(context);
+                    onJumpToNext();
+                  },
+                ),
               // const SizedBox(height: 8),
               // menuItem(
               //   icon: Icons.checklist_rtl,

@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
 import 'package:markdown/markdown.dart' as md;
-// import 'package:gpt_markdown/gpt_markdown.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:lottie/lottie.dart';
 import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'text_highlighter.dart';
@@ -299,6 +299,7 @@ class MessageBubbles {
     return (conversation['keywords'] as List?)?.isNotEmpty == true ||
         (conversation['phrases'] as List?)?.isNotEmpty == true ||
         (conversation['definitions'] as List?)?.isNotEmpty == true;
+    // Removed extractedQuestion from highlights check since using inline box instead
   }
 
   static bool _hasUserFeedback(Map<String, dynamic> conversation) {
@@ -322,42 +323,20 @@ class MessageBubbles {
       return _buildGptMarkdownWithHighlights(text, conversation);
     }
 
-    // Show the text with the question at the end
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Show the full original text with highlighting and markdown
-        _buildGptMarkdownWithHighlights(text, conversation),
+    // Get the original text if available, otherwise use current text
+    final String originalText = conversation['originalText'] ?? text;
 
-        const SizedBox(height: 8),
-
-        // Show the question as a separate interactive section
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0x1A1D4ED8),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF1D4ED8)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Your turn',
-                  style: GoogleFonts.raleway(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1D4ED8))),
-              _buildGptMarkdownWithHighlights(extractedQuestion, {}),
-            ],
-          ),
-        ),
-      ],
-    );
+    // Split text around the question and show inline question box
+    return _buildTextWithInlineQuestionBox(
+        originalText, extractedQuestion, conversation);
   }
 
   // Helper method to build markdown with highlighting using gpt_markdown
   static Widget _buildGptMarkdownWithHighlights(
       String text, Map<String, dynamic> conversation) {
+    // Preprocess: Convert $...$ to \(...\) for better compatibility
+    text = _convertDollarLatexToParentheses(text);
+
     // Get highlighting terms
     final List<String> keywords =
         (conversation['keywords'] as List?)?.cast<String>() ?? [];
@@ -365,26 +344,41 @@ class MessageBubbles {
         (conversation['phrases'] as List?)?.cast<String>() ?? [];
     final List<String> definitions =
         (conversation['definitions'] as List?)?.cast<String>() ?? [];
+    final String? extractedQuestion = conversation['extractedQuestion'];
 
-    // If no highlighting needed, use simple MarkdownBody
-    if (keywords.isEmpty && phrases.isEmpty && definitions.isEmpty) {
-      return MarkdownBody(
-        data: text,
-        styleSheet: MarkdownStyleSheet(
-          p: GoogleFonts.raleway(
+    // Check if text contains LaTeX (simple heuristic)
+    final hasLatex =
+        text.contains(r'\(') || text.contains(r'\[') || text.contains(r'$$');
+
+    // If no highlighting needed, use appropriate renderer
+    if (keywords.isEmpty &&
+        phrases.isEmpty &&
+        definitions.isEmpty &&
+        (extractedQuestion == null || extractedQuestion.isEmpty)) {
+      if (hasLatex) {
+        return GptMarkdown(
+          text,
+          style: GoogleFonts.raleway(
             fontSize: 15,
             height: 1.4,
             color: const Color(0xFF0B1220),
           ),
-        ),
-      );
+        );
+      } else {
+        return MarkdownBody(
+          data: text,
+          styleSheet: MarkdownStyleSheet(
+            p: GoogleFonts.raleway(
+              fontSize: 15,
+              height: 1.4,
+              color: const Color(0xFF0B1220),
+            ),
+          ),
+        );
+      }
     }
 
-    // For now, we'll create a hybrid approach:
-    // Use GptMarkdown for LaTeX rendering, but apply highlighting manually
-    // This is a temporary solution until we can better integrate both features
-
-    // Create highlight map
+    // Create highlight terms map
     final Map<String, Color> highlightTerms = {};
 
     // Add keywords with blue highlighting
@@ -409,49 +403,256 @@ class MessageBubbles {
       }
     }
 
-    // Check if text contains LaTeX (simple heuristic)
-    final hasLatex =
-        text.contains(r'\(') || text.contains(r'\[') || text.contains(r'$$');
+    // Add extracted question with special highlighting (orange/amber)
+    // Commented out for now - using inline question box instead
+    // if (extractedQuestion != null && extractedQuestion.trim().isNotEmpty) {
+    //   highlightTerms[extractedQuestion.trim().toLowerCase()] =
+    //       const Color(0xFFF59E0B);
+    // }
 
+    // If we have LaTeX content WITH highlighting, use hybrid approach
     if (hasLatex) {
-      // Use MarkdownBody for LaTeX rendering (highlighting will be limited)
-      return MarkdownBody(
-        data: text,
-        styleSheet: MarkdownStyleSheet(
-          p: GoogleFonts.raleway(
-            fontSize: 15,
-            height: 1.4,
-            color: const Color(0xFF0B1220),
-          ),
-        ),
-        builders: {
-          'latex': LatexElementBuilder(
-            textStyle: GoogleFonts.raleway(
-              color: const Color(0xFF0B1220),
+      return _buildHybridLatexWithHighlighting(text, highlightTerms);
+    }
+
+    // For non-LaTeX content with highlighting, use custom highlighting with RichText
+    return RichText(
+      text: TextSpan(
+        children: _buildHighlightedTextSpans(
+            text,
+            highlightTerms,
+            GoogleFonts.raleway(
               fontSize: 15,
-            ),
-          ),
-        },
-        extensionSet: md.ExtensionSet(
-          [LatexBlockSyntax()],
-          [LatexInlineSyntax()],
-        ),
-      );
-    } else {
-      // Use custom highlighting for non-LaTeX text
-      return RichText(
-        text: TextSpan(
-          children: _buildHighlightedTextSpans(
-              text,
-              highlightTerms,
-              GoogleFonts.raleway(
-                fontSize: 15,
-                height: 1.4,
-                color: const Color(0xFF0B1220),
-              )),
+              height: 1.4,
+              color: const Color(0xFF0B1220),
+            )),
+      ),
+    );
+  }
+
+  // Hybrid approach: LaTeX rendering + text highlighting
+  static Widget _buildHybridLatexWithHighlighting(
+      String text, Map<String, Color> highlightTerms) {
+    // Parse text into segments: LaTeX expressions and regular text
+    final segments = _parseTextWithLatex(text);
+
+    // If parsing fails or no segments, fallback to GptMarkdown
+    if (segments.isEmpty) {
+      return GptMarkdown(
+        text,
+        style: GoogleFonts.raleway(
+          fontSize: 15,
+          height: 1.4,
+          color: const Color(0xFF0B1220),
         ),
       );
     }
+
+    // Group segments by lines (separate by block LaTeX or newlines)
+    final lines = _groupSegmentsByLines(segments);
+
+    // Build widgets for each line
+    final List<Widget> lineWidgets = [];
+
+    for (final line in lines) {
+      if (line.length == 1 && line[0]['isBlockLatex'] == true) {
+        // Single block LaTeX segment - render as separate widget
+        lineWidgets.add(
+          GptMarkdown(
+            line[0]['text'],
+            style: GoogleFonts.raleway(
+              fontSize: 15,
+              height: 1.4,
+              color: const Color(0xFF0B1220),
+            ),
+          ),
+        );
+      } else {
+        // Mixed content line - render inline
+        final List<InlineSpan> inlineSpans = [];
+
+        for (final segment in line) {
+          if (segment['isLatex'] == true && segment['isBlockLatex'] != true) {
+            // Inline LaTeX - use GptMarkdown wrapped in WidgetSpan
+            inlineSpans.add(
+              WidgetSpan(
+                child: GptMarkdown(
+                  segment['text'],
+                  style: GoogleFonts.raleway(
+                    fontSize: 15,
+                    height: 1.4,
+                    color: const Color(0xFF0B1220),
+                  ),
+                ),
+                alignment: PlaceholderAlignment.baseline,
+                baseline: TextBaseline.alphabetic,
+              ),
+            );
+          } else {
+            // Regular text with highlighting
+            inlineSpans.addAll(
+              _buildHighlightedTextSpans(
+                segment['text'],
+                highlightTerms,
+                GoogleFonts.raleway(
+                  fontSize: 15,
+                  height: 1.4,
+                  color: const Color(0xFF0B1220),
+                ),
+              ),
+            );
+          }
+        }
+
+        lineWidgets.add(
+          RichText(
+            text: TextSpan(children: inlineSpans),
+          ),
+        );
+      }
+    }
+
+    // Combine all line widgets
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lineWidgets,
+    );
+  }
+
+  // Group segments by lines for proper inline/block rendering
+  static List<List<Map<String, dynamic>>> _groupSegmentsByLines(
+      List<Map<String, dynamic>> segments) {
+    final List<List<Map<String, dynamic>>> lines = [];
+    List<Map<String, dynamic>> currentLine = [];
+
+    for (final segment in segments) {
+      // Check if this is a block LaTeX expression
+      final isBlockLatex = segment['isLatex'] == true &&
+          (segment['text'].contains(r'$$') || segment['text'].contains(r'\['));
+
+      segment['isBlockLatex'] = isBlockLatex;
+
+      if (isBlockLatex) {
+        // Block LaTeX - finish current line and start new one
+        if (currentLine.isNotEmpty) {
+          lines.add(List.from(currentLine));
+          currentLine.clear();
+        }
+        lines.add([segment]);
+      } else {
+        // Inline content - add to current line
+        currentLine.add(segment);
+      }
+    }
+
+    // Add remaining segments as final line
+    if (currentLine.isNotEmpty) {
+      lines.add(currentLine);
+    }
+
+    return lines;
+  }
+
+  // Convert $...$ LaTeX to \(...\) for better compatibility
+  static String _convertDollarLatexToParentheses(String text) {
+    // Replace single dollar signs with parentheses format
+    // Be careful to handle $$...$$ (block) vs $...$ (inline)
+
+    // First, temporarily replace $$...$$ with placeholders to avoid conflicts
+    final Map<String, String> blockLatexPlaceholders = {};
+    int placeholderIndex = 0;
+
+    // Find and replace $$...$$ with placeholders
+    text = text.replaceAllMapped(RegExp(r'\$\$([^$]*?)\$\$'), (match) {
+      final placeholder = '___BLOCK_LATEX_${placeholderIndex}___';
+      blockLatexPlaceholders[placeholder] = match.group(0)!;
+      placeholderIndex++;
+      return placeholder;
+    });
+
+    // Now replace remaining single $...$ with \(...\)
+    text = text.replaceAllMapped(RegExp(r'\$([^$\n]+?)\$'), (match) {
+      final content = match.group(1)!;
+      return '\\($content\\)';
+    });
+
+    // Restore the $$...$$ blocks
+    blockLatexPlaceholders.forEach((placeholder, original) {
+      text = text.replaceAll(placeholder, original);
+    });
+
+    return text;
+  }
+
+  // Parse text into LaTeX and non-LaTeX segments
+  static List<Map<String, dynamic>> _parseTextWithLatex(String text) {
+    final List<Map<String, dynamic>> segments = [];
+
+    // Regex patterns for different LaTeX expressions
+    // Note: $...$ is converted to \(...\) before this step
+    final latexPatterns = [
+      RegExp(r'\$\$[\s\S]*?\$\$'), // Block math $$...$$
+      RegExp(r'\\\[[\s\S]*?\\\]'), // Block math \[...\]
+      RegExp(r'\\\([\s\S]*?\\\)'), // Inline math \(...\)
+    ];
+
+    int currentIndex = 0;
+
+    while (currentIndex < text.length) {
+      int nearestLatexStart = text.length;
+      RegExp? matchingPattern;
+      RegExpMatch? nearestMatch;
+
+      // Find the nearest LaTeX expression
+      for (final pattern in latexPatterns) {
+        final remainingText = text.substring(currentIndex);
+        final match = pattern.firstMatch(remainingText);
+        if (match != null) {
+          final matchStart = currentIndex + match.start;
+          if (matchStart < nearestLatexStart) {
+            nearestLatexStart = matchStart;
+            matchingPattern = pattern;
+            nearestMatch = match;
+          }
+        }
+      }
+
+      // If no LaTeX found, add remaining text as regular segment
+      if (matchingPattern == null || nearestMatch == null) {
+        if (currentIndex < text.length) {
+          final remainingText = text.substring(currentIndex);
+          if (remainingText.trim().isNotEmpty) {
+            segments.add({
+              'text': remainingText,
+              'isLatex': false,
+            });
+          }
+        }
+        break;
+      }
+
+      // Add text before LaTeX as regular segment
+      if (nearestLatexStart > currentIndex) {
+        final beforeLatex = text.substring(currentIndex, nearestLatexStart);
+        if (beforeLatex.isNotEmpty) {
+          segments.add({
+            'text': beforeLatex,
+            'isLatex': false,
+          });
+        }
+      }
+
+      // Add LaTeX segment
+      final latexText = nearestMatch.group(0)!;
+      segments.add({
+        'text': latexText,
+        'isLatex': true,
+      });
+
+      currentIndex = nearestLatexStart + latexText.length;
+    }
+
+    return segments;
   }
 
   // Helper method to build highlighted text spans
@@ -534,6 +735,246 @@ class MessageBubbles {
     return nearestMatch;
   }
 
+  // Method to build text with inline question box at the exact position
+  static Widget _buildTextWithInlineQuestionBox(String originalText,
+      String extractedQuestion, Map<String, dynamic> conversation) {
+    // Find the position of the question in the original text
+    final questionIndex =
+        originalText.toLowerCase().indexOf(extractedQuestion.toLowerCase());
+
+    if (questionIndex == -1) {
+      // If question not found exactly, try fuzzy matching
+      final fuzzyMatch = _findQuestionInText(originalText, extractedQuestion);
+      if (fuzzyMatch != null) {
+        return _buildSplitTextWithQuestionFromOriginal(
+            originalText,
+            fuzzyMatch['start']!,
+            fuzzyMatch['end']!,
+            extractedQuestion,
+            conversation);
+      }
+      // If still not found, show the cleaned text with question at the end (fallback)
+      final cleanedText = conversation['text'] ?? originalText;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildGptMarkdownWithHighlights(cleanedText, conversation),
+          const SizedBox(height: 8),
+          _buildQuestionBox(extractedQuestion),
+        ],
+      );
+    }
+
+    // Split text at the exact question position
+    return _buildSplitTextWithQuestionFromOriginal(
+        originalText,
+        questionIndex,
+        questionIndex + extractedQuestion.length,
+        extractedQuestion,
+        conversation);
+  }
+
+  // Helper method to find question in text using fuzzy matching
+  static Map<String, int>? _findQuestionInText(String text, String question) {
+    final questionWords = question.toLowerCase().split(RegExp(r'\s+'));
+    final textWords = text.toLowerCase().split(RegExp(r'\s+'));
+
+    // Find the longest consecutive match
+    int bestStart = -1;
+    int bestEnd = -1;
+    int bestMatchLength = 0;
+
+    for (int i = 0; i <= textWords.length - questionWords.length; i++) {
+      int matchLength = 0;
+      int currentEnd = i;
+
+      for (int j = 0;
+          j < questionWords.length && i + j < textWords.length;
+          j++) {
+        if (textWords[i + j].contains(questionWords[j]) ||
+            questionWords[j].contains(textWords[i + j]) ||
+            _calculateSimilarity(textWords[i + j], questionWords[j]) > 0.7) {
+          matchLength++;
+          currentEnd = i + j + 1;
+        } else {
+          break;
+        }
+      }
+
+      if (matchLength > bestMatchLength &&
+          matchLength >= questionWords.length * 0.7) {
+        bestStart = i;
+        bestEnd = currentEnd;
+        bestMatchLength = matchLength;
+      }
+    }
+
+    if (bestStart != -1) {
+      // Convert word indices back to character indices
+      final beforeWords = textWords.take(bestStart).toList();
+      final matchWords =
+          textWords.skip(bestStart).take(bestEnd - bestStart).toList();
+
+      final startIndex = beforeWords.isEmpty
+          ? 0
+          : text.toLowerCase().indexOf(textWords[bestStart]);
+      final endIndex = startIndex + matchWords.join(' ').length;
+
+      return {'start': startIndex, 'end': endIndex};
+    }
+
+    return null;
+  }
+
+  // Helper method to calculate string similarity
+  static double _calculateSimilarity(String s1, String s2) {
+    if (s1 == s2) return 1.0;
+    if (s1.isEmpty || s2.isEmpty) return 0.0;
+
+    final longer = s1.length > s2.length ? s1 : s2;
+    final shorter = s1.length > s2.length ? s2 : s1;
+
+    if (longer.length == 0) return 1.0;
+
+    return (longer.length - _levenshteinDistance(longer, shorter)) /
+        longer.length;
+  }
+
+  // Helper method to calculate Levenshtein distance
+  static int _levenshteinDistance(String s1, String s2) {
+    final matrix =
+        List.generate(s1.length + 1, (i) => List.filled(s2.length + 1, 0));
+
+    for (int i = 0; i <= s1.length; i++) {
+      matrix[i][0] = i;
+    }
+    for (int j = 0; j <= s2.length; j++) {
+      matrix[0][j] = j;
+    }
+
+    for (int i = 1; i <= s1.length; i++) {
+      for (int j = 1; j <= s2.length; j++) {
+        final cost = s1[i - 1] == s2[j - 1] ? 0 : 1;
+        matrix[i][j] = [
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        ].reduce((a, b) => a < b ? a : b);
+      }
+    }
+
+    return matrix[s1.length][s2.length];
+  }
+
+  // Method to build split text with question box in between (from original text)
+  static Widget _buildSplitTextWithQuestionFromOriginal(
+      String originalText,
+      int questionStart,
+      int questionEnd,
+      String extractedQuestion,
+      Map<String, dynamic> conversation) {
+    final beforeText = originalText.substring(0, questionStart).trim();
+    final afterText = originalText.substring(questionEnd).trim();
+
+    final List<Widget> widgets = [];
+
+    // Add text before question
+    if (beforeText.isNotEmpty) {
+      widgets.add(_buildGptMarkdownWithHighlights(beforeText, conversation));
+      widgets.add(const SizedBox(height: 8));
+    }
+
+    // Add question box
+    widgets.add(_buildQuestionBox(extractedQuestion));
+
+    // Add text after question
+    if (afterText.isNotEmpty) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildGptMarkdownWithHighlights(afterText, conversation));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
+  }
+
+  // Method to build split text with question box in between (legacy method)
+  static Widget _buildSplitTextWithQuestion(
+      String text,
+      int questionStart,
+      int questionEnd,
+      String extractedQuestion,
+      Map<String, dynamic> conversation) {
+    final beforeText = text.substring(0, questionStart).trim();
+    final afterText = text.substring(questionEnd).trim();
+
+    final List<Widget> widgets = [];
+
+    // Add text before question
+    if (beforeText.isNotEmpty) {
+      widgets.add(_buildGptMarkdownWithHighlights(beforeText, conversation));
+      widgets.add(const SizedBox(height: 8));
+    }
+
+    // Add question box
+    widgets.add(_buildQuestionBox(extractedQuestion));
+
+    // Add text after question
+    if (afterText.isNotEmpty) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildGptMarkdownWithHighlights(afterText, conversation));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
+  }
+
+  // Method to build the question box
+  static Widget _buildQuestionBox(String question) {
+    // Convert $...$ to \(...\) for better compatibility
+    final processedQuestion = _convertDollarLatexToParentheses(question);
+
+    // Check if question contains LaTeX
+    final hasLatex = processedQuestion.contains(r'\(') ||
+        processedQuestion.contains(r'\[') ||
+        processedQuestion.contains(r'$$');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0x1A1D4ED8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF1D4ED8)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Your turn',
+              style: GoogleFonts.raleway(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1D4ED8))),
+          const SizedBox(height: 4),
+          // Render question with LaTeX support if needed
+          hasLatex
+              ? GptMarkdown(
+                  processedQuestion,
+                  style: GoogleFonts.raleway(
+                    fontSize: 14,
+                    color: const Color(0xFF0B1220),
+                  ),
+                )
+              : Text(processedQuestion,
+                  style: GoogleFonts.raleway(
+                      fontSize: 14, color: const Color(0xFF0B1220))),
+        ],
+      ),
+    );
+  }
+
   static Widget _buildHighlightLegend(Map<String, dynamic> conversation) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -560,7 +1001,16 @@ class MessageBubbles {
           ],
           if ((conversation['definitions'] as List?)?.isNotEmpty == true) ...[
             _buildLegendChip('Definitions', const Color(0xFF7C3AED)),
+            const SizedBox(width: 4),
           ],
+          // Commented out for now - using inline question box instead
+          // if (conversation['extractedQuestion'] != null &&
+          //     conversation['extractedQuestion']
+          //         .toString()
+          //         .trim()
+          //         .isNotEmpty) ...[
+          //   _buildLegendChip('Question', const Color(0xFFF59E0B)),
+          // ],
         ],
       ),
     );
@@ -827,6 +1277,11 @@ class MessageBubbles {
   }
 
   static Widget _buildBoardContainer(String boardText) {
+    // Check if boardText contains LaTeX
+    final hasLatex = boardText.contains(r'\(') ||
+        boardText.contains(r'\[') ||
+        boardText.contains(r'$$');
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBF2),
@@ -834,42 +1289,50 @@ class MessageBubbles {
         border: Border.all(color: const Color(0xFFE7DEC9)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: MarkdownBody(
-        selectable: false,
-        data: boardText,
-        builders: {
-          'latex': LatexElementBuilder(
-            textStyle: GoogleFonts.raleway(
-              color: const Color(0xFF0B1220),
-              fontSize: 14,
+      child: hasLatex
+          ? GptMarkdown(
+              boardText,
+              style: GoogleFonts.raleway(
+                color: const Color(0xFF0B1220),
+                fontSize: 14,
+              ),
+            )
+          : MarkdownBody(
+              selectable: false,
+              data: boardText,
+              builders: {
+                'latex': LatexElementBuilder(
+                  textStyle: GoogleFonts.raleway(
+                    color: const Color(0xFF0B1220),
+                    fontSize: 14,
+                  ),
+                ),
+              },
+              extensionSet: md.ExtensionSet(
+                [LatexBlockSyntax()],
+                [LatexInlineSyntax()],
+              ),
+              styleSheet: MarkdownStyleSheet(
+                p: GoogleFonts.raleway(
+                  color: const Color(0xFF0B1220),
+                  fontSize: 14,
+                ),
+                h1: GoogleFonts.raleway(
+                  color: const Color(0xFF0B1220),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                h2: GoogleFonts.raleway(
+                  color: const Color(0xFF0B1220),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+                listBullet: GoogleFonts.raleway(
+                  color: const Color(0xFF0B1220),
+                  fontSize: 14,
+                ),
+              ),
             ),
-          ),
-        },
-        extensionSet: md.ExtensionSet(
-          [LatexBlockSyntax()],
-          [LatexInlineSyntax()],
-        ),
-        styleSheet: MarkdownStyleSheet(
-          p: GoogleFonts.raleway(
-            color: const Color(0xFF0B1220),
-            fontSize: 14,
-          ),
-          h1: GoogleFonts.raleway(
-            color: const Color(0xFF0B1220),
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-          h2: GoogleFonts.raleway(
-            color: const Color(0xFF0B1220),
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
-          listBullet: GoogleFonts.raleway(
-            color: const Color(0xFF0B1220),
-            fontSize: 14,
-          ),
-        ),
-      ),
     );
   }
 

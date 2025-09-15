@@ -16,7 +16,7 @@ import 'package:google_fonts/google_fonts.dart';
 // import 'package:audioplayers/audioplayers.dart';
 import 'package:pdfx/pdfx.dart'; // Import pdfx package
 import 'package:http/http.dart' as http;
-import 'package:flutter_sound/flutter_sound.dart' as flutter_sound;
+import 'package:taudio/taudio.dart' as flutter_sound;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http_parser/http_parser.dart';

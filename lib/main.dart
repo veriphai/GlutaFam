@@ -9,6 +9,7 @@ import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/home/homeScreenV2.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
+import 'package:eureka_app/screens/micTest.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
@@ -236,7 +237,8 @@ class _MainPageState extends State<MainPage> {
       // TimetableEditorScreen(),
       // WeeklyLeaderboardContent(),
       // ProgressReportScreen(),
-      ProfileScreen(),
+      // ProfileScreen(),
+      MicSmokeTest()
       // OnboardingScreenV4()
       // ResumeLessonsPage()
       // FeedScreen()
@@ -353,18 +355,18 @@ void _handleDeeplinkFromFCM(Uri deeplink) async {
     await prefs.setString("bookId", bookId);
     await prefs.setString("subject", subject);
 
-    Navigator.push(
-      navigatorKey.currentContext!,
-      MaterialPageRoute(
-        builder: (context) => ConceptLearningScreenV2(
-            conceptId: conceptId,
-            conceptName: conceptName,
-            maxXP: 90,
-            name: name,
-            subject: subject,
-            standard: standard),
-      ),
-    );
+    // Navigator.push(
+    //   navigatorKey.currentContext!,
+    //   MaterialPageRoute(
+    //     builder: (context) => ConceptLearningScreenV2(
+    //         conceptId: conceptId,
+    //         conceptName: conceptName,
+    //         maxXP: 90,
+    //         name: name,
+    //         subject: subject,
+    //         standard: standard),
+    //   ),
+    // );
   } else if (deeplink.path == '/quests') {
     Navigator.push(
       navigatorKey.currentContext!,

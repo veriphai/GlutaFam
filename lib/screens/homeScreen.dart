@@ -8,6 +8,7 @@ import 'package:eureka_app/models/searchableConcept.dart';
 import 'package:eureka_app/newEvents/homeScreenEvents.dart';
 import 'package:eureka_app/popups/genericPopupWidget.dart';
 import 'package:eureka_app/popups/popUpManager.dart';
+import 'package:eureka_app/screens/aiTutor/aiTutorScreenV2.dart';
 import 'package:eureka_app/screens/conceptLearningScreen.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/conceptLearningV3.dart';
@@ -971,9 +972,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ConceptLearningScreenV3(
+                            builder: (context) => AITutorScreenV2(
                               conceptId: concept['id'],
                               conceptName: concept['name'],
+                              chapterName: concept['chapter'],
                               maxXP: totalXPForConcept * xpMultiplier,
                               name: userProfile['firstName'],
                               subject: _selectedSubject,

@@ -93,116 +93,138 @@ class _AllCheckpointFeedbackScreenState
   }
 
   @override
+  void dispose() {
+    // Return the updated feedback states when popping the screen
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6EDDA),
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          // Handle the pop with the updated feedback states
+          Navigator.pop(context, {
+            'feedbackStates': _feedbackStates,
+            'feedbackData': _feedbackData,
+          });
+        }
+      },
+      child: Scaffold(
         backgroundColor: const Color(0xFFF6EDDA),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF0B1220)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Checkpoint Feedback',
-          style: GoogleFonts.raleway(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF0B1220),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF6EDDA),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF0B1220)),
+            onPressed: () => Navigator.pop(context, {
+              'feedbackStates': _feedbackStates,
+              'feedbackData': _feedbackData,
+            }),
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Checkpoint Feedback',
-                  style: GoogleFonts.raleway(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0B1220),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'View mastery grades and learning gaps for each checkpoint',
-                  style: GoogleFonts.raleway(
-                    fontSize: 14,
-                    color: const Color(0xFF70695B),
-                  ),
-                ),
-              ],
+          title: Text(
+            'Lesson Feedback',
+            style: GoogleFonts.raleway(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF0B1220),
             ),
           ),
-
-          // Feedback cards list
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-              itemCount: widget.totalCheckpoints,
-              itemBuilder: (context, index) {
-                final checkpointIndex = index;
-                final feedbackState =
-                    _feedbackStates[checkpointIndex] ?? 'loading';
-                final feedbackData = _feedbackData[checkpointIndex];
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: feedbackState == 'ready' && feedbackData != null
-                      ? CompactFeedbackCard(
-                          report: feedbackData,
-                          checkpointNumber: checkpointIndex,
-                          onTap: () => _viewCheckpointFeedback(checkpointIndex),
-                        )
-                      : FeedbackCards.checkpointFeedbackCard(
-                          checkpointIndex,
-                          feedbackState,
-                          feedbackData,
-                          () => _viewCheckpointFeedback(checkpointIndex),
-                          showDismissButton:
-                              false, // No dismiss button in this screen
-                        ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-
-      // Bottom button
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF6EDDA),
-          border: Border(
-            top: BorderSide(color: Color(0xFFE7DEC9), width: 1),
-          ),
+          centerTitle: true,
         ),
-        child: SafeArea(
-          child: SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: _endDiscussion,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1D4ED8),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
+        body: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Text(
+                  //   'Checkpoint Feedback',
+                  //   style: GoogleFonts.raleway(
+                  //     fontSize: 24,
+                  //     fontWeight: FontWeight.w700,
+                  //     color: const Color(0xFF0B1220),
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 8),
+                  Text(
+                    'View mastery grades and learning gaps for each checkpoint',
+                    style: GoogleFonts.raleway(
+                      fontSize: 14,
+                      color: const Color(0xFF70695B),
+                    ),
+                  ),
+                ],
               ),
-              child: Text(
-                'End Discussion',
-                style: GoogleFonts.raleway(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+            ),
+
+            // Feedback cards list
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                itemCount: widget.totalCheckpoints,
+                itemBuilder: (context, index) {
+                  final checkpointIndex = index;
+                  final feedbackState =
+                      _feedbackStates[checkpointIndex] ?? 'loading';
+                  final feedbackData = _feedbackData[checkpointIndex];
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: feedbackState == 'ready' && feedbackData != null
+                        ? CompactFeedbackCard(
+                            report: feedbackData,
+                            checkpointNumber: checkpointIndex,
+                            onTap: () =>
+                                _viewCheckpointFeedback(checkpointIndex),
+                          )
+                        : FeedbackCards.checkpointFeedbackCard(
+                            checkpointIndex,
+                            feedbackState,
+                            feedbackData,
+                            () => _viewCheckpointFeedback(checkpointIndex),
+                            showDismissButton:
+                                false, // No dismiss button in this screen
+                          ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+
+        // Bottom button
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF6EDDA),
+            border: Border(
+              top: BorderSide(color: Color(0xFFE7DEC9), width: 1),
+            ),
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _endDiscussion,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1D4ED8),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'End Discussion',
+                  style: GoogleFonts.raleway(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
