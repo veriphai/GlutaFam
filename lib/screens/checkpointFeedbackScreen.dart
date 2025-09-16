@@ -70,10 +70,14 @@ class _CheckpointFeedbackScreenState extends State<CheckpointFeedbackScreen> {
 
   // Helper function to convert percentage to grade
   String _getGradeFromPercentage(int percentage) {
-    if (percentage >= 60) {
+    if (percentage >= 80) {
       return 'A+';
-    } else {
+    } else if (percentage >= 65) {
+      return 'A';
+    } else if (percentage >= 30) {
       return 'B+';
+    } else {
+      return 'C';
     }
   }
 
@@ -359,27 +363,33 @@ class _CheckpointFeedbackScreenState extends State<CheckpointFeedbackScreen> {
                   const SizedBox(height: 12),
 
                   // Learning Gaps Section
-                  _buildSectionTitle(
-                    'Learning gaps',
-                    subtitle:
-                        '$resolvedCount resolved · ${report!.gaps.length - resolvedCount} open',
-                    tone: 'warn',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildLearningGapsSection(topGaps),
-                  const SizedBox(height: 12),
+                  if (report!.gaps.isNotEmpty) ...[
+                    _buildSectionTitle(
+                      'Learning gaps',
+                      subtitle:
+                          '$resolvedCount resolved · ${report!.gaps.length - resolvedCount} open',
+                      tone: 'warn',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildLearningGapsSection(topGaps),
+                    const SizedBox(height: 12),
+                  ],
 
                   // Shining Moments Section
-                  _buildSectionTitle('Shining moments', tone: 'good'),
-                  const SizedBox(height: 8),
-                  _buildShiningMomentsSection(),
-                  const SizedBox(height: 12),
+                  if (report!.shining.isNotEmpty) ...[
+                    _buildSectionTitle('Shining moments', tone: 'good'),
+                    const SizedBox(height: 8),
+                    _buildShiningMomentsSection(),
+                    const SizedBox(height: 12),
+                  ],
 
                   // Objectives Section
-                  _buildSectionTitle('Objectives'),
-                  const SizedBox(height: 8),
-                  _buildObjectivesSection(),
-                  const SizedBox(height: 12),
+                  if (report!.objectives.isNotEmpty) ...[
+                    _buildSectionTitle('Objectives'),
+                    const SizedBox(height: 8),
+                    _buildObjectivesSection(),
+                    const SizedBox(height: 12),
+                  ],
 
                   // Articulation & Reasoning Section
                   _buildSectionTitle('Articulation & reasoning'),

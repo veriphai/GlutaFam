@@ -200,6 +200,33 @@ class AITutorHelpers {
     }
   }
 
+  // Helper method to store board text permanently in a conversation message
+  static void storeBoardTextInMessage(
+      Map<String, dynamic> conversationMessage,
+      List<Map<String, dynamic>> conceptCheckpoints,
+      int currentCheckpointIndex) {
+    if (conversationMessage['role'] != 'assistant') return;
+
+    // Get the board text from the current checkpoint when the message is created
+    final String boardText = conceptCheckpoints.isNotEmpty &&
+            currentCheckpointIndex < conceptCheckpoints.length
+        ? (conceptCheckpoints[currentCheckpointIndex]['blackboardText'] ?? '')
+        : '';
+
+    if (boardText.isNotEmpty) {
+      conversationMessage['boardText'] = boardText;
+    }
+  }
+
+  // Helper method to extract board text from a conversation message
+  static String extractBoardTextFromMessage(
+      Map<String, dynamic> conversationMessage) {
+    if (conversationMessage['role'] != 'assistant') return '';
+
+    // Return stored board text or empty string
+    return conversationMessage['boardText'] ?? '';
+  }
+
   // Helper method to get objectives for checkpoint
   static List<String> getObjectivesForCheckpoint(
       Map<String, dynamic> checkpoint) {

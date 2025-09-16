@@ -231,10 +231,10 @@ class TextHighlighter {
             text: originalTerm,
             style: GoogleFonts.raleway(
               fontSize: 15,
-              color: Colors.white,
+              color: highlightTerms[term]!,
               fontWeight: FontWeight.w600,
               height: 1.0,
-              backgroundColor: highlightTerms[term]!.withOpacity(0.8),
+              // backgroundColor: highlightTerms[term]!.withOpacity(0.8),
             ),
           ));
 
