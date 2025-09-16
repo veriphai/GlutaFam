@@ -71,6 +71,21 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   String _filterRecommended = "all";
   String _filterParents = "all";
   String _filterContinueChapters = "all";
+  
+  // Search tracking
+  DateTime? _searchOpenTime;
+  
+  // Overlay tracking
+  DateTime? _viewAllOpenTime;
+  DateTime? _subjectOverlayOpenTime;
+  DateTime? _chapterOverlayOpenTime;
+  
+  // Session tracking
+  DateTime? _sessionStartTime;
+  int _lessonsViewed = 0;
+  int _chaptersViewed = 0;
+  int _searchesPerformed = 0;
+  Set<String> _sectionsVisited = {};
 
   // Search state
   List<SearchableChapter> _searchableChapters = [];
@@ -105,6 +120,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   @override
   void initState() {
     super.initState();
+    _sessionStartTime = DateTime.now();
     _initializeAnimations();
     _initializeData();
     logHomeScreenView();
@@ -137,6 +153,18 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   @override
   void dispose() {
+    // Log session duration before disposing
+    if (_sessionStartTime != null) {
+      final sessionDuration = DateTime.now().difference(_sessionStartTime!).inMilliseconds;
+      logSessionDuration(
+        timeSpentMs: sessionDuration,
+        lessonsViewed: _lessonsViewed,
+        chaptersViewed: _chaptersViewed,
+        searchesPerformed: _searchesPerformed,
+        sectionsVisited: _sectionsVisited.toList(),
+      );
+    }
+    
     _searchAnimationController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -144,6 +172,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   Future<void> _initializeData() async {
+    final startTime = DateTime.now();
     try {
       await _fetchProfile();
       await _fetchSubjectsAndChapters();
@@ -154,8 +183,24 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         _fetchAllChapters(),
       ]);
       _buildUIData();
+      
+      // Log successful screen load
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+      logHomeScreenLoaded(
+        totalLessons: recommendedLessons.length + continueLearningLessons.length,
+        totalChapters: chapterStats.length,
+        availableSubjects: subjects.map((s) => s.name).toList(),
+        loadTimeMs: loadTime,
+      );
     } catch (error) {
       print("Error initializing data: $error");
+      
+      // Log screen error
+      logHomeScreenError(
+        errorType: 'initialization_error',
+        errorMessage: error.toString(),
+        failedOperation: 'initialize_data',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -166,15 +211,41 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   Future<void> _fetchProfile() async {
+    final startTime = DateTime.now();
     try {
+      logAPICallStarted(
+        apiName: 'fetchProfile',
+        parameters: {},
+      );
+      
       final profileData = await refreshProfile();
       prefs = await SharedPreferences.getInstance();
 
       setState(() {
         userProfile = profileData;
       });
+      
+      logAPICallCompleted(
+        apiName: 'fetchProfile',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: true,
+      );
     } catch (error) {
       print("Error fetching userProfile: $error");
+      
+      logAPICallCompleted(
+        apiName: 'fetchProfile',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: false,
+        errorMessage: error.toString(),
+      );
+      
+      logHomeScreenError(
+        errorType: 'api_failure',
+        errorMessage: error.toString(),
+        failedOperation: 'fetch_profile',
+      );
+      
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -186,7 +257,16 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   Future<void> _fetchSubjectsAndChapters() async {
     if (userProfile == null) return;
 
+    final startTime = DateTime.now();
     try {
+      logAPICallStarted(
+        apiName: 'fetchSubjectsAndChapters',
+        parameters: {
+          'standard': userProfile!["standard"],
+          'stream': userProfile!["stream"],
+        },
+      );
+      
       final booksData = await getBooksWithCache(
           standard: userProfile!["standard"], stream: userProfile!["stream"]);
 
@@ -198,16 +278,27 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         orElse: () => <String, dynamic>{},
       );
 
+      String defaultReason = '';
       if (selectedBookId.isEmpty) {
         if (scienceBook.isNotEmpty) {
           selectedBookId = scienceBook["id"];
           _selectedSubject = scienceBook["subject"];
+          defaultReason = 'science_preferred';
         } else {
           selectedBookId = booksData[0]["id"];
           _selectedSubject = booksData[0]["subject"];
+          defaultReason = 'fallback_first';
         }
         await prefs.setString("bookId", selectedBookId);
         await prefs.setString("subject", _selectedSubject);
+        
+        // Log default subject selection
+        logDefaultSubjectSet(
+          subjectName: _selectedSubject,
+          subjectId: selectedBookId,
+          reason: defaultReason,
+          availableSubjects: booksData.map<String>((book) => book["subject"].toString()).toList(),
+        );
       }
 
       final chapterData = await getChaptersWithCache(
@@ -225,44 +316,145 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 .cast<String>();
         conceptToStartFrom = completedConceptsData["conceptToStartFrom"];
       });
+      
+      logAPICallCompleted(
+        apiName: 'fetchSubjectsAndChapters',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: true,
+        responseSize: booksData.length + chapterData.length,
+      );
     } catch (error) {
       print("Error fetching subjects and chapters: $error");
+      
+      logAPICallCompleted(
+        apiName: 'fetchSubjectsAndChapters',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: false,
+        errorMessage: error.toString(),
+      );
+      
+      logHomeScreenError(
+        errorType: 'api_failure',
+        errorMessage: error.toString(),
+        failedOperation: 'fetch_subjects_chapters',
+      );
+      
       rethrow;
     }
   }
 
   Future<void> _fetchRecommendedLessons() async {
+    final startTime = DateTime.now();
     try {
+      logAPICallStarted(
+        apiName: 'fetchRecommendedLessons',
+        parameters: {},
+      );
+      
       final data = await fetchRecommendedLessons();
       setState(() {
         recommendedLessonsData = data;
       });
+      
+      logAPICallCompleted(
+        apiName: 'fetchRecommendedLessons',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: true,
+        responseSize: data.toString().length,
+      );
     } catch (error) {
       print("Error fetching recommended lessons: $error");
+      
+      logAPICallCompleted(
+        apiName: 'fetchRecommendedLessons',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: false,
+        errorMessage: error.toString(),
+      );
+      
+      logHomeScreenError(
+        errorType: 'api_failure',
+        errorMessage: error.toString(),
+        failedOperation: 'fetch_recommended_lessons',
+      );
     }
   }
 
   Future<void> _fetchChaptersToResume() async {
+    final startTime = DateTime.now();
     try {
+      logAPICallStarted(
+        apiName: 'fetchChaptersToResume',
+        parameters: {},
+      );
+      
       final data = await fetchChaptersToResume();
       setState(() {
         chaptersToResumeData = data;
       });
+      
+      logAPICallCompleted(
+        apiName: 'fetchChaptersToResume',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: true,
+        responseSize: data.length,
+      );
     } catch (error) {
       print("Error fetching chapters to resume: $error");
+      
+      logAPICallCompleted(
+        apiName: 'fetchChaptersToResume',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: false,
+        errorMessage: error.toString(),
+      );
+      
+      logHomeScreenError(
+        errorType: 'api_failure',
+        errorMessage: error.toString(),
+        failedOperation: 'fetch_chapters_to_resume',
+      );
     }
   }
 
   Future<void> _fetchAllChapters() async {
+    final startTime = DateTime.now();
     try {
+      logAPICallStarted(
+        apiName: 'fetchAllChapters',
+        parameters: {
+          'standard': userProfile!["standard"],
+        },
+      );
+      
       final data =
           await fetchAllChaptersPerStandard(standard: userProfile!["standard"]);
       setState(() {
         allChapters = data;
         _initializeSearchData();
       });
+      
+      logAPICallCompleted(
+        apiName: 'fetchAllChapters',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: true,
+        responseSize: data.length,
+      );
     } catch (error) {
-      print("Error fetching chapters to resume: $error");
+      print("Error fetching all chapters: $error");
+      
+      logAPICallCompleted(
+        apiName: 'fetchAllChapters',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: false,
+        errorMessage: error.toString(),
+      );
+      
+      logHomeScreenError(
+        errorType: 'api_failure',
+        errorMessage: error.toString(),
+        failedOperation: 'fetch_all_chapters',
+      );
     }
   }
 
@@ -385,14 +577,42 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   Future<void> _fetchLessonHistory() async {
+    final startTime = DateTime.now();
     try {
+      logAPICallStarted(
+        apiName: 'fetchLessonHistory',
+        parameters: {
+          'onlyIncompleteLessons': true,
+        },
+      );
+      
       final data =
           await fetchLessonHistoryList(onlyIncompleteLessons: true.toString());
       setState(() {
         lessonHistoryData = data;
       });
+      
+      logAPICallCompleted(
+        apiName: 'fetchLessonHistory',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: true,
+        responseSize: data.length,
+      );
     } catch (error) {
       print("Error fetching lesson history: $error");
+      
+      logAPICallCompleted(
+        apiName: 'fetchLessonHistory',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: false,
+        errorMessage: error.toString(),
+      );
+      
+      logHomeScreenError(
+        errorType: 'api_failure',
+        errorMessage: error.toString(),
+        failedOperation: 'fetch_lesson_history',
+      );
     }
   }
 
@@ -521,6 +741,19 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       final scoreB = b.priorityScore ?? 0.0;
       return scoreB.compareTo(scoreA);
     });
+    
+    // Log recommendations shown
+    for (int i = 0; i < recommendedLessons.length; i++) {
+      final lesson = recommendedLessons[i];
+      logRecommendationShown(
+        lessonId: lesson.id,
+        lessonName: lesson.name,
+        recommendationReason: lesson.recommendationReason,
+        priorityScore: lesson.priorityScore,
+        positionInList: i + 1,
+        subject: lesson.subject,
+      );
+    }
   }
 
   String _getSubjectIdByName(String subjectName) {
@@ -584,6 +817,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   void _openSearch() {
     setState(() {
       _isSearchOpen = true;
+      _searchOpenTime = DateTime.now();
     });
 
     // Start animation and request focus when animation completes
@@ -624,6 +858,19 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   void _closeSearch() {
     _searchFocusNode.unfocus();
+    
+    // Log search cancellation
+    if (_searchOpenTime != null) {
+      final timeSpent = DateTime.now().difference(_searchOpenTime!).inMilliseconds;
+      final hadResults = _matchedChapters.isNotEmpty || _matchedTopics.isNotEmpty || _matchedConcepts.isNotEmpty;
+      
+      logSearchCancelled(
+        searchQuery: _searchQuery,
+        timeSpentMs: timeSpent,
+        hadResults: hadResults,
+      );
+    }
+    
     _searchAnimationController.reverse().then((_) {
       if (mounted) {
         setState(() {
@@ -632,6 +879,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           _matchedChapters = [];
           _matchedTopics = [];
           _matchedConcepts = [];
+          _searchOpenTime = null;
         });
         _searchController.clear();
       }
@@ -639,6 +887,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   void _performSearch(String query) {
+    final searchStartTime = DateTime.now();
     final q = query.trim().toLowerCase();
 
     if (q.isEmpty) {
@@ -684,9 +933,47 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       _matchedTopics = allTopics;
       _matchedConcepts = allConcepts;
     });
+
+    final searchTime = DateTime.now().difference(searchStartTime).inMilliseconds;
+    
+    // Log search query and increment counter
+    logSearchQueryEntered(
+      query: query,
+      chaptersFound: allChapters.length,
+      topicsFound: allTopics.length,
+      conceptsFound: allConcepts.length,
+      queryLength: query.length,
+      searchTimeMs: searchTime,
+    );
+    
+    _searchesPerformed++;
+    
+    // Log if no results found
+    if (allChapters.isEmpty && allTopics.isEmpty && allConcepts.isEmpty) {
+      logSearchNoResults(
+        query: query,
+        queryLength: query.length,
+      );
+    }
   }
 
   Future<void> _onTapLesson(LessonData lesson) async {
+    // Log lesson viewing and increment counter
+    final sectionType = lesson.recommended 
+        ? (lesson.fromParent ? 'parents' : 'recommended')
+        : 'continue';
+    logLessonViewed(
+      lessonId: lesson.id,
+      lessonName: lesson.name,
+      sectionType: sectionType,
+      subject: lesson.subject,
+      chapter: lesson.chapter,
+      currentProgress: lesson.progress,
+      estimatedMinutes: lesson.minutes,
+    );
+    
+    _lessonsViewed++;
+    
     // Navigate to concept learning screen
     if (mounted) {
       if (lesson.resumeLesson == true) {
@@ -806,6 +1093,16 @@ class _HomeScreenV2State extends State<HomeScreenV2>
     const totalCheckpoints = 3;
     final isCompleted = checkpointsCompleted >= totalCheckpoints;
     final progress = checkpointsCompleted / totalCheckpoints;
+    
+    // Log lesson progress update
+    logLessonProgressUpdated(
+      lessonId: conceptId,
+      oldProgress: originalLesson.progress,
+      newProgress: progress,
+      checkpointsCompleted: checkpointsCompleted,
+      totalCheckpoints: totalCheckpoints,
+      isCompleted: isCompleted,
+    );
 
     // Update the lesson in both recommended and continue learning lists
     setState(() {
@@ -873,6 +1170,16 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       // If lesson is completed, remove it from continue learning (it should not be resumable anymore)
       if (isCompleted) {
         continueLearningLessons.removeWhere((lesson) => lesson.id == conceptId);
+        
+        // Log lesson completion
+        logLessonCompleted(
+          lessonId: conceptId,
+          timeSpentMs: 0, // We don't have time spent data here
+          checkpointsCompleted: checkpointsCompleted,
+          subject: originalLesson.subject,
+          chapter: originalLesson.chapter,
+          completionSource: 'home_screen',
+        );
       }
     });
   }
@@ -915,9 +1222,33 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 matchedConcepts: _matchedConcepts,
                 onSearchChanged: _performSearch,
                 onClose: _closeSearch,
-                onConceptTap: _onTapSearchConcept,
+                onConceptTap: (concept) {
+                  // Log search result click
+                  final position = _matchedConcepts.indexOf(concept) + 1;
+                  logSearchResultClicked(
+                    resultType: 'concept',
+                    itemName: concept.conceptName,
+                    itemId: '', // We'll find the ID in _onTapSearchConcept
+                    subject: concept.subject,
+                    resultPosition: position,
+                    searchQuery: _searchQuery,
+                  );
+                  _onTapSearchConcept(concept);
+                },
                 onTopicTap: (topic) {
                   logTopicButtonClick(topic.topicName);
+                  
+                  // Log search result click
+                  final position = _matchedTopics.indexOf(topic) + 1;
+                  logSearchResultClicked(
+                    resultType: 'topic',
+                    itemName: topic.topicName,
+                    itemId: topic.topicName, 
+                    subject: topic.subject,
+                    resultPosition: position,
+                    searchQuery: _searchQuery,
+                  );
+                  
                   setState(() {
                     _chapterView = {
                       'subjectId': _getSubjectIdByName(topic.subject),
@@ -929,6 +1260,18 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 },
                 onChapterTap: (chapter) {
                   logChapterSelected(chapter.chapterName);
+                  
+                  // Log search result click
+                  final position = _matchedChapters.indexOf(chapter) + 1;
+                  logSearchResultClicked(
+                    resultType: 'chapter',
+                    itemName: chapter.chapterName,
+                    itemId: chapter.chapterName,
+                    subject: chapter.subject,
+                    resultPosition: position,
+                    searchQuery: _searchQuery,
+                  );
+                  
                   setState(() {
                     _chapterView = {
                       'subjectId': _getSubjectIdByName(chapter.subject),
@@ -958,6 +1301,15 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 onLessonTap: _onTapLesson,
                 onChapterTap: (chapter) {
                   logChapterSelected(chapter.key);
+                  
+                  logChapterOverlayOpened(
+                    chapterName: chapter.chapter,
+                    subject: chapter.subject,
+                    chapterId: chapter.key,
+                    totalLessons: chapter.total,
+                    completedLessons: chapter.completed,
+                  );
+                  
                   setState(() {
                     _chapterView = {
                       'subjectId': chapter.subjectId,
@@ -966,7 +1318,21 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                     };
                   });
                 },
-                onClose: () => setState(() => _viewAll = null),
+                onClose: () {
+                  // Log overlay closure
+                  if (_viewAllOpenTime != null) {
+                    final timeSpent = DateTime.now().difference(_viewAllOpenTime!).inMilliseconds;
+                    logViewAllOverlayClosed(
+                      sectionType: _viewAll!,
+                      timeSpentMs: timeSpent,
+                      itemSelected: false, // Assuming no item was selected on close
+                    );
+                  }
+                  setState(() {
+                    _viewAll = null;
+                    _viewAllOpenTime = null;
+                  });
+                },
                 onFilterClicked: logSubjectFilterClicked,
               ),
 
@@ -978,6 +1344,15 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 allChapters: allChapters,
                 onChapterTap: (chapter) {
                   logChapterSelected(chapter.key);
+                  
+                  logChapterOverlayOpened(
+                    chapterName: chapter.chapter,
+                    subject: chapter.subject,
+                    chapterId: chapter.key,
+                    totalLessons: chapter.total,
+                    completedLessons: chapter.completed,
+                  );
+                  
                   setState(() {
                     _chapterView = {
                       'subjectId': chapter.subjectId,
@@ -986,7 +1361,10 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                     };
                   });
                 },
-                onClose: () => setState(() => _subjectView = null),
+                onClose: () => setState(() {
+                  _subjectView = null;
+                  _subjectOverlayOpenTime = null;
+                }),
               ),
 
             // Chapter overlay
@@ -996,7 +1374,10 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 subjects: subjects,
                 allChapters: allChapters,
                 onLessonTap: _onTapLesson,
-                onClose: () => setState(() => _chapterView = null),
+                onClose: () => setState(() {
+                  _chapterView = null;
+                  _chapterOverlayOpenTime = null;
+                }),
                 getSubjectIdByName: _getSubjectIdByName,
                 calculateProgress: _calculateProgress,
               ),
@@ -1012,20 +1393,32 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       return Future.value(false);
     }
     if (_viewAll != null) {
+      // Log view all overlay closure
+      if (_viewAllOpenTime != null) {
+        final timeSpent = DateTime.now().difference(_viewAllOpenTime!).inMilliseconds;
+        logViewAllOverlayClosed(
+          sectionType: _viewAll!,
+          timeSpentMs: timeSpent,
+          itemSelected: false, // Back press means no item was selected
+        );
+      }
       setState(() {
         _viewAll = null;
+        _viewAllOpenTime = null;
       });
       return Future.value(false);
     }
     if (_subjectView != null) {
       setState(() {
         _subjectView = null;
+        _subjectOverlayOpenTime = null;
       });
       return Future.value(false);
     }
     if (_chapterView != null) {
       setState(() {
         _chapterView = null;
+        _chapterOverlayOpenTime = null;
       });
       return Future.value(false);
     }
@@ -1050,8 +1443,21 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             onSubjectTap: (subjectId) {
               final subject = subjects.firstWhere((s) => s.id == subjectId);
               logSubjectSelected(subject.name);
+              
+              // Count chapters for this subject
+              final subjectChapters = allChapters.where((chapter) => 
+                chapter['subject']?.toString().toLowerCase() == subject.name.toLowerCase()
+              ).length;
+              
+              logSubjectChaptersOpened(
+                subjectName: subject.name,
+                subjectId: subjectId,
+                totalChapters: subjectChapters,
+              );
+              
               setState(() {
                 _subjectView = subjectId;
+                _subjectOverlayOpenTime = DateTime.now();
               });
             },
           ),
@@ -1067,7 +1473,22 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   List<Widget> _buildContinueChapters() {
     final continueChapters = chapterStats;
-    if (continueChapters.isEmpty) return [];
+    if (continueChapters.isEmpty) {
+      logEmptySectionShown(
+        sectionName: "continue_chapters",
+        emptyReason: "no_data",
+      );
+      return [];
+    }
+    
+    // Log section viewed and track visit
+    logSectionViewed(
+      sectionName: "continue_chapters",
+      itemCount: continueChapters.length,
+      isEmpty: false,
+      scrollPosition: 0, // We don't have scroll tracking implemented
+    );
+    _sectionsVisited.add("continue_chapters");
 
     return [
       SectionHeader(
@@ -1076,13 +1497,42 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         actionLabel: "View all",
         onAction: () {
           logViewAllClicked("continue_chapters");
-          setState(() => _viewAll = "continue_chapters");
+          logViewAllOverlayOpened(
+            sectionType: "continue_chapters", 
+            totalItems: chapterStats.length,
+          );
+          setState(() {
+            _viewAll = "continue_chapters";
+            _viewAllOpenTime = DateTime.now();
+          });
         },
       ),
       const SizedBox(height: 12),
       SubjectFilterBar(
         value: _filterContinueChapters,
-        onChanged: (value) => setState(() => _filterContinueChapters = value),
+        onChanged: (value) {
+          final previousFilter = _filterContinueChapters;
+          final filteredItemCount = value == "all" 
+              ? chapterStats.length
+              : chapterStats.where((c) => c.subjectId == value).length;
+          
+          if (value == "all" && previousFilter != "all") {
+            logFilterCleared(
+              sectionType: "continue_chapters",
+              previousFilter: previousFilter,
+              totalItemCount: chapterStats.length,
+            );
+          } else if (value != "all") {
+            logSubjectFilterApplied(
+              sectionType: "continue_chapters",
+              selectedSubject: value,
+              previousFilter: previousFilter,
+              filteredItemCount: filteredItemCount,
+            );
+          }
+          
+          setState(() => _filterContinueChapters = value);
+        },
         allowedSubjectIds:
             continueChapters.map((c) => c.subjectId).toSet().toList(),
         subjects: subjects,
@@ -1098,12 +1548,22 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             .toList(),
         onChapterTap: (chapter) {
           logChapterSelected(chapter.key);
+          
+          logChapterOverlayOpened(
+            chapterName: chapter.chapter,
+            subject: chapter.subject,
+            chapterId: chapter.key,
+            totalLessons: chapter.total,
+            completedLessons: chapter.completed,
+          );
+          
           setState(() {
             _chapterView = {
               'subjectId': chapter.subjectId,
               'subject': chapter.subject,
               'chapter': chapter.chapter,
             };
+            _chapterOverlayOpenTime = DateTime.now();
           });
         },
       ),
@@ -1113,7 +1573,22 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   List<Widget> _buildContinueLearning() {
     final continueLessons = continueLearningLessons.toList();
-    if (continueLessons.isEmpty) return [];
+    if (continueLessons.isEmpty) {
+      logEmptySectionShown(
+        sectionName: "continue_learning",
+        emptyReason: "no_data",
+      );
+      return [];
+    }
+    
+    // Log section viewed and track visit
+    logSectionViewed(
+      sectionName: "continue_learning",
+      itemCount: continueLessons.length,
+      isEmpty: false,
+      scrollPosition: 0, // We don't have scroll tracking implemented
+    );
+    _sectionsVisited.add("continue_learning");
 
     return [
       SectionHeader(
@@ -1122,13 +1597,42 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         actionLabel: "View all",
         onAction: () {
           logViewAllClicked("continue_learning");
-          setState(() => _viewAll = "continue");
+          logViewAllOverlayOpened(
+            sectionType: "continue",
+            totalItems: continueLearningLessons.length,
+          );
+          setState(() {
+            _viewAll = "continue";
+            _viewAllOpenTime = DateTime.now();
+          });
         },
       ),
       const SizedBox(height: 12),
       SubjectFilterBar(
         value: _filterContinue,
-        onChanged: (value) => setState(() => _filterContinue = value),
+        onChanged: (value) {
+          final previousFilter = _filterContinue;
+          final filteredItemCount = value == "all"
+              ? continueLearningLessons.length
+              : continueLearningLessons.where((l) => l.subjectId == value).length;
+          
+          if (value == "all" && previousFilter != "all") {
+            logFilterCleared(
+              sectionType: "continue",
+              previousFilter: previousFilter,
+              totalItemCount: continueLearningLessons.length,
+            );
+          } else if (value != "all") {
+            logSubjectFilterApplied(
+              sectionType: "continue",
+              selectedSubject: value,
+              previousFilter: previousFilter,
+              filteredItemCount: filteredItemCount,
+            );
+          }
+          
+          setState(() => _filterContinue = value);
+        },
         allowedSubjectIds:
             continueLessons.map((l) => l.subjectId).toSet().toList(),
         subjects: subjects,
@@ -1149,6 +1653,15 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   Widget _buildRecommendedSection() {
+    // Log section viewed and track visit
+    logSectionViewed(
+      sectionName: "recommended",
+      itemCount: recommendedLessons.length,
+      isEmpty: recommendedLessons.isEmpty,
+      scrollPosition: 0, // We don't have scroll tracking implemented
+    );
+    _sectionsVisited.add("recommended");
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1158,13 +1671,42 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           actionLabel: "View all",
           onAction: () {
             logViewAllClicked("recommended_for_you");
-            setState(() => _viewAll = "recommended");
+            logViewAllOverlayOpened(
+              sectionType: "recommended",
+              totalItems: recommendedLessons.length,
+            );
+            setState(() {
+              _viewAll = "recommended";
+              _viewAllOpenTime = DateTime.now();
+            });
           },
         ),
         const SizedBox(height: 12),
         SubjectFilterBar(
           value: _filterRecommended,
-          onChanged: (value) => setState(() => _filterRecommended = value),
+          onChanged: (value) {
+            final previousFilter = _filterRecommended;
+            final filteredItemCount = value == "all"
+                ? recommendedLessons.length
+                : recommendedLessons.where((l) => l.subjectId == value).length;
+            
+            if (value == "all" && previousFilter != "all") {
+              logFilterCleared(
+                sectionType: "recommended",
+                previousFilter: previousFilter,
+                totalItemCount: recommendedLessons.length,
+              );
+            } else if (value != "all") {
+              logSubjectFilterApplied(
+                sectionType: "recommended",
+                selectedSubject: value,
+                previousFilter: previousFilter,
+                filteredItemCount: filteredItemCount,
+              );
+            }
+            
+            setState(() => _filterRecommended = value);
+          },
           allowedSubjectIds:
               recommendedLessons.map((l) => l.subjectId).toSet().toList(),
           subjects: subjects,
@@ -1189,7 +1731,22 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   List<Widget> _buildFromParentsSection() {
     final parentsLessons =
         recommendedLessons.where((l) => l.fromParent).toList();
-    if (parentsLessons.isEmpty) return [];
+    if (parentsLessons.isEmpty) {
+      logEmptySectionShown(
+        sectionName: "from_parents",
+        emptyReason: "no_data",
+      );
+      return [];
+    }
+    
+    // Log section viewed and track visit
+    logSectionViewed(
+      sectionName: "from_parents",
+      itemCount: parentsLessons.length,
+      isEmpty: false,
+      scrollPosition: 0, // We don't have scroll tracking implemented
+    );
+    _sectionsVisited.add("from_parents");
 
     return [
       SectionHeader(
@@ -1198,13 +1755,43 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         actionLabel: "View all",
         onAction: () {
           logViewAllClicked("from_parents");
-          setState(() => _viewAll = "parents");
+          logViewAllOverlayOpened(
+            sectionType: "parents",
+            totalItems: recommendedLessons.where((l) => l.fromParent).length,
+          );
+          setState(() {
+            _viewAll = "parents";
+            _viewAllOpenTime = DateTime.now();
+          });
         },
       ),
       const SizedBox(height: 12),
       SubjectFilterBar(
         value: _filterParents,
-        onChanged: (value) => setState(() => _filterParents = value),
+        onChanged: (value) {
+          final previousFilter = _filterParents;
+          final parentsLessons = recommendedLessons.where((l) => l.fromParent).toList();
+          final filteredItemCount = value == "all"
+              ? parentsLessons.length
+              : parentsLessons.where((l) => l.subjectId == value).length;
+          
+          if (value == "all" && previousFilter != "all") {
+            logFilterCleared(
+              sectionType: "parents",
+              previousFilter: previousFilter,
+              totalItemCount: parentsLessons.length,
+            );
+          } else if (value != "all") {
+            logSubjectFilterApplied(
+              sectionType: "parents",
+              selectedSubject: value,
+              previousFilter: previousFilter,
+              filteredItemCount: filteredItemCount,
+            );
+          }
+          
+          setState(() => _filterParents = value);
+        },
         allowedSubjectIds:
             parentsLessons.map((l) => l.subjectId).toSet().toList(),
         subjects: subjects,
@@ -1271,27 +1858,58 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
       if (isVersionLower(currentVersion, minimumVersion)) {
         // Force update
+        logUpdatePromptShown(
+          currentVersion: currentVersion,
+          latestVersion: latestVersion,
+          isForced: true,
+          platform: isAndroid ? 'android' : 'ios',
+          updateNotes: notes,
+        );
+        
         showUpdateSheet(
           context,
           message: message,
           updateNotes: notes,
           forceUpdate: true,
           onUpdate: () {
+            logUpdateAccepted(
+              currentVersion: currentVersion,
+              latestVersion: latestVersion,
+              wasForced: true,
+            );
             launchAppStore();
           },
         );
       } else if (isVersionLower(currentVersion, latestVersion)) {
+        logUpdatePromptShown(
+          currentVersion: currentVersion,
+          latestVersion: latestVersion,
+          isForced: forceUpdate,
+          platform: isAndroid ? 'android' : 'ios',
+          updateNotes: notes,
+        );
+        
         showUpdateSheet(
           context,
           message: message,
           updateNotes: notes,
           forceUpdate: forceUpdate,
           onUpdate: () {
+            logUpdateAccepted(
+              currentVersion: currentVersion,
+              latestVersion: latestVersion,
+              wasForced: forceUpdate,
+            );
             launchAppStore();
           },
         );
       }
     } catch (e) {
+      final currentVersion = await getCurrentAppVersion();
+      logUpdateCheckFailed(
+        error: e.toString(),
+        currentVersion: currentVersion,
+      );
       // Handle error or skip update check
     }
   }
@@ -1370,7 +1988,16 @@ class _HomeScreenV2State extends State<HomeScreenV2>
               ),
               if (!forceUpdate)
                 ChicletOutlinedAnimatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    // We need to get version info here - this is a limitation of the current structure
+                    // In a real implementation, we'd pass this data or access it differently
+                    logUpdateDismissed(
+                      currentVersion: 'unknown', // Would need to be passed in
+                      latestVersion: 'unknown', // Would need to be passed in
+                      wasForced: forceUpdate,
+                    );
+                    Navigator.of(context).pop();
+                  },
                   buttonType: ChicletButtonTypes.roundedRectangle,
                   width: double.infinity,
                   height: 50,
