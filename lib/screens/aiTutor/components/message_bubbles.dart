@@ -5,6 +5,7 @@ import 'package:flutter_markdown_latex/flutter_markdown_latex.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'text_highlighter.dart';
 import 'ai_tutor_helpers.dart';
@@ -33,9 +34,8 @@ class MessageBubbles {
     final boardOpen = conversations[index]['boardOpen'] == true;
     final Map<String, dynamic> notes =
         AITutorHelpers.extractTutorNotesFromMessage(conversations[index]);
-    final String boardText = conceptCheckpoints.isNotEmpty
-        ? (conceptCheckpoints[currentCheckpointIndex]['blackboardText'] ?? '')
-        : '';
+    final String boardText =
+        AITutorHelpers.extractBoardTextFromMessage(conversations[index]);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -61,17 +61,7 @@ class MessageBubbles {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (isLoading)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: Lottie.asset(
-                          "lib/assets/animations/3-dots.json",
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    )
+                    _buildAssistantLoadingState()
                   else
                     _buildHighlightedMarkdownText(text, conversations[index]),
                   // Show color legend if there are highlighted terms
@@ -114,7 +104,7 @@ class MessageBubbles {
                             ),
                             onPressed: () => onToggleBoard(
                                 index, boardOpen ? 'hide' : 'show'),
-                            child: Text(boardOpen ? 'Hide board' : 'Show board',
+                            child: Text(boardOpen ? 'Hide Hint' : 'Show Hint',
                                 style: GoogleFonts.raleway(
                                     fontSize: 12, fontWeight: FontWeight.w600)),
                           ),
@@ -143,7 +133,6 @@ class MessageBubbles {
       Function(int)? onToggleFeedback,
       int? messageIndex]) {
     final isTranscribing = conversation?['isTranscribing'] == true;
-    final hasFeedback = conversation != null && _hasUserFeedback(conversation);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -151,79 +140,64 @@ class MessageBubbles {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Flexible(
-            child: GestureDetector(
-              onTap: hasFeedback &&
-                      onToggleFeedback != null &&
-                      messageIndex != null
-                  ? () => onToggleFeedback(messageIndex)
-                  : null,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0x1A1D4ED8), Color(0x291D4ED8)],
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBF2),
+
+                // gradient: const LinearGradient(
+                //   colors: [Color(0x1A1D4ED8), Color(0x291D4ED8)],
+                // ),
+                borderRadius: BorderRadius.circular(16),
+                // border: Border.all(color: const Color(0xFF1D4ED8)),
+                border: Border.all(color: const Color(0xFFE7DEC9)),
+
+                // boxShadow: const [
+                //   BoxShadow(
+                //       color: Color(0x401D4ED8),
+                //       blurRadius: 18,
+                //       offset: Offset(0, 6))
+                // ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // User message content
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isTranscribing)
+                          _buildTranscribingLoadingState()
+                        else
+                          RichText(
+                            text: TextSpan(
+                              children: conversation != null
+                                  ? TextHighlighter
+                                      .buildUserFeedbackHighlightedText(
+                                          text, conversation)
+                                  : [
+                                      TextSpan(
+                                          text: text,
+                                          style: GoogleFonts.raleway(
+                                              fontSize: 15,
+                                              color: const Color(0xFF0B1220)))
+                                    ],
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF1D4ED8)),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Color(0x401D4ED8),
-                        blurRadius: 18,
-                        offset: Offset(0, 6))
+                  // Separator and feedback section
+                  if (!isTranscribing) ...[
+                    _FeedbackSectionWithDivider(
+                      conversation: conversation,
+                      onToggleFeedback: onToggleFeedback,
+                      messageIndex: messageIndex,
+                    ),
                   ],
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (isTranscribing)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Transcribing',
-                            style: GoogleFonts.raleway(
-                              fontSize: 14,
-                              color: const Color(0xFF0B1220).withOpacity(0.7),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: Lottie.asset(
-                              "lib/assets/animations/3-dots.json",
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      RichText(
-                        text: TextSpan(
-                          children: conversation != null
-                              ? TextHighlighter
-                                  .buildUserFeedbackHighlightedText(
-                                      text, conversation)
-                              : [
-                                  TextSpan(
-                                      text: text,
-                                      style: GoogleFonts.raleway(
-                                          fontSize: 15,
-                                          color: const Color(0xFF0B1220)))
-                                ],
-                        ),
-                      ),
-                    // Show feedback legend if there are highlighted terms
-                    if (hasFeedback) ...[
-                      const SizedBox(height: 8),
-                      _buildMasteryAndVerdict(conversation),
-                      const SizedBox(height: 8),
-                      _buildUserFeedbackLegend(
-                          conversation, onToggleFeedback, messageIndex),
-                    ],
-                  ],
-                ),
+                ],
               ),
             ),
           ),
@@ -300,11 +274,6 @@ class MessageBubbles {
         (conversation['phrases'] as List?)?.isNotEmpty == true ||
         (conversation['definitions'] as List?)?.isNotEmpty == true;
     // Removed extractedQuestion from highlights check since using inline box instead
-  }
-
-  static bool _hasUserFeedback(Map<String, dynamic> conversation) {
-    return conversation['correctEvidence'] != null ||
-        conversation['incorrectEvidence'] != null;
   }
 
   // New method to handle both highlighting and markdown/LaTeX rendering
@@ -899,39 +868,6 @@ class MessageBubbles {
     );
   }
 
-  // Method to build split text with question box in between (legacy method)
-  static Widget _buildSplitTextWithQuestion(
-      String text,
-      int questionStart,
-      int questionEnd,
-      String extractedQuestion,
-      Map<String, dynamic> conversation) {
-    final beforeText = text.substring(0, questionStart).trim();
-    final afterText = text.substring(questionEnd).trim();
-
-    final List<Widget> widgets = [];
-
-    // Add text before question
-    if (beforeText.isNotEmpty) {
-      widgets.add(_buildGptMarkdownWithHighlights(beforeText, conversation));
-      widgets.add(const SizedBox(height: 8));
-    }
-
-    // Add question box
-    widgets.add(_buildQuestionBox(extractedQuestion));
-
-    // Add text after question
-    if (afterText.isNotEmpty) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildGptMarkdownWithHighlights(afterText, conversation));
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: widgets,
-    );
-  }
-
   // Method to build the question box
   static Widget _buildQuestionBox(String question) {
     // Convert $...$ to \(...\) for better compatibility
@@ -1016,71 +952,156 @@ class MessageBubbles {
     );
   }
 
-  static Widget _buildUserFeedbackLegend(Map<String, dynamic> conversation,
+  static Widget _buildUserFeedbackSection(Map<String, dynamic>? conversation,
       Function(int)? onToggleFeedback, int? messageIndex) {
-    final bool isExpanded = conversation['feedbackExpanded'] == true;
-
     final List<String> correctPoints =
-        (conversation["conversationFeedback"]?['correctPoints'] as List?)
+        (conversation?["conversationFeedback"]?['correctPoints'] as List?)
                 ?.cast<String>() ??
             [];
-    // final List<Map<String, dynamic>> correctEvidence =
-    //     (conversation['correctEvidence'] as List?)
-    //             ?.cast<Map<String, dynamic>>() ??
-    //         [];
     final List<String> incorrectPoints =
-        (conversation["conversationFeedback"]?['incorrectPoints'] as List?)
+        (conversation?["conversationFeedback"]?['incorrectPoints'] as List?)
                 ?.cast<String>() ??
             [];
-
     final List<String> missingPoints =
-        (conversation["conversationFeedback"]?['missingPoints'] as List?)
+        (conversation?["conversationFeedback"]?['missingPoints'] as List?)
                 ?.cast<String>() ??
             [];
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Main feedback legend row (always visible)
-          GestureDetector(
-            onTap: () {
-              if (onToggleFeedback != null && messageIndex != null) {
-                onToggleFeedback(messageIndex);
-              }
-            },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(isExpanded ? Icons.expand_less : Icons.expand_more,
-                    size: 14, color: const Color(0xFF6B7280)),
-                const SizedBox(width: 4),
-                Text('Feedback: ',
-                    style: GoogleFonts.raleway(
-                        fontSize: 11, color: const Color(0xFF6B7280))),
-                if (conversation['correctEvidence'] != null) ...[
-                  _buildLegendChip('Correct', const Color(0xFF059669)),
-                  const SizedBox(width: 4),
-                ],
-                if (conversation['incorrectEvidence'] != null) ...[
-                  _buildLegendChip('Incorrect', const Color(0xFFDC2626)),
-                ],
-              ],
-            ),
+    // Check if feedback data exists
+    final bool hasFeedbackData = correctPoints.isNotEmpty ||
+        incorrectPoints.isNotEmpty ||
+        missingPoints.isNotEmpty ||
+        conversation?['correctEvidence'] != null ||
+        conversation?['incorrectEvidence'] != null;
+
+    // If no feedback data, show loading state with timeout
+    if (!hasFeedbackData) {
+      return _FeedbackLoadingWithTimeout(
+        messageIndex: messageIndex,
+        onTimeout: () => const SizedBox.shrink(),
+      );
+    }
+
+    // Default to expanded (true) unless explicitly set to false
+    final bool isExpanded = conversation?['feedbackExpanded'] != false;
+
+    return GestureDetector(
+      onTap: () {
+        if (onToggleFeedback != null && messageIndex != null) {
+          onToggleFeedback(messageIndex);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        // padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color.fromARGB(255, 163, 216, 29).withOpacity(0.46),
+              const Color.fromARGB(255, 246, 59, 171).withOpacity(0.50),
+            ],
           ),
-          // Expanded feedback details
-          if (isExpanded) ...[
-            const SizedBox(height: 8),
-            _buildFeedbackDetails(
-                correctPoints, incorrectPoints, missingPoints),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+            bottomLeft: Radius.circular(12),
+            bottomRight: Radius.circular(12),
+          ),
+          // border: isExpanded
+          //     ? null
+          //     : Border.all(
+          //         color: const Color(0xFF1D4ED8).withOpacity(0.25),
+          //         width: 1,
+          //       ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Feedback header (always visible)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Left side: Feedback indicators
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text('Mastery Evaluation ',
+                            style: GoogleFonts.raleway(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black)),
+                        const SizedBox(width: 12),
+
+                        // Correct points indicator
+
+                        if (correctPoints.isNotEmpty) ...[
+                          _buildFeedbackIndicator(
+                            correctPoints.length,
+                            Icons.check_circle,
+                            const Color(0xFF059669),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        // Incorrect points indicator
+                        if (incorrectPoints.isNotEmpty) ...[
+                          _buildFeedbackIndicator(
+                            incorrectPoints.length,
+                            Icons.cancel,
+                            const Color(0xFFDC2626),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        // Missing points indicator (using doubt/question icon)
+                        if (missingPoints.isNotEmpty) ...[
+                          _buildFeedbackIndicator(
+                            missingPoints.length,
+                            Icons.bolt,
+                            const Color.fromARGB(246, 242, 138, 10),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Right side: Expand/collapse arrow
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    size: 20,
+                    color: const Color(0xFF1D4ED8),
+                  ),
+                ],
+              ),
+            ),
+            // Expanded feedback details
+            if (isExpanded) ...[
+              // Subtle separator
+              Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF1D4ED8).withOpacity(0.1),
+                      const Color(0xFF1D4ED8).withOpacity(0.3),
+                      const Color(0xFF1D4ED8).withOpacity(0.1),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: _buildFeedbackDetails(
+                    correctPoints, incorrectPoints, missingPoints),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1104,7 +1125,7 @@ class MessageBubbles {
               const SizedBox(width: 6),
               Text('Correct Points:',
                   style: GoogleFonts.raleway(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF059669))),
             ],
@@ -1116,15 +1137,15 @@ class MessageBubbles {
                     child: Text(
                       '• $evidence',
                       style: GoogleFonts.raleway(
-                        fontSize: 10,
-                        color: const Color(0xFF374151),
+                        fontSize: 12,
+                        color: Colors.black,
                       ),
                     ),
                   ))
               .toList(),
-          if (incorrectPoints.isNotEmpty) const SizedBox(height: 8),
         ],
         if (incorrectPoints.isNotEmpty) ...[
+          const SizedBox(height: 8),
           Row(
             children: [
               Container(
@@ -1138,7 +1159,7 @@ class MessageBubbles {
               const SizedBox(width: 6),
               Text('Incorrect Points:',
                   style: GoogleFonts.raleway(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFFDC2626))),
             ],
@@ -1150,31 +1171,32 @@ class MessageBubbles {
                     child: Text(
                       '• $evidence',
                       style: GoogleFonts.raleway(
-                        fontSize: 10,
-                        color: const Color(0xFF374151),
+                        fontSize: 12,
+                        color: Colors.black,
                       ),
                     ),
                   ))
               .toList(),
-          if (missingPoints.isNotEmpty) const SizedBox(height: 8),
         ],
         if (missingPoints.isNotEmpty) ...[
+          const SizedBox(height: 8),
           Row(
             children: [
               Container(
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFDC2626),
+                  color: const Color.fromARGB(246, 242, 138, 10),
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
-              Text('Missing Points:',
+              Text('Quick Improvements:',
                   style: GoogleFonts.raleway(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFFDC2626))),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color.fromARGB(246, 242, 138, 10),
+                  )),
             ],
           ),
           const SizedBox(height: 4),
@@ -1184,8 +1206,8 @@ class MessageBubbles {
                     child: Text(
                       '• $evidence',
                       style: GoogleFonts.raleway(
-                        fontSize: 10,
-                        color: const Color(0xFF374151),
+                        fontSize: 12,
+                        color: Colors.black,
                       ),
                     ),
                   ))
@@ -1205,6 +1227,149 @@ class MessageBubbles {
       child: Text(text,
           style: GoogleFonts.raleway(
               fontSize: 9, color: Colors.white, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  static Widget _buildFeedbackIndicator(int count, IconData icon, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          '$count',
+          style: GoogleFonts.raleway(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: color,
+            // height: 1.0, // This ensures consistent text height
+          ),
+        ),
+        const SizedBox(width: 2),
+        Icon(
+          icon,
+          size: 18,
+          color: color,
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildAssistantLoadingState() {
+    return Shimmer.fromColors(
+      baseColor: Colors.black,
+      highlightColor: const Color(0xFFFFFBF2).withOpacity(0.8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Text(
+              'Generating response',
+              style: GoogleFonts.raleway(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(width: 8),
+            // SizedBox(
+            //   height: 16,
+            //   width: 16,
+            //   child: Lottie.asset(
+            //     "lib/assets/animations/3-dots.json",
+            //     fit: BoxFit.cover,
+            //   ),
+            // ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildTranscribingLoadingState() {
+    return Shimmer.fromColors(
+      baseColor: Colors.black,
+      highlightColor: const Color(0xFFFFFBF2).withOpacity(0.8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Transcribing',
+              style: GoogleFonts.raleway(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              height: 16,
+              width: 16,
+              child: Lottie.asset(
+                "lib/assets/animations/3-dots.json",
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildFeedbackLoadingState() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color.fromARGB(255, 163, 216, 29).withOpacity(0.46),
+            const Color.fromARGB(255, 246, 59, 171).withOpacity(0.50),
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(12),
+          topRight: Radius.circular(12),
+          bottomLeft: Radius.circular(12),
+          bottomRight: Radius.circular(12),
+        ),
+        // border: isExpanded
+        //     ? null
+        //     : Border.all(
+        //         color: const Color(0xFF1D4ED8).withOpacity(0.25),
+        //         width: 1,
+        //       ),
+      ),
+      child: Shimmer.fromColors(
+        baseColor: Colors.black,
+        highlightColor: const Color(0xFFFFFBF2).withOpacity(0.8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          child: Row(
+            children: [
+              Text(
+                'Evaluating mastery',
+                style: GoogleFonts.raleway(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                height: 16,
+                width: 16,
+                child: Lottie.asset(
+                  "lib/assets/animations/3-dots.json",
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1335,130 +1500,173 @@ class MessageBubbles {
             ),
     );
   }
+}
 
-  static Widget _buildMasteryAndVerdict(Map<String, dynamic> conversation) {
-    final conversationFeedback = conversation["conversationFeedback"];
-    if (conversationFeedback == null) return const SizedBox.shrink();
+class _FeedbackSectionWithDivider extends StatefulWidget {
+  final Map<String, dynamic>? conversation;
+  final Function(int)? onToggleFeedback;
+  final int? messageIndex;
 
-    final String? verdict = conversationFeedback['verdict'];
-    final int? masteryScore = conversationFeedback['masteryScore'];
+  const _FeedbackSectionWithDivider({
+    required this.conversation,
+    required this.onToggleFeedback,
+    required this.messageIndex,
+  });
 
-    if (verdict == null && masteryScore == null) return const SizedBox.shrink();
+  @override
+  State<_FeedbackSectionWithDivider> createState() =>
+      _FeedbackSectionWithDividerState();
+}
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF6366F1).withOpacity(0.1),
-            const Color(0xFF8B5CF6).withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (verdict != null) ...[
-            Expanded(
-              child: Row(
-                children: [
-                  Icon(
-                    _getVerdictIcon(verdict),
-                    size: 16,
-                    color: _getVerdictColor(verdict),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Verdict: ',
-                    style: GoogleFonts.raleway(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF374151),
-                    ),
-                  ),
-                  Text(
-                    verdict.toUpperCase(),
-                    style: GoogleFonts.raleway(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: _getVerdictColor(verdict),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (masteryScore != null) ...[
-            if (verdict != null) const SizedBox(width: 16),
-            Row(
-              children: [
-                Icon(
-                  Icons.psychology,
-                  size: 16,
-                  color: _getMasteryColor(masteryScore),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Mastery: ',
-                  style: GoogleFonts.raleway(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF374151),
-                  ),
-                ),
-                Text(
-                  '$masteryScore%',
-                  style: GoogleFonts.raleway(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _getMasteryColor(masteryScore),
-                  ),
-                ),
+class _FeedbackSectionWithDividerState
+    extends State<_FeedbackSectionWithDivider> {
+  static final Map<int, bool> _messageTimeouts = {};
+  bool _showContent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeTimeout();
+    _checkForContent();
+  }
+
+  void _initializeTimeout() {
+    final messageIndex = widget.messageIndex;
+    if (messageIndex != null && !_messageTimeouts.containsKey(messageIndex)) {
+      // Only start timer if this message doesn't have one yet
+      _messageTimeouts[messageIndex] = false; // false = not timed out yet
+
+      Future.delayed(const Duration(seconds: 10), () {
+        _messageTimeouts[messageIndex] = true; // true = timed out
+        if (mounted) {
+          setState(() {
+            _checkForContent();
+          });
+        }
+      });
+    }
+  }
+
+  void _checkForContent() {
+    final List<String> correctPoints =
+        (widget.conversation?["conversationFeedback"]?['correctPoints']
+                    as List?)
+                ?.cast<String>() ??
+            [];
+    final List<String> incorrectPoints =
+        (widget.conversation?["conversationFeedback"]?['incorrectPoints']
+                    as List?)
+                ?.cast<String>() ??
+            [];
+    final List<String> missingPoints =
+        (widget.conversation?["conversationFeedback"]?['missingPoints']
+                    as List?)
+                ?.cast<String>() ??
+            [];
+
+    final bool hasFeedbackData = correctPoints.isNotEmpty ||
+        incorrectPoints.isNotEmpty ||
+        missingPoints.isNotEmpty ||
+        widget.conversation?['correctEvidence'] != null ||
+        widget.conversation?['incorrectEvidence'] != null;
+
+    final messageIndex = widget.messageIndex;
+    final bool hasTimedOut =
+        messageIndex != null && (_messageTimeouts[messageIndex] ?? false);
+
+    setState(() {
+      // Always show content if there's feedback data, regardless of timeout
+      // Only hide if there's no feedback data AND timeout has occurred
+      _showContent = hasFeedbackData || (!hasTimedOut);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_showContent) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        // Subtle separator
+        Container(
+          height: 1,
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF1D4ED8).withOpacity(0.2),
+                const Color(0xFF1D4ED8).withOpacity(0.05),
+                const Color(0xFF1D4ED8).withOpacity(0.2),
               ],
             ),
-          ],
-        ],
-      ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        MessageBubbles._buildUserFeedbackSection(
+          widget.conversation,
+          widget.onToggleFeedback,
+          widget.messageIndex,
+        ),
+      ],
     );
   }
+}
 
-  static IconData _getVerdictIcon(String verdict) {
-    switch (verdict.toLowerCase()) {
-      case 'correct':
-        return Icons.check_circle;
-      case 'incorrect':
-        return Icons.cancel;
-      case 'partial':
-        return Icons.adjust;
-      default:
-        return Icons.help;
+class _FeedbackLoadingWithTimeout extends StatefulWidget {
+  final int? messageIndex;
+  final Widget Function() onTimeout;
+
+  const _FeedbackLoadingWithTimeout({
+    required this.messageIndex,
+    required this.onTimeout,
+  });
+
+  @override
+  State<_FeedbackLoadingWithTimeout> createState() =>
+      _FeedbackLoadingWithTimeoutState();
+}
+
+class _FeedbackLoadingWithTimeoutState
+    extends State<_FeedbackLoadingWithTimeout> {
+  bool _showLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeTimeout();
+  }
+
+  void _initializeTimeout() {
+    final messageIndex = widget.messageIndex;
+    if (messageIndex != null) {
+      // Check if this message has already timed out
+      final hasTimedOut =
+          _FeedbackSectionWithDividerState._messageTimeouts[messageIndex] ??
+              false;
+      if (hasTimedOut) {
+        _showLoading = false;
+        return;
+      }
+
+      // If not timed out yet, listen for timeout
+      Future.delayed(const Duration(seconds: 7), () {
+        if (mounted) {
+          setState(() {
+            _showLoading = false;
+          });
+        }
+      });
     }
   }
 
-  static Color _getVerdictColor(String verdict) {
-    switch (verdict.toLowerCase()) {
-      case 'correct':
-        return const Color(0xFF059669);
-      case 'incorrect':
-        return const Color(0xFFDC2626);
-      case 'partial':
-        return Color.fromARGB(255, 255, 255, 255); // Orange for medium mastery
-      default:
-        return const Color(0xFF6B7280);
+  @override
+  Widget build(BuildContext context) {
+    if (!_showLoading) {
+      return const SizedBox.shrink();
     }
-  }
 
-  static Color _getMasteryColor(int masteryScore) {
-    if (masteryScore >= 80) {
-      return const Color(0xFF059669); // Green for high mastery
-    } else if (masteryScore >= 60) {
-      return Color.fromARGB(255, 255, 255, 255); // Orange for medium mastery
-    } else {
-      return const Color(0xFFDC2626); // Red for low mastery
-    }
+    return MessageBubbles._buildFeedbackLoadingState();
   }
 }

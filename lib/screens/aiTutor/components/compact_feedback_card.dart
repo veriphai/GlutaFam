@@ -103,10 +103,14 @@ class _CompactFeedbackCardState extends State<CompactFeedbackCard>
 
   // Helper function to convert percentage to grade
   String _getGradeFromPercentage(int percentage) {
-    if (percentage >= 60) {
+    if (percentage >= 80) {
       return 'A+';
-    } else {
+    } else if (percentage >= 65) {
+      return 'A';
+    } else if (percentage >= 30) {
       return 'B+';
+    } else {
+      return 'C';
     }
   }
 
@@ -137,7 +141,7 @@ class _CompactFeedbackCardState extends State<CompactFeedbackCard>
     final status = _getStatusForScore(objectivesScore / 100);
     final resolvedCount = widget.report.gaps.where((g) => g.resolved).length;
     final completedObjectives =
-        widget.report.objectives.where((o) => o.score >= 1.0).length;
+        widget.report.objectives.where((o) => o.score >= 0.6).length;
 
     return AnimatedBuilder(
       animation: _animationController,
@@ -452,7 +456,9 @@ class _CompactFeedbackCardState extends State<CompactFeedbackCard>
                             Row(
                               children: [
                                 _buildBottomTag(
-                                  '$resolvedCount/${widget.report.gaps.length} gaps resolved',
+                                  // '$resolvedCount/${widget.report.gaps.length} gaps resolved',
+                                  '${widget.report.gaps.length} gaps identified',
+
                                   AppColors.warn,
                                   Icons.psychology_outlined,
                                 ),

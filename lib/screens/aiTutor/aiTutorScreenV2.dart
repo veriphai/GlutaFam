@@ -110,10 +110,6 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     player = FlutterSoundPlayer();
     _recorder = FlutterSoundRecorder();
     _initPlayer();
-    _initializeRecorder();
-
-    // Initialize recorder without requesting permission yet
-    // _initializeRecorderWithoutPermission();
 
     // Add listener to text controller for send button state
     _messageController.addListener(() {
@@ -129,9 +125,6 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     await _loadPrefsAndOptions();
     await _getConceptDetails();
     await _loadLanguageAndVoiceOptions();
-
-    // Test permission request after bootstrap is complete
-    await _testPermissionRequest();
 
     if (widget.resumeLesson == true) {
       _state.conceptConversationsKey =
@@ -254,6 +247,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
             'text': transcribedText,
             'latest': true,
             'greeting': false,
+            'feedbackExpanded':
+                true, // Preserve expanded state for new transcription
             'timestamp': DateTime.now().millisecondsSinceEpoch,
           };
           break;
@@ -461,6 +456,10 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           .toList();
       _processAllConversationFeedback();
       _processExtractedContentForAllConversations();
+      if (_state.conversations.length > 1) {
+        AITutorHelpers.storeBoardTextInMessage(_state.conversations[1],
+            _state.conceptCheckpoints, _state.currentCheckpointIndex);
+      }
       return;
     }
 
@@ -479,6 +478,10 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         // Store tutor notes permanently for this new message
         AITutorHelpers.storeTutorNotesInMessage(
             _state.conversations[loadingIndex]);
+        AITutorHelpers.storeBoardTextInMessage(
+            _state.conversations[loadingIndex],
+            _state.conceptCheckpoints,
+            _state.currentCheckpointIndex);
         // Process extracted content for this new message
         if (lastBackendMessage['extractedContent'] != null) {
           _processExtractedContentForConversation(
@@ -498,6 +501,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           }
           // Store tutor notes permanently for new assistant messages
           AITutorHelpers.storeTutorNotesInMessage(newMessage);
+          // Store board text permanently for new assistant messages
+          AITutorHelpers.storeBoardTextInMessage(newMessage,
+              _state.conceptCheckpoints, _state.currentCheckpointIndex);
           _state.conversations.add(newMessage);
           // Process extracted content for new assistant messages
           if (newMessage['role'] == 'assistant' &&
@@ -543,6 +549,12 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
               _state.conversations[i]['tutorNotes'] = existingTutorNotes;
             } else {
               AITutorHelpers.storeTutorNotesInMessage(_state.conversations[i]);
+            }
+
+            // Store board text for assistant messages
+            if (backendMsg['role'] == 'assistant') {
+              AITutorHelpers.storeBoardTextInMessage(_state.conversations[i],
+                  _state.conceptCheckpoints, _state.currentCheckpointIndex);
             }
 
             if (isHintResponse && backendMsg['role'] == 'assistant') {
@@ -813,6 +825,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     try {
       // If userPromptText is provided, add it as a user message first
       if (userPromptText != null && userPromptText.isNotEmpty) {
+        // Collapse all previous user message feedback before adding new message
+        _collapseAllPreviousUserFeedback();
+
         setState(() {
           _state.conversations.add({
             'role': 'user',
@@ -820,6 +835,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
             'text': userPromptText,
             'latest': true,
             'greeting': false,
+            'feedbackExpanded': true, // Set initial state to expanded
             'timestamp': DateTime.now().millisecondsSinceEpoch,
           });
           if (_state.conversations.length >= 2) {
@@ -932,67 +948,6 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     }
   }
 
-  /// Initialize recorder without requesting permission (called in initState)
-  Future<void> _initializeRecorderWithoutPermission() async {
-    try {
-      // Check if permission is already granted
-      final currentStatus = await Permission.microphone.status;
-      debugPrint('🎤 Current microphone permission status: $currentStatus');
-
-      if (currentStatus.isGranted) {
-        await _recorder!.openRecorder();
-        _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
-        debugPrint(
-            '🎤 Recorder initialized successfully (permission already granted)');
-      } else {
-        debugPrint('🎤 Recorder not initialized - permission not granted yet');
-      }
-    } catch (e) {
-      debugPrint('🎤 Error initializing recorder: $e');
-    }
-  }
-
-  Future<void> _initializeRecorder() async {
-    final x = await Permission.microphone.request();
-    print('🎤 Permission request result: $x');
-    await _recorder!.openRecorder();
-    _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
-  }
-
-  /// Initialize recorder and request permission if needed
-  // Future<void> _initializeRecorder() async {
-  //   try {
-  //     // Check current status first
-  //     final currentStatus = await Permission.microphone.status;
-  //     debugPrint('🎤 Current microphone permission status: $currentStatus');
-
-  //     // Only request if not already granted
-  //     if (currentStatus != PermissionStatus.granted) {
-  //       debugPrint('🎤 Requesting microphone permission...');
-  //       final permission = await Permission.microphone.request();
-  //       debugPrint('🎤 Permission request result: $permission');
-
-  //       if (permission.isGranted) {
-  //         await _recorder!.openRecorder();
-  //         _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
-  //         debugPrint('🎤 Recorder initialized successfully');
-  //       } else {
-  //         debugPrint('🎤 Microphone permission not granted: $permission');
-  //       }
-  //     } else {
-  //       // Permission already granted
-  //       if (!_recorder!.isRecording) {
-  //         await _recorder!.openRecorder();
-  //         _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
-  //       }
-  //       debugPrint(
-  //           '🎤 Recorder initialized successfully (permission already granted)');
-  //     }
-  //   } catch (e) {
-  //     debugPrint('🎤 Error initializing recorder: $e');
-  //   }
-  // }
-
   /// Check if microphone permission is available before starting recording
   Future<bool> _checkMicrophonePermission() async {
     final status = await Permission.microphone.status;
@@ -1014,29 +969,6 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     return false;
   }
 
-  /// Force request microphone permission (for testing/debugging)
-  Future<void> _forceRequestPermission() async {
-    debugPrint('🎤 Force requesting microphone permission...');
-    final status = await Permission.microphone.request();
-    debugPrint('🎤 Force request result: $status');
-  }
-
-  /// Test permission request on screen load (call this manually for testing)
-  Future<void> _testPermissionRequest() async {
-    debugPrint('🎤 Testing permission request...');
-
-    // Add a small delay to ensure screen is fully loaded
-    await Future.delayed(const Duration(seconds: 1));
-
-    final status = await Permission.microphone.request();
-    debugPrint('🎤 Test permission result: $status');
-
-    if (status.isGranted) {
-      debugPrint('🎤 Permission granted! Initializing recorder...');
-      await _initializeRecorder();
-    }
-  }
-
   Future<void> _initPlayer() async {
     await player.openPlayer();
     await player.startPlayerFromStream(
@@ -1055,6 +987,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         setState(() => _state.timeLeftSeconds--);
       } else {
         timer.cancel();
+        _showTimeUpBottomSheet();
       }
     });
   }
@@ -1104,12 +1037,22 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   Future<void> _startRecording() async {
     if (_state.isLoading) return;
 
-    // Initialize recorder and request permission if needed - this will show the dialog
-    await _initializeRecorder();
-
-    // Check microphone permission before starting recording
+    // Check and request microphone permission if needed
     if (!await _checkMicrophonePermission()) {
       debugPrint('Cannot start recording: microphone permission not granted');
+      return;
+    }
+
+    // Initialize recorder if not already initialized (after permission is granted)
+    try {
+      if (!_recorder!.isRecording) {
+        await _recorder!.openRecorder();
+        _recorder!.setSubscriptionDuration(const Duration(milliseconds: 200));
+        debugPrint(
+            '🎤 Recorder initialized successfully after permission granted');
+      }
+    } catch (e) {
+      debugPrint('🎤 Error initializing recorder: $e');
       return;
     }
 
@@ -1151,6 +1094,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   Future<void> _sendRecording() async {
     await _stopRecording();
     if (_audioPath != null && _audioPath!.isNotEmpty) {
+      // Collapse all previous user message feedback before adding new message
+      _collapseAllPreviousUserFeedback();
+
       setState(() {
         _state.wsEvents.removeWhere((event) => event['role'] == 'gap');
         _state.wsEvents.removeWhere(
@@ -1162,6 +1108,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           'latest': true,
           'greeting': false,
           'isTranscribing': true,
+          'feedbackExpanded': true, // Set initial state to expanded
           'timestamp': DateTime.now().millisecondsSinceEpoch,
         });
         if (_state.conversations.length >= 2) {
@@ -1194,6 +1141,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
+    // Collapse all previous user message feedback before adding new message
+    _collapseAllPreviousUserFeedback();
+
     setState(() {
       _state.inputMode = InputMode.compact;
       _state.wsEvents.removeWhere((event) => event['role'] == 'gap');
@@ -1206,6 +1156,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         'latest': true,
         'greeting': false,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'feedbackExpanded': true, // Set initial state to expanded
       });
       if (_state.conversations.length >= 2) {
         _state.conversations[_state.conversations.length - 2]['latest'] = false;
@@ -1367,6 +1318,17 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     setState(() {
       _state.conversations[index]['feedbackExpanded'] =
           !(_state.conversations[index]['feedbackExpanded'] == true);
+    });
+  }
+
+  void _collapseAllPreviousUserFeedback() {
+    setState(() {
+      for (int i = 0; i < _state.conversations.length; i++) {
+        if (_state.conversations[i]['role'] == 'user' &&
+            _state.conversations[i]['conversationFeedback'] != null) {
+          _state.conversations[i]['feedbackExpanded'] = false;
+        }
+      }
     });
   }
 
@@ -1790,6 +1752,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         ),
       );
 
+      // Auto-dismiss the checkpoint feedback notification when user returns
+      _dismissCheckpointFeedbackNotification(checkpointIndex);
+
       // If this was the last checkpoint and user clicked continue, navigate home
       if (result == 'continue' &&
           checkpointIndex == _state.conceptCheckpoints.length - 1) {
@@ -2124,6 +2089,78 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     );
   }
 
+  void _showTimeUpBottomSheet() {
+    final checkpointsLeft = _state.conceptCheckpoints.length -
+        _state.completedCheckpointIndexes.length;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFFFFBF2),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Taking longer than usual",
+                style: GoogleFonts.raleway(
+                  fontSize: 18,
+                  color: const Color(0xFF0B1220),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "This discussion is taking longer than usual.",
+                style: GoogleFonts.raleway(
+                  fontSize: 14,
+                  color: const Color(0xFF70695B),
+                ),
+              ),
+              Text(
+                checkpointsLeft > 1
+                    ? "${checkpointsLeft} checkpoints left."
+                    : "${checkpointsLeft} checkpoint left.",
+                style: GoogleFonts.raleway(
+                  fontSize: 14,
+                  color: const Color(0xFF1D4ED8),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1D4ED8),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  minimumSize: const Size(double.infinity, 0),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  "CONTINUE",
+                  style: GoogleFonts.raleway(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showBackButtonSheet() {
     bool hasNextCheckpoint =
         _state.currentCheckpointIndex < _state.conceptCheckpoints.length - 1;
@@ -2154,7 +2191,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
 
               // ⚠️ Warning Text with reduced gap
               Transform.translate(
-                offset: const Offset(0, -30),
+                offset: const Offset(0, -20),
                 child: Text(
                   "Quit and you'll lose your mastery in this lesson!",
                   style: GoogleFonts.raleway(
@@ -2166,8 +2203,6 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
                   textAlign: TextAlign.center,
                 ),
               ),
-
-              const SizedBox(height: 16),
 
               // Jump to next checkpoint button (if available)
               hasNextCheckpoint
