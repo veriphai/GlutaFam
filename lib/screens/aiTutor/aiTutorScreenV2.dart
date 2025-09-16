@@ -71,6 +71,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   // Core controllers and state
   final TextEditingController _messageController = TextEditingController();
   final AITutorState _state = AITutorState();
+  late ScrollController _scrollController;
 
   // Audio components
   FlutterSoundRecorder? _recorder;
@@ -88,6 +89,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   void initState() {
     super.initState();
     logAITutorScreenView(widget.conceptId);
+    _scrollController = ScrollController();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 2));
 
@@ -254,6 +256,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           break;
         }
       }
+      
+      // Auto-scroll to bottom when transcription is updated
+      _scrollToBottom();
     });
   }
 
@@ -599,6 +604,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
 
     _processAllConversationFeedback();
     _processExtractedContentForAllConversations();
+    
+    // Auto-scroll to bottom when conversations are updated
+    _scrollToBottom();
   }
 
   // Process feedback for all conversations that have conversationFeedback
@@ -846,6 +854,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           // Remove checkpoint feedback notification cards when user sends a message
           _state.wsEvents.removeWhere(
               (event) => event['role'] == 'checkpoint_feedback_notification');
+          
+          // Auto-scroll to bottom when user message is added
+          _scrollToBottom();
         });
       }
 
@@ -864,6 +875,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           _state.conversations[_state.conversations.length - 2]['latest'] =
               false;
         }
+        
+        // Auto-scroll to bottom when assistant loading message is added
+        _scrollToBottom();
       });
 
       final tutorResponse = await generateTutorResponse(
@@ -1115,6 +1129,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           _state.conversations[_state.conversations.length - 2]['latest'] =
               false;
         }
+        
+        // Auto-scroll to bottom when user recording is sent
+        _scrollToBottom();
       });
 
       await _followUpConversation(File(_audioPath!), null);
@@ -1161,6 +1178,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
       if (_state.conversations.length >= 2) {
         _state.conversations[_state.conversations.length - 2]['latest'] = false;
       }
+      
+      // Auto-scroll to bottom when user text message is sent
+      _scrollToBottom();
     });
 
     player.stopPlayer();
@@ -1916,8 +1936,22 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     }
   }
 
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      // Use a small delay to ensure the new message is rendered
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _scrollController.dispose();
     _recorder?.closeRecorder();
     if (player.isPlaying) {
       player.stopPlayer();
@@ -2424,6 +2458,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
                 const SizedBox(height: 8),
                 Expanded(
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 140),
                     itemCount:
                         _state.conversations.length + _state.wsEvents.length,

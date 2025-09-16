@@ -14,6 +14,9 @@ import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
+import 'package:eureka_app/services/simpleNetworkService.dart';
+import 'package:eureka_app/providers/simpleNetworkProvider.dart';
+import 'package:eureka_app/widgets/networkListener.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
@@ -25,6 +28,7 @@ import 'package:eureka_app/widgets/weeklyLeaderboardContent.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 // import 'package:firebase_dynamic_links/firebase_dynamic_links.dart'; // REMOVED: Package discontinued
+import 'package:eureka_app/services/deep_link_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +49,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Network Service
+  await SimpleNetworkService().initialize();
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool? firstLaunchBool = prefs.getBool('appFirstLaunch');
   bool firstLaunch = firstLaunchBool ?? true; // Default to true if null
@@ -111,8 +118,8 @@ void main() async {
 
     logAppLaunchEvent(deviceId, platform, userIP, firstLaunch);
     if (!kIsWeb) {
-      initDynamicLinkListener(prefs);
-      await handleInitialDynamicLink(prefs);
+      final deepLinkService = DeepLinkService();
+      await deepLinkService.initialize();
     }
   });
 
@@ -142,13 +149,15 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MyAppState()),
         ChangeNotifierProvider(
             create: (_) => AudioProvider()), // Add AudioProvider
+        ChangeNotifierProvider(create: (_) => SimpleNetworkProvider()), // Add Network Provider
       ],
       child: Builder(
         builder: (context) {
           WidgetsBinding.instance.addObserver(LifecycleEventHandler(
               context: context, firstLaunch: firstLaunch));
 
-          return MaterialApp(
+          return NetworkListener(
+            child: MaterialApp(
             title: "Tuto: AI Tutor for Class 6-12",
             navigatorKey: navigatorKey,
             theme: ThemeData(
@@ -202,6 +211,7 @@ class MyApp extends StatelessWidget {
                   ),
               '/parent-dashboard': (_) => ParentDashboardPage(),
             },
+            ),
           );
         },
       ),
