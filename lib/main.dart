@@ -14,6 +14,9 @@ import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
+import 'package:eureka_app/services/simpleNetworkService.dart';
+import 'package:eureka_app/providers/simpleNetworkProvider.dart';
+import 'package:eureka_app/widgets/networkListener.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
@@ -45,6 +48,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Network Service
+  await SimpleNetworkService().initialize();
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool? firstLaunchBool = prefs.getBool('appFirstLaunch');
   bool firstLaunch = firstLaunchBool ?? true; // Default to true if null
@@ -142,13 +148,15 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MyAppState()),
         ChangeNotifierProvider(
             create: (_) => AudioProvider()), // Add AudioProvider
+        ChangeNotifierProvider(create: (_) => SimpleNetworkProvider()), // Add Network Provider
       ],
       child: Builder(
         builder: (context) {
           WidgetsBinding.instance.addObserver(LifecycleEventHandler(
               context: context, firstLaunch: firstLaunch));
 
-          return MaterialApp(
+          return NetworkListener(
+            child: MaterialApp(
             title: "Tuto: AI Tutor for Class 6-12",
             navigatorKey: navigatorKey,
             theme: ThemeData(
@@ -202,6 +210,7 @@ class MyApp extends StatelessWidget {
                   ),
               '/parent-dashboard': (_) => ParentDashboardPage(),
             },
+            ),
           );
         },
       ),
