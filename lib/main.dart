@@ -28,6 +28,7 @@ import 'package:eureka_app/widgets/weeklyLeaderboardContent.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:eureka_app/firebase_options.dart';
 // import 'package:firebase_dynamic_links/firebase_dynamic_links.dart'; // REMOVED: Package discontinued
+import 'package:eureka_app/services/deep_link_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -117,8 +118,8 @@ void main() async {
 
     logAppLaunchEvent(deviceId, platform, userIP, firstLaunch);
     if (!kIsWeb) {
-      initDynamicLinkListener(prefs);
-      await handleInitialDynamicLink(prefs);
+      final deepLinkService = DeepLinkService();
+      await deepLinkService.initialize();
     }
   });
 

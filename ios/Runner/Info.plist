@@ -40,6 +40,19 @@
                     <string>app-1-550557666388-ios-0e682e3eb390ed398f31c1</string>
                 </array>
             </dict>
+            <dict>
+                <key>CFBundleTypeRole</key>
+                <string>Editor</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>tuto</string>
+                </array>
+            </dict>
+        </array>
+        <!-- Add Associated Domains capability (will be activated once backend is ready) -->
+        <key>com.apple.developer.associated-domains</key>
+        <array>
+            <string>applinks:share.tuto.app</string>
         </array>
         <key>CFBundleVersion</key>
         <string>$(FLUTTER_BUILD_NUMBER)</string>
