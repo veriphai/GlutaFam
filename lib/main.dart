@@ -8,6 +8,7 @@ import 'package:eureka_app/parentDashboard/parentDashboardPage.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/home/homeScreenV2.dart';
+import 'package:eureka_app/screens/htmlExampleScreen.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/micTest.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
@@ -149,7 +150,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MyAppState()),
         ChangeNotifierProvider(
             create: (_) => AudioProvider()), // Add AudioProvider
-        ChangeNotifierProvider(create: (_) => SimpleNetworkProvider()), // Add Network Provider
+        ChangeNotifierProvider(
+            create: (_) => SimpleNetworkProvider()), // Add Network Provider
       ],
       child: Builder(
         builder: (context) {
@@ -158,59 +160,59 @@ class MyApp extends StatelessWidget {
 
           return NetworkListener(
             child: MaterialApp(
-            title: "Tuto: AI Tutor for Class 6-12",
-            navigatorKey: navigatorKey,
-            theme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-              textTheme: Theme.of(context).textTheme.apply(
-                    fontSizeFactor: 1.0,
-                  ),
-            ),
-            navigatorObservers: [
-              observer,
-            ],
-            debugShowCheckedModeBanner: false,
-            onGenerateInitialRoutes: (initialRoute) {
-              Widget start;
-              if (initialRoute == '/parent-dashboard') {
-                start = const ParentDashboardPage();
-              } else if (initialRoute == '/home') {
-                // start = const TutoHomePage();
-                start = HomeScreenV2();
-              } else {
-                start = firstLaunch
-                    ? (kIsWeb
-                        ? (checkIsWebOnDesktop(context)
-                            // ? TutoHomePage()
-                            ? MainPage()
-                            : MainPage())
-                        // ? LandingScreenWeb()
-                        // : LandingScreenMobile())
-                        : LoginScreen())
-                    : MainPage();
-              }
-              return [
-                MaterialPageRoute(
-                    builder: (_) => start,
-                    settings: RouteSettings(name: initialRoute)),
-              ];
-            },
-            // home: firstLaunch
-            //     ? (kIsWeb
-            //         ? (checkIsWebOnDesktop(context)
-            //             ? LandingScreenWeb()
-            //             // ? ParentDashboardPage()
-            //             : LandingScreenMobile())
-            //         : LoginScreen())
-            //     : MainPage(),
-            routes: {
-              '/home': (_) => TutoHomePage(),
-              '/chapterDetails': (context) => Sectionscreen(
-                    chapterId: "",
-                  ),
-              '/parent-dashboard': (_) => ParentDashboardPage(),
-            },
+              title: "Tuto: AI Tutor for Class 6-12",
+              navigatorKey: navigatorKey,
+              theme: ThemeData(
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+                textTheme: Theme.of(context).textTheme.apply(
+                      fontSizeFactor: 1.0,
+                    ),
+              ),
+              navigatorObservers: [
+                observer,
+              ],
+              debugShowCheckedModeBanner: false,
+              onGenerateInitialRoutes: (initialRoute) {
+                Widget start;
+                if (initialRoute == '/parent-dashboard') {
+                  start = const ParentDashboardPage();
+                } else if (initialRoute == '/home') {
+                  // start = const TutoHomePage();
+                  start = HomeScreenV2();
+                } else {
+                  start = firstLaunch
+                      ? (kIsWeb
+                          ? (checkIsWebOnDesktop(context)
+                              // ? TutoHomePage()
+                              ? MainPage()
+                              : MainPage())
+                          // ? LandingScreenWeb()
+                          // : LandingScreenMobile())
+                          : LoginScreen())
+                      : MainPage();
+                }
+                return [
+                  MaterialPageRoute(
+                      builder: (_) => start,
+                      settings: RouteSettings(name: initialRoute)),
+                ];
+              },
+              // home: firstLaunch
+              //     ? (kIsWeb
+              //         ? (checkIsWebOnDesktop(context)
+              //             ? LandingScreenWeb()
+              //             // ? ParentDashboardPage()
+              //             : LandingScreenMobile())
+              //         : LoginScreen())
+              //     : MainPage(),
+              routes: {
+                '/home': (_) => TutoHomePage(),
+                '/chapterDetails': (context) => Sectionscreen(
+                      chapterId: "",
+                    ),
+                '/parent-dashboard': (_) => ParentDashboardPage(),
+              },
             ),
           );
         },
@@ -247,7 +249,8 @@ class _MainPageState extends State<MainPage> {
       // TimetableEditorScreen(),
       // WeeklyLeaderboardContent(),
       // ProgressReportScreen(),
-      ProfileScreen(),
+      // ProfileScreen(),
+      HtmlExampleScreen(),
       // MicSmokeTest()
       // OnboardingScreenV4()
       // ResumeLessonsPage()

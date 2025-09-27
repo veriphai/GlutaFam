@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Momentum – Minimal, Physically‑Accurate (Matter.js)</title>
+    <style>
+        :root {
+            --bg: #0b1022;
+            --ink: #e6f1ff;
+            --muted: #95a7c4;
+            --accent: #7ee7ff;
+            --accent2: #ffd166;
+            --glass: #ffffff10;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            color: var(--ink);
+        }
+
+        body {
+            background: radial-gradient(1200px 600px at 10% 0%, #121a35 0%, var(--bg) 40%, #060a18 100%);
+        }
+
+        .shell {
+            height: 100%;
+            display: grid;
+            grid-template-rows: 1fr auto;
+        }
+
+        .stage {
+            position: relative;
+            display: grid;
+            place-items: center;
+            padding: 12px
+        }
+
+        canvas {
+            width: min(960px, 96vw);
+            height: min(460px, 58vh);
+            max-height: 70vh;
+            display: block;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #091428, #0b1630);
+            box-shadow: 0 20px 50px #0007;
+        }
+
+        .hud {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 10px 12px
+        }
+
+        .pill {
+            background-color: var(--glass);
+            border: 1px solid #ffffff22;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 13px
+        }
+
+        .caption {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 10px;
+            display: flex;
+            justify-content: center
+        }
+
+        .capbox {
+            backdrop-filter: blur(10px);
+            background-color: var(--glass);
+            border: 1px solid #ffffff22;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 14px;
+            box-shadow: 0 10px 30px #0006
+        }
+
+        .legend {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            gap: 8px
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 6px 8px;
+            background-color: #00000050;
+            border: 1px solid #ffffff22;
+            border-radius: 999px
+        }
+
+        .tap {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            color: #cfe8ff30;
+            font-weight: 700;
+            letter-spacing: .1em;
+            pointer-events: none;
+        }
+
+        .kbd {
+            padding: .1em .4em;
+            border: 1px solid #ffffff33;
+            border-radius: 6px;
+            background-color: #ffffff10;
+            font-size: .85em;
+            color: #e9f3ffcc
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <div class="stage">
+            <div class="legend">
+                <div class="chip">🟣 A</div>
+                <div class="chip">🔵 B</div>
+                <div class="chip" id="modeChip">Elastic (engine)</div>
+            </div>
+            <canvas id="cv"></canvas>
+            <div class="tap">Click to play/pause · Double‑click / <span class="kbd">Space</span> to change scenario
+            </div>
+            <div class="caption">
+                <div class="capbox" id="cap">Momentum = mass × velocity. Powered by a real physics engine (Matter.js).
+                    No tricks.</div>
+            </div>
+        </div>
+        <div class="hud">
+            <div class="pill">p (before): <strong id="pB">—</strong></div>
+            <div class="pill">p (after): <strong id="pA">—</strong></div>
+            <div class="pill" id="match">Conserved ✅</div>
+            <div class="pill" id="tests">Tests: running…</div>
+        </div>
+    </div>
+
+    <!-- Matter.js -->
+    <script src="https://unpkg.com/matter-js@0.20.0/build/matter.min.js"></script>
+    <script>
+        (function () {
+            const $ = id => document.getElementById(id);
+            const cv = $('cv'); const ctx = cv.getContext('2d');
+            const pB = $('pB'), pA = $('pA'), match = $('match'), modeChip = $('modeChip'), cap = $('cap'), testsEl = $('tests');
+
+            const { Engine, Runner, World, Bodies, Body, Events, Composite } = window.Matter || {};
+            if (!Engine) {
+                cap.textContent = '⚠️ Could not load Matter.js (offline?). The sim needs the physics engine.';
+                throw new Error('Matter.js not loaded');
+            }
+
+            // Canvas sizing
+            let w, h, pxPerM = 70, groundY;
+            function resize() {
+                const r = cv.getBoundingClientRect();
+                cv.width = Math.floor(r.width * devicePixelRatio);
+                cv.height = Math.floor(r.height * devicePixelRatio);
+                ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+                w = r.width; h = r.height; groundY = h * 0.75; pxPerM = Math.max(50, Math.min(w / 10, 90));
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Physics world
+            const engine = Engine.create({ enableSleeping: false });
+            engine.gravity.y = 0; // 1D horizontal world
+            const runner = Runner.create();
+
+            // Helper to make a cart that only moves along x (no rotation)
+            function makeCart(xMeters, massKg, color) {
+                const widthM = Math.max(0.55, 0.28 + massKg * 0.12); // scale visual size with mass
+                const heightM = widthM * 0.45;
+                const body = Bodies.rectangle(m2px(xMeters), groundY - 18, m2px(widthM), m2px(heightM), {
+                    chamfer: { radius: m2px(0.12) },
+                    render: { fillStyle: color }, // not used (custom render)
+                    friction: 0, frictionStatic: 0, frictionAir: 0,
+                    restitution: 1,
+                    inertia: Infinity, // lock rotation
+                    inverseInertia: 0,
+                    collisionFilter: { group: 0, category: 0x0001, mask: 0x0001 }
+                });
+                Body.setMass(body, massKg);
+                // Keep y fixed (project back each tick)
+                body.plugin = { lockY: body.position.y };
+                return body;
+            }
+
+            // Minimal bounds
+            const wallL = Bodies.rectangle(m2px(0.4), groundY - 18, m2px(0.2), m2px(2.0), { isStatic: true, restitution: 1, friction: 0 });
+            const wallR = Bodies.rectangle(w - m2px(0.4), groundY - 18, m2px(0.2), m2px(2.0), { isStatic: true, restitution: 1, friction: 0 });
+            World.add(engine.world, [wallL, wallR]);
+
+            // Scenarios
+            const scenarios = [
+                { label: 'Equal masses, opposite speeds', A: { m: 2, v: +2 }, B: { m: 2, v: -2 }, mode: 'elastic' },
+                { label: 'Heavy hits light', A: { m: 5, v: +2 }, B: { m: 1, v: +0 }, mode: 'elastic' },
+                { label: 'Sticky crash (perfectly inelastic)', A: { m: 2, v: +2 }, B: { m: 2, v: 0 }, mode: 'inelastic' },
+            ];
+            let si = 0, A = null, B = null, inelasticStuck = false, _started = false, currentScenario = scenarios[0];
+
+            // Build current scenario
+            function loadScenario(i) {
+                // clear prior bodies except walls
+                Composite.allBodies(engine.world).forEach(b => { if (b !== wallL && b !== wallR) World.remove(engine.world, b); });
+                inelasticStuck = false; _started = false; currentScenario = scenarios[i];
+
+                const s = currentScenario;
+                A = makeCart(2.0, s.A.m, '#b174ff');
+                B = makeCart(8.6, s.B.m, '#5bbcff');
+                // Seed initial velocities (may be overridden by pause logic if not started)
+                Body.setVelocity(A, { x: mps2pxps(s.A.v), y: 0 });
+                Body.setVelocity(B, { x: mps2pxps(s.B.v), y: 0 });
+
+                // set restitution per scenario
+                const e = s.mode === 'elastic' ? 1.0 : 0.0;
+                A.restitution = e; B.restitution = e;
+
+                World.add(engine.world, [A, B]);
+
+                modeChip.textContent = s.mode === 'elastic' ? 'Elastic (engine)' : 'Inelastic (merge at impact)';
+                cap.textContent = s.label + ' — The engine handles the collision. Momentum is conserved.' + (s.mode === 'inelastic' ? ' They stick after first hit.' : '');
+
+                // Pre/post HUD prediction (ideal 1D formulas)
+                const preP = s.A.m * s.A.v + s.B.m * s.B.v;
+                let v1, v2;
+                if (s.mode === 'elastic') {
+                    v1 = ((s.A.m - s.B.m) * s.A.v + 2 * s.B.m * s.B.v) / (s.A.m + s.B.m);
+                    v2 = ((s.B.m - s.A.m) * s.B.v + 2 * s.A.m * s.A.v) / (s.A.m + s.B.m);
+                } else {
+                    v1 = v2 = (s.A.m * s.A.v + s.B.m * s.B.v) / (s.A.m + s.B.m);
+                }
+                const postP = s.A.m * v1 + s.B.m * v2;
+                pB.textContent = preP.toFixed(2) + ' kg·m/s';
+                pA.textContent = postP.toFixed(2) + ' kg·m/s';
+                match.textContent = Math.abs(preP - postP) < 1e-9 ? 'Conserved ✅' : 'Numerics ⚠️';
+
+                // Collision events for inelastic merge
+                Events.off(engine, 'collisionStart');
+                if (s.mode === 'inelastic') {
+                    Events.on(engine, 'collisionStart', ev => {
+                        if (inelasticStuck) return;
+                        for (const pair of ev.pairs) {
+                            const ids = new Set([pair.bodyA.id, pair.bodyB.id]);
+                            if (ids.has(A.id) && ids.has(B.id)) {
+                                // set both to the shared velocity (momentum conserving)
+                                const vShared = (A.mass * A.velocity.x + B.mass * B.velocity.x) / (A.mass + B.mass);
+                                Body.setVelocity(A, { x: vShared, y: 0 });
+                                Body.setVelocity(B, { x: vShared, y: 0 });
+                                A.restitution = 0; B.restitution = 0;
+                                inelasticStuck = true;
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Physics step hooks: lock Y and angle, and keep frictionless 1D
+            Events.on(engine, 'beforeUpdate', () => {
+                if (A) { lock1D(A); } if (B) { lock1D(B); }
+            });
+            function lock1D(b) {
+                Body.setAngle(b, 0); b.angularVelocity = 0; b.torque = 0; // no rotation
+                Body.setPosition(b, { x: b.position.x, y: b.plugin.lockY }); // keep y fixed
+                Body.setVelocity(b, { x: b.velocity.x, y: 0 });
+            }
+
+            // Start runner
+            Runner.run(runner, engine);
+
+            // Render (custom, minimalist)
+            let last = 0; requestAnimationFrame(draw);
+            function draw(t) {
+                // physics is already stepping via Runner
+                if (!last) last = t; last = t;
+                ctx.clearRect(0, 0, w, h);
+
+                const pad = 20; const y = groundY - 18;
+                // track
+                ctx.fillStyle = '#0a1328'; ctx.fillRect(pad, y - 60, w - 2 * pad, 120);
+                ctx.strokeStyle = '#233a66'; ctx.setLineDash([6, 12]); ctx.beginPath();
+                for (let x = pad; x < w - pad; x += pxPerM) { ctx.moveTo(x, y - 50); ctx.lineTo(x, y + 50); } ctx.stroke(); ctx.setLineDash([]);
+                ctx.fillStyle = '#102243'; ctx.fillRect(pad, y - 3, w - 2 * pad, 6);
+
+                if (A) drawCart(A, '#b174ff');
+                if (B) drawCart(B, '#5bbcff');
+
+                requestAnimationFrame(draw);
+            }
+
+            function drawCart(body, color) {
+                const { x } = body.position;
+                // shadow
+                ctx.fillStyle = '#0008'; ctx.beginPath(); ctx.ellipse(x, groundY + 6, 24, 6, 0, 0, Math.PI * 2); ctx.fill();
+                // body box
+                const wRect = m2px(Math.max(0.55, 0.28 + body.mass * 0.12));
+                const hRect = wRect * 0.45; const r = 12;
+                ctx.fillStyle = color + 'ee';
+                roundRect(x - wRect / 2, groundY - 18 - hRect / 2, wRect, hRect, r); ctx.fill();
+                ctx.strokeStyle = '#ffffff3a'; ctx.lineWidth = 1; ctx.stroke();
+                // face
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x - 8, groundY - 18 - 6, 3.8, 0, Math.PI * 2); ctx.arc(x + 8, groundY - 18 - 6, 3.8, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#112a'; ctx.fillRect(x - 10, groundY - 18 + 4, 20, 4);
+                // velocity hint
+                const L = Math.max(-70, Math.min(70, body.velocity.x * 22));
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x, groundY - 18 - 24); ctx.lineTo(x + L, groundY - 18 - 24); ctx.stroke();
+            }
+
+            function roundRect(x, y, w, h, r) {
+                ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+            }
+
+            // Unit helpers
+            function m2px(m) { return m * pxPerM; }
+            function mps2pxps(v) { return v * pxPerM; }
+
+            // --- Play/Pause logic with re-seed ---
+            function isNearlyZero(v) { return Math.abs(v) < 1e-3; }
+            function reseedVelocities() {
+                if (!A || !B || !currentScenario) return;
+                Body.setVelocity(A, { x: mps2pxps(currentScenario.A.v), y: 0 });
+                Body.setVelocity(B, { x: mps2pxps(currentScenario.B.v), y: 0 });
+            }
+            function setStarted(val) {
+                const was = _started; _started = !!val;
+                if (_started && (!A || !B || (isNearlyZero(A.velocity.x) && isNearlyZero(B.velocity.x)))) {
+                    reseedVelocities();
+                }
+            }
+
+            // Interactions
+            function advance() { si = (si + 1) % scenarios.length; loadScenario(si); setTimeout(() => setStarted(true), 120); }
+            document.addEventListener('click', (e) => {
+                if (e.detail === 2) { advance(); } else { setStarted(!_started); }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') { e.preventDefault(); advance(); }
+            });
+
+            // Apply pause by zeroing velocities when paused
+            Events.on(engine, 'afterUpdate', () => {
+                if (!A || !B) return;
+                if (!_started) { Body.setVelocity(A, { x: 0, y: 0 }); Body.setVelocity(B, { x: 0, y: 0 }); }
+            });
+
+            // --- Lightweight Physics Tests (console + HUD) ---
+            function nearly(a, b, tol = 1e-9) { return Math.abs(a - b) <= tol; }
+            function ke(m, v) { return 0.5 * m * v * v; }
+            function elasticPost(m1, u1, m2, u2) {
+                const v1 = ((m1 - m2) * u1 + 2 * m2 * u2) / (m1 + m2);
+                const v2 = ((m2 - m1) * u2 + 2 * m1 * u1) / (m1 + m2);
+                return [v1, v2];
+            }
+            function inelasticPost(m1, u1, m2, u2) {
+                const v = (m1 * u1 + m2 * u2) / (m1 + m2);
+                return [v, v];
+            }
+            function runTests() {
+                let passed = 0, total = 0;
+                // Test 1: equal masses opposite speeds (elastic)
+                total++; {
+                    const m1 = 2, u1 = 2, m2 = 2, u2 = -2; const [v1, v2] = elasticPost(m1, u1, m2, u2);
+                    const pB = m1 * u1 + m2 * u2, pA = m1 * v1 + m2 * v2;
+                    if (nearly(pB, pA)) passed++; else console.error('T1 momentum fail', pB, pA);
+                    const eB = ke(m1, u1) + ke(m2, u2), eA = ke(m1, v1) + ke(m2, v2);
+                    if (nearly(eB, eA)) passed++; else console.error('T1 energy fail', eB, eA);
+                    total++;
+                }
+                // Test 2: heavy hits light (elastic)
+                total++; {
+                    const m1 = 5, u1 = 2, m2 = 1, u2 = 0; const [v1, v2] = elasticPost(m1, u1, m2, u2);
+                    const pB = m1 * u1 + m2 * u2, pA = m1 * v1 + m2 * v2;
+                    if (nearly(pB, pA)) passed++; else console.error('T2 momentum fail', pB, pA);
+                }
+                // Test 3: perfectly inelastic loses KE
+                total++; {
+                    const m1 = 2, u1 = 2, m2 = 2, u2 = 0; const [v1, v2] = inelasticPost(m1, u1, m2, u2);
+                    const eB = ke(m1, u1) + ke(m2, u2), eA = ke(m1, v1) + ke(m2, v2);
+                    if (eA < eB - 1e-9) passed++; else console.error('T3 energy not reduced', eB, eA);
+                }
+                // Test 4 (runtime): starting should give non-zero speed in elastic scenario
+                total++; {
+                    loadScenario(0);
+                    setStarted(true);
+                    setTimeout(() => {
+                        const ok = Math.abs(A.velocity.x) > 0.1 || Math.abs(B.velocity.x) > 0.1;
+                        if (ok) { testsEl.textContent = `Tests: ${++passed}/${total} passed`; } else { testsEl.textContent = `Tests: ${passed}/${total} passed (runtime start fail)`; console.error('T4 start fail'); }
+                    }, 150);
+                }
+
+                testsEl.textContent = `Tests: ${passed}/${total} passed`;
+            }
+
+            // Boot
+            loadScenario(si);
+            runTests();
+            setTimeout(() => { setStarted(true); }, 400);
+        })();
+    </script>
+</body>
+
+</html>

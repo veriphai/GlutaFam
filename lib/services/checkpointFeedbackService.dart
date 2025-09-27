@@ -5,11 +5,13 @@ class CheckpointFeedbackService {
   static Future<CheckpointReport> getCheckpointFeedback({
     required String conceptConversations,
     required int checkpointNumber,
+    bool retry = false,
   }) async {
     try {
       final response = await fetchCheckpointFeedback(
         conceptConversationsKey: conceptConversations,
         checkpointNumber: checkpointNumber,
+        retry: retry,
       );
 
       return CheckpointReport.fromJson(response);

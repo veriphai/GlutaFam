@@ -107,6 +107,7 @@ flutter:
     - lib/assets/achievements/
     - lib/assets/leagues/
     - lib/assets/animations/
+    - lib/screens/testing.html
 
 flutter_native_splash:
   color: "#131F24" # Background color

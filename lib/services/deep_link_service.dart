@@ -4,6 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../utils/navigation_utils.dart';
+import '../screens/friendsProfileScreen.dart';
+import '../widgets/achievementDetailsWidgetV2.dart';
+import '../screens/aiTutor/aiTutorScreenV2.dart';
+import '../widgets/collectionDetailsWidget.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
@@ -68,7 +72,8 @@ class DeepLinkService {
     }
   }
 
-  Future<void> _handleReferralLink(Map<String, String> params, SharedPreferences prefs) async {
+  Future<void> _handleReferralLink(
+      Map<String, String> params, SharedPreferences prefs) async {
     final String? referralCode = params['code'];
     if (referralCode != null) {
       print('Referral Code: $referralCode');
@@ -102,11 +107,12 @@ class DeepLinkService {
     if (itemId != null) {
       print('Collection Item ID: $itemId');
       // Navigate to collection item
-      // Add navigation logic here
+      navigateToCollectionDetails(itemId);
     }
   }
 
-  Future<void> _handleLessonLink(Map<String, String> params, SharedPreferences prefs) async {
+  Future<void> _handleLessonLink(
+      Map<String, String> params, SharedPreferences prefs) async {
     final String? conceptId = params['conceptId'];
     final String? conceptName = params['conceptName'];
     final String? name = params['name'];
@@ -124,7 +130,8 @@ class DeepLinkService {
       // This should match your existing lesson navigation
       print('Lesson: $conceptId, $conceptName');
       // Add your existing lesson navigation logic here
-      _handleLessonNavigation(conceptId, conceptName, name ?? '', standard, subject ?? '', bookId ?? '');
+      _handleLessonNavigation(conceptId, conceptName, name ?? '', standard,
+          subject ?? '', bookId ?? '');
     }
   }
 
@@ -138,23 +145,84 @@ class DeepLinkService {
 void navigateToProfileScreen(String userId) {
   if (navigatorKey.currentContext != null) {
     print('Navigate to profile screen for user: $userId');
-    // This will use the existing FriendsProfileScreen navigation
-    // The actual screen import and navigation will be handled when integrated
+    Navigator.push(
+      navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (context) => FriendsProfileScreen(
+          friendId: userId,
+          following: false, // Default to not following
+        ),
+      ),
+    );
   }
 }
 
 void navigateToAchievementDetails(String achievementId, String levelCriteria) {
   if (navigatorKey.currentContext != null) {
     print('Navigate to achievement details: $achievementId, $levelCriteria');
-    // This will use the existing AchievementDetailsWidgetV2 navigation
-    // The actual screen import and navigation will be handled when integrated
+
+    // Parse levelCriteria to int, with fallback
+    int level = int.tryParse(levelCriteria) ?? 1;
+
+    Navigator.push(
+      navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (context) => AchievementDetailsWidgetV2(
+          achievementId: achievementId,
+          levelCriteria: level,
+        ),
+      ),
+    );
   }
 }
 
-void _handleLessonNavigation(String conceptId, String conceptName, String name, int standard, String subject, String bookId) {
+void navigateToCollectionDetails(String itemId) {
   if (navigatorKey.currentContext != null) {
-    print('Navigate to lesson: $conceptId, $conceptName, Standard: $standard, Subject: $subject, Book: $bookId');
-    // This can use the existing lesson navigation logic from main.dart
-    // For now, this is a placeholder - the actual navigation will be implemented when needed
+    print('Navigate to collection details for item: $itemId');
+
+    // Create a placeholder collection item for the deep link
+    Map<String, dynamic> collectionItem = {
+      'id': itemId,
+      'type': 'shared_link',
+      'title': 'Shared Collection Item',
+    };
+
+    Navigator.push(
+      navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (context) => CollectionDetailsWidget(
+          collectionItem: collectionItem,
+          feedOwner: false, // Not from feed owner
+        ),
+      ),
+    );
+  }
+}
+
+void _handleLessonNavigation(String conceptId, String conceptName, String name,
+    int standard, String subject, String bookId) {
+  if (navigatorKey.currentContext != null) {
+    print(
+        'Navigate to lesson: $conceptId, $conceptName, Standard: $standard, Subject: $subject, Book: $bookId');
+    Navigator.push(
+      navigatorKey.currentContext!,
+      MaterialPageRoute(
+        builder: (context) => AITutorScreenV2(
+          conceptId: conceptId,
+          conceptName: conceptName,
+          chapterName: name, // Use name as chapterName
+          maxXP: 100, // Default XP value
+          name: name,
+          subject: subject,
+          standard: standard,
+          selectedLanguage: 'English', // Default language
+          selectedVoice: 'default', // Default voice
+          tutorSelected: null, // No specific tutor
+          dataToResume: null, // Not resuming
+          resumeLesson: false, // New lesson
+          viewLessonHistory: false, // Not viewing history
+        ),
+      ),
+    );
   }
 }

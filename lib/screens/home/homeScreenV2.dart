@@ -2,6 +2,8 @@ import 'package:eureka_app/apis/fetchCompletedConcepts.dart';
 import 'package:eureka_app/apis/fetchLessonHistoryList.dart';
 import 'package:eureka_app/apis/fetchRecommendedLessons.dart';
 import 'package:eureka_app/apis/fetchChaptersToResume.dart';
+import 'package:eureka_app/apis/fetchTodayConcepts.dart';
+import 'package:eureka_app/apis/updateTaskStatus.dart';
 import 'package:eureka_app/apis/resumeConcept.dart';
 import 'package:eureka_app/screens/aiTutor/aiTutorScreenV2.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
@@ -61,6 +63,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   Map<String, dynamic> recommendedLessonsData = {};
   List<Map<String, dynamic>> chaptersToResumeData = [];
   List<Map<String, dynamic>> lessonHistoryData = [];
+  Map<String, dynamic> parentConceptsData = {};
 
   // UI state
   bool _isSearchOpen = false;
@@ -71,15 +74,15 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   String _filterRecommended = "all";
   String _filterParents = "all";
   String _filterContinueChapters = "all";
-  
+
   // Search tracking
   DateTime? _searchOpenTime;
-  
+
   // Overlay tracking
   DateTime? _viewAllOpenTime;
   DateTime? _subjectOverlayOpenTime;
   DateTime? _chapterOverlayOpenTime;
-  
+
   // Session tracking
   DateTime? _sessionStartTime;
   int _lessonsViewed = 0;
@@ -114,6 +117,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   List<Subject> subjects = [];
   List<LessonData> recommendedLessons = [];
   List<LessonData> continueLearningLessons = [];
+  List<LessonData> parentLessons = [];
   List<ChapterData> chapterStats = [];
   List<dynamic> allChapters = [];
 
@@ -155,7 +159,8 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   void dispose() {
     // Log session duration before disposing
     if (_sessionStartTime != null) {
-      final sessionDuration = DateTime.now().difference(_sessionStartTime!).inMilliseconds;
+      final sessionDuration =
+          DateTime.now().difference(_sessionStartTime!).inMilliseconds;
       logSessionDuration(
         timeSpentMs: sessionDuration,
         lessonsViewed: _lessonsViewed,
@@ -164,7 +169,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         sectionsVisited: _sectionsVisited.toList(),
       );
     }
-    
+
     _searchAnimationController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -181,20 +186,23 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         _fetchChaptersToResume(),
         _fetchLessonHistory(),
         _fetchAllChapters(),
+        _fetchParentConcepts(),
       ]);
       _buildUIData();
-      
+
       // Log successful screen load
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;
       logHomeScreenLoaded(
-        totalLessons: recommendedLessons.length + continueLearningLessons.length,
+        totalLessons: recommendedLessons.length +
+            continueLearningLessons.length +
+            parentLessons.length,
         totalChapters: chapterStats.length,
         availableSubjects: subjects.map((s) => s.name).toList(),
         loadTimeMs: loadTime,
       );
     } catch (error) {
       print("Error initializing data: $error");
-      
+
       // Log screen error
       logHomeScreenError(
         errorType: 'initialization_error',
@@ -210,6 +218,60 @@ class _HomeScreenV2State extends State<HomeScreenV2>
     }
   }
 
+  Future<void> _handleRefresh() async {
+    final startTime = DateTime.now();
+    try {
+      // Log refresh action
+      logHomeScreenRefresh(triggerSource: 'pull_to_refresh');
+
+      // Clear existing data to show fresh content
+      setState(() {
+        recommendedLessonsData = {};
+        chaptersToResumeData = [];
+        lessonHistoryData = [];
+        parentConceptsData = {};
+        recommendedLessons.clear();
+        continueLearningLessons.clear();
+        parentLessons.clear();
+        chapterStats.clear();
+      });
+
+      // Re-fetch all data
+      await _fetchSubjectsAndChapters();
+      await Future.wait([
+        _fetchRecommendedLessons(),
+        _fetchChaptersToResume(),
+        _fetchLessonHistory(),
+        _fetchAllChapters(),
+        _fetchParentConcepts(),
+      ]);
+      _buildUIData();
+
+      // Log successful refresh
+      final refreshTime = DateTime.now().difference(startTime).inMilliseconds;
+      print("Home screen refreshed successfully in ${refreshTime}ms");
+
+      // Log completion using existing method
+      logHomeScreenLoaded(
+        totalLessons: recommendedLessons.length +
+            continueLearningLessons.length +
+            parentLessons.length,
+        totalChapters: chapterStats.length,
+        availableSubjects: subjects.map((s) => s.name).toList(),
+        loadTimeMs: refreshTime,
+      );
+    } catch (error) {
+      print("Error refreshing data: $error");
+
+      // Log refresh error
+      logHomeScreenError(
+        errorType: 'refresh_error',
+        errorMessage: error.toString(),
+        failedOperation: 'handle_refresh',
+      );
+    }
+  }
+
   Future<void> _fetchProfile() async {
     final startTime = DateTime.now();
     try {
@@ -217,14 +279,14 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         apiName: 'fetchProfile',
         parameters: {},
       );
-      
+
       final profileData = await refreshProfile();
       prefs = await SharedPreferences.getInstance();
 
       setState(() {
         userProfile = profileData;
       });
-      
+
       logAPICallCompleted(
         apiName: 'fetchProfile',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
@@ -232,20 +294,20 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
     } catch (error) {
       print("Error fetching userProfile: $error");
-      
+
       logAPICallCompleted(
         apiName: 'fetchProfile',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
         success: false,
         errorMessage: error.toString(),
       );
-      
+
       logHomeScreenError(
         errorType: 'api_failure',
         errorMessage: error.toString(),
         failedOperation: 'fetch_profile',
       );
-      
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -266,7 +328,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           'stream': userProfile!["stream"],
         },
       );
-      
+
       final booksData = await getBooksWithCache(
           standard: userProfile!["standard"], stream: userProfile!["stream"]);
 
@@ -291,13 +353,15 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         }
         await prefs.setString("bookId", selectedBookId);
         await prefs.setString("subject", _selectedSubject);
-        
+
         // Log default subject selection
         logDefaultSubjectSet(
           subjectName: _selectedSubject,
           subjectId: selectedBookId,
           reason: defaultReason,
-          availableSubjects: booksData.map<String>((book) => book["subject"].toString()).toList(),
+          availableSubjects: booksData
+              .map<String>((book) => book["subject"].toString())
+              .toList(),
         );
       }
 
@@ -316,7 +380,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 .cast<String>();
         conceptToStartFrom = completedConceptsData["conceptToStartFrom"];
       });
-      
+
       logAPICallCompleted(
         apiName: 'fetchSubjectsAndChapters',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
@@ -325,20 +389,20 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
     } catch (error) {
       print("Error fetching subjects and chapters: $error");
-      
+
       logAPICallCompleted(
         apiName: 'fetchSubjectsAndChapters',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
         success: false,
         errorMessage: error.toString(),
       );
-      
+
       logHomeScreenError(
         errorType: 'api_failure',
         errorMessage: error.toString(),
         failedOperation: 'fetch_subjects_chapters',
       );
-      
+
       rethrow;
     }
   }
@@ -350,12 +414,12 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         apiName: 'fetchRecommendedLessons',
         parameters: {},
       );
-      
+
       final data = await fetchRecommendedLessons();
       setState(() {
         recommendedLessonsData = data;
       });
-      
+
       logAPICallCompleted(
         apiName: 'fetchRecommendedLessons',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
@@ -364,14 +428,14 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
     } catch (error) {
       print("Error fetching recommended lessons: $error");
-      
+
       logAPICallCompleted(
         apiName: 'fetchRecommendedLessons',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
         success: false,
         errorMessage: error.toString(),
       );
-      
+
       logHomeScreenError(
         errorType: 'api_failure',
         errorMessage: error.toString(),
@@ -387,12 +451,12 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         apiName: 'fetchChaptersToResume',
         parameters: {},
       );
-      
+
       final data = await fetchChaptersToResume();
       setState(() {
         chaptersToResumeData = data;
       });
-      
+
       logAPICallCompleted(
         apiName: 'fetchChaptersToResume',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
@@ -401,14 +465,14 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
     } catch (error) {
       print("Error fetching chapters to resume: $error");
-      
+
       logAPICallCompleted(
         apiName: 'fetchChaptersToResume',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
         success: false,
         errorMessage: error.toString(),
       );
-      
+
       logHomeScreenError(
         errorType: 'api_failure',
         errorMessage: error.toString(),
@@ -426,14 +490,14 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           'standard': userProfile!["standard"],
         },
       );
-      
+
       final data =
           await fetchAllChaptersPerStandard(standard: userProfile!["standard"]);
       setState(() {
         allChapters = data;
         _initializeSearchData();
       });
-      
+
       logAPICallCompleted(
         apiName: 'fetchAllChapters',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
@@ -442,14 +506,14 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
     } catch (error) {
       print("Error fetching all chapters: $error");
-      
+
       logAPICallCompleted(
         apiName: 'fetchAllChapters',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
         success: false,
         errorMessage: error.toString(),
       );
-      
+
       logHomeScreenError(
         errorType: 'api_failure',
         errorMessage: error.toString(),
@@ -585,13 +649,13 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           'onlyIncompleteLessons': true,
         },
       );
-      
+
       final data =
           await fetchLessonHistoryList(onlyIncompleteLessons: true.toString());
       setState(() {
         lessonHistoryData = data;
       });
-      
+
       logAPICallCompleted(
         apiName: 'fetchLessonHistory',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
@@ -600,18 +664,55 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
     } catch (error) {
       print("Error fetching lesson history: $error");
-      
+
       logAPICallCompleted(
         apiName: 'fetchLessonHistory',
         durationMs: DateTime.now().difference(startTime).inMilliseconds,
         success: false,
         errorMessage: error.toString(),
       );
-      
+
       logHomeScreenError(
         errorType: 'api_failure',
         errorMessage: error.toString(),
         failedOperation: 'fetch_lesson_history',
+      );
+    }
+  }
+
+  Future<void> _fetchParentConcepts() async {
+    final startTime = DateTime.now();
+    try {
+      logAPICallStarted(
+        apiName: 'fetchTodayConcepts',
+        parameters: {},
+      );
+
+      final data = await fetchTodayConcepts();
+      setState(() {
+        parentConceptsData = data;
+      });
+
+      logAPICallCompleted(
+        apiName: 'fetchTodayConcepts',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: true,
+        responseSize: data.toString().length,
+      );
+    } catch (error) {
+      print("Error fetching parent concepts: $error");
+
+      logAPICallCompleted(
+        apiName: 'fetchTodayConcepts',
+        durationMs: DateTime.now().difference(startTime).inMilliseconds,
+        success: false,
+        errorMessage: error.toString(),
+      );
+
+      logHomeScreenError(
+        errorType: 'api_failure',
+        errorMessage: error.toString(),
+        failedOperation: 'fetch_parent_concepts',
       );
     }
   }
@@ -651,6 +752,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
               : 0.0, // Small progress if started
           recommendationReason: lessonData['recommendationReason'],
           priorityScore: (lessonData['priorityScore'] as num?)?.toDouble(),
+          taskId: null, // Recommended lessons don't have task IDs
         ));
       }
 
@@ -682,6 +784,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
               progress: (lessonData['isStarted'] == true) ? 0.1 : 0.0,
               recommendationReason: lessonData['recommendationReason'],
               priorityScore: (lessonData['priorityScore'] as num?)?.toDouble(),
+              taskId: null, // Recommended lessons don't have task IDs
             ));
           }
         }
@@ -728,7 +831,56 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         newCheckpointStarted: lessonData['newCheckpointStarted'] ?? false,
         timeRemaining: lessonData['timeRemaining'] ?? 0,
         resumeLesson: true,
+        taskId: null, // Continue learning lessons don't have task IDs
       ));
+    }
+
+    // Build parent lessons from API (for From Parents section)
+    parentLessons.clear();
+    if (parentConceptsData.isNotEmpty &&
+        parentConceptsData['success'] == true &&
+        parentConceptsData['data'] != null) {
+      final journeys =
+          parentConceptsData['data']['journeys'] as List<dynamic>? ?? [];
+
+      for (final journey in journeys) {
+        final concepts = journey['concepts'] as List<dynamic>? ?? [];
+        final journeyId = journey['journeyId'] as String? ?? '';
+
+        for (final concept in concepts) {
+          final conceptDetails = concept['conceptDetails'];
+          final tasks = concept['tasks'] as List<dynamic>? ?? [];
+
+          if (conceptDetails != null) {
+            // Extract task ID from the first task (assuming one task per concept)
+            String? taskId;
+            if (tasks.isNotEmpty) {
+              taskId = tasks[0]['id'] as String?;
+            }
+
+            parentLessons.add(LessonData(
+              id: conceptDetails['id'] ?? '',
+              name: conceptDetails['name'] ?? '',
+              subjectId: _getSubjectIdByName(conceptDetails['subject'] ?? ''),
+              subject: conceptDetails['subject'] ?? '',
+              chapter: conceptDetails['chapterName'] ?? '',
+              topic: conceptDetails['topicName'] ?? '',
+              minutes: conceptDetails['expectedCompletionTime'] ?? 15,
+              recommended: false,
+              fromParent: true,
+              progress: 0.0, // Parent assigned tasks start fresh
+              recommendationReason: 'Assigned by parent',
+              priorityScore: concept['priority'] == 'HIGH'
+                  ? 3.0
+                  : concept['priority'] == 'MEDIUM'
+                      ? 2.0
+                      : 1.0,
+              taskId: taskId,
+              journeyId: journeyId,
+            ));
+          }
+        }
+      }
     }
 
     chapterStats = chapterMap.values.toList();
@@ -741,7 +893,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       final scoreB = b.priorityScore ?? 0.0;
       return scoreB.compareTo(scoreA);
     });
-    
+
     // Log recommendations shown
     for (int i = 0; i < recommendedLessons.length; i++) {
       final lesson = recommendedLessons[i];
@@ -858,19 +1010,22 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   void _closeSearch() {
     _searchFocusNode.unfocus();
-    
+
     // Log search cancellation
     if (_searchOpenTime != null) {
-      final timeSpent = DateTime.now().difference(_searchOpenTime!).inMilliseconds;
-      final hadResults = _matchedChapters.isNotEmpty || _matchedTopics.isNotEmpty || _matchedConcepts.isNotEmpty;
-      
+      final timeSpent =
+          DateTime.now().difference(_searchOpenTime!).inMilliseconds;
+      final hadResults = _matchedChapters.isNotEmpty ||
+          _matchedTopics.isNotEmpty ||
+          _matchedConcepts.isNotEmpty;
+
       logSearchCancelled(
         searchQuery: _searchQuery,
         timeSpentMs: timeSpent,
         hadResults: hadResults,
       );
     }
-    
+
     _searchAnimationController.reverse().then((_) {
       if (mounted) {
         setState(() {
@@ -934,8 +1089,9 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       _matchedConcepts = allConcepts;
     });
 
-    final searchTime = DateTime.now().difference(searchStartTime).inMilliseconds;
-    
+    final searchTime =
+        DateTime.now().difference(searchStartTime).inMilliseconds;
+
     // Log search query and increment counter
     logSearchQueryEntered(
       query: query,
@@ -945,9 +1101,9 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       queryLength: query.length,
       searchTimeMs: searchTime,
     );
-    
+
     _searchesPerformed++;
-    
+
     // Log if no results found
     if (allChapters.isEmpty && allTopics.isEmpty && allConcepts.isEmpty) {
       logSearchNoResults(
@@ -959,7 +1115,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   Future<void> _onTapLesson(LessonData lesson) async {
     // Log lesson viewing and increment counter
-    final sectionType = lesson.recommended 
+    final sectionType = lesson.recommended
         ? (lesson.fromParent ? 'parents' : 'recommended')
         : 'continue';
     logLessonViewed(
@@ -971,9 +1127,29 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       currentProgress: lesson.progress,
       estimatedMinutes: lesson.minutes,
     );
-    
+
     _lessonsViewed++;
-    
+
+    // Mark task as started if it's a parent lesson with task ID
+    if (lesson.taskId != null && lesson.fromParent) {
+      try {
+        print(
+            'Marking task ${lesson.taskId} as STARTED for lesson ${lesson.name}');
+        final taskUpdateResult = await updateTaskStatus(
+            lesson.taskId!, 'STARTED', lesson.journeyId!);
+
+        if (taskUpdateResult['success'] == true) {
+          print('Successfully marked task ${lesson.taskId} as STARTED');
+        } else {
+          print('Failed to mark task as started: ${taskUpdateResult['error']}');
+          // Continue with navigation even if task update fails
+        }
+      } catch (e) {
+        print('Error updating task status: $e');
+        // Continue with navigation even if task update fails
+      }
+    }
+
     // Navigate to concept learning screen
     if (mounted) {
       if (lesson.resumeLesson == true) {
@@ -1088,12 +1264,15 @@ class _HomeScreenV2State extends State<HomeScreenV2>
     final checkpointsCompleted = completionData['checkpointsCompleted'] as int;
     final currentCheckpointIndex =
         completionData['currentCheckpointIndex'] as int;
+    final totalCheckpoints = completionData['totalCheckpoints'] as int;
+    final conceptConversationsKey =
+        completionData['conceptConversationsKey'] as String;
 
     // Determine if lesson is completed (assuming 3 checkpoints total based on user's requirement)
-    const totalCheckpoints = 3;
+    // const totalCheckpoints = 3;
     final isCompleted = checkpointsCompleted >= totalCheckpoints;
     final progress = checkpointsCompleted / totalCheckpoints;
-    
+
     // Log lesson progress update
     logLessonProgressUpdated(
       lessonId: conceptId,
@@ -1131,6 +1310,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             timeRemaining: recommendedLessons[i].timeRemaining,
             resumeLesson: !isCompleted && checkpointsCompleted > 0,
             completed: isCompleted,
+            taskId: recommendedLessons[i].taskId,
           );
           break;
         }
@@ -1162,15 +1342,53 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             timeRemaining: continueLearningLessons[i].timeRemaining,
             resumeLesson: !isCompleted && checkpointsCompleted > 0,
             completed: isCompleted,
+            taskId: continueLearningLessons[i].taskId,
           );
           break;
+        }
+      }
+
+      // Update in allChapters structure
+      for (int i = 0; i < allChapters.length; i++) {
+        if (allChapters[i]['topics'] != null) {
+          for (int j = 0; j < allChapters[i]['topics'].length; j++) {
+            if (allChapters[i]['topics'][j]['lessons'] != null) {
+              for (int k = 0;
+                  k < allChapters[i]['topics'][j]['lessons'].length;
+                  k++) {
+                if (allChapters[i]['topics'][j]['lessons'][k]['id']
+                        ?.toString() ==
+                    conceptId) {
+                  // Update lesson progress data in allChapters
+                  allChapters[i]['topics'][j]['lessons'][k]['progress'] =
+                      progress.clamp(0.0, 1.0);
+                  allChapters[i]['topics'][j]['lessons'][k]
+                      ['checkpointsCompleted'] = checkpointsCompleted;
+                  allChapters[i]['topics'][j]['lessons'][k]['checkpointNo'] =
+                      currentCheckpointIndex;
+                  allChapters[i]['topics'][j]['lessons'][k]
+                          ['conceptConversationKey'] =
+                      completionData['conceptConversationKey'];
+                  allChapters[i]['topics'][j]['lessons'][k]['canResume'] =
+                      !isCompleted && checkpointsCompleted > 0;
+                  allChapters[i]['topics'][j]['lessons'][k]['completed'] =
+                      isCompleted;
+                  allChapters[i]['topics'][j]['lessons'][k]
+                      ['conceptConversationsKey'] = conceptConversationsKey;
+                  allChapters[i]['topics'][j]['lessons'][k]
+                      ['totalCheckpoints'] = totalCheckpoints;
+                  break;
+                }
+              }
+            }
+          }
         }
       }
 
       // If lesson is completed, remove it from continue learning (it should not be resumable anymore)
       if (isCompleted) {
         continueLearningLessons.removeWhere((lesson) => lesson.id == conceptId);
-        
+
         // Log lesson completion
         logLessonCompleted(
           lessonId: conceptId,
@@ -1237,18 +1455,18 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 },
                 onTopicTap: (topic) {
                   logTopicButtonClick(topic.topicName);
-                  
+
                   // Log search result click
                   final position = _matchedTopics.indexOf(topic) + 1;
                   logSearchResultClicked(
                     resultType: 'topic',
                     itemName: topic.topicName,
-                    itemId: topic.topicName, 
+                    itemId: topic.topicName,
                     subject: topic.subject,
                     resultPosition: position,
                     searchQuery: _searchQuery,
                   );
-                  
+
                   setState(() {
                     _chapterView = {
                       'subjectId': _getSubjectIdByName(topic.subject),
@@ -1260,7 +1478,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 },
                 onChapterTap: (chapter) {
                   logChapterSelected(chapter.chapterName);
-                  
+
                   // Log search result click
                   final position = _matchedChapters.indexOf(chapter) + 1;
                   logSearchResultClicked(
@@ -1271,7 +1489,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                     resultPosition: position,
                     searchQuery: _searchQuery,
                   );
-                  
+
                   setState(() {
                     _chapterView = {
                       'subjectId': _getSubjectIdByName(chapter.subject),
@@ -1292,16 +1510,14 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                     : _viewAll == 'recommended'
                         ? recommendedLessons
                         : _viewAll == 'parents'
-                            ? recommendedLessons
-                                .where((l) => l.fromParent)
-                                .toList()
+                            ? parentLessons
                             : recommendedLessons,
                 chapters: chapterStats,
                 subjects: subjects,
                 onLessonTap: _onTapLesson,
                 onChapterTap: (chapter) {
                   logChapterSelected(chapter.key);
-                  
+
                   logChapterOverlayOpened(
                     chapterName: chapter.chapter,
                     subject: chapter.subject,
@@ -1309,7 +1525,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                     totalLessons: chapter.total,
                     completedLessons: chapter.completed,
                   );
-                  
+
                   setState(() {
                     _chapterView = {
                       'subjectId': chapter.subjectId,
@@ -1321,11 +1537,14 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 onClose: () {
                   // Log overlay closure
                   if (_viewAllOpenTime != null) {
-                    final timeSpent = DateTime.now().difference(_viewAllOpenTime!).inMilliseconds;
+                    final timeSpent = DateTime.now()
+                        .difference(_viewAllOpenTime!)
+                        .inMilliseconds;
                     logViewAllOverlayClosed(
                       sectionType: _viewAll!,
                       timeSpentMs: timeSpent,
-                      itemSelected: false, // Assuming no item was selected on close
+                      itemSelected:
+                          false, // Assuming no item was selected on close
                     );
                   }
                   setState(() {
@@ -1344,7 +1563,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 allChapters: allChapters,
                 onChapterTap: (chapter) {
                   logChapterSelected(chapter.key);
-                  
+
                   logChapterOverlayOpened(
                     chapterName: chapter.chapter,
                     subject: chapter.subject,
@@ -1352,7 +1571,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                     totalLessons: chapter.total,
                     completedLessons: chapter.completed,
                   );
-                  
+
                   setState(() {
                     _chapterView = {
                       'subjectId': chapter.subjectId,
@@ -1395,7 +1614,8 @@ class _HomeScreenV2State extends State<HomeScreenV2>
     if (_viewAll != null) {
       // Log view all overlay closure
       if (_viewAllOpenTime != null) {
-        final timeSpent = DateTime.now().difference(_viewAllOpenTime!).inMilliseconds;
+        final timeSpent =
+            DateTime.now().difference(_viewAllOpenTime!).inMilliseconds;
         logViewAllOverlayClosed(
           sectionType: _viewAll!,
           timeSpentMs: timeSpent,
@@ -1426,47 +1646,55 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   Widget _buildMainContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          HomeHeader(firstName: userProfile?['firstName']),
-          const SizedBox(height: 16),
-          HomeSearchButton(
-            onTap: _openSearch,
-            searchFocusNode: _searchFocusNode,
-          ),
-          const SizedBox(height: 28),
-          SubjectsSection(
-            subjects: subjects,
-            onSubjectTap: (subjectId) {
-              final subject = subjects.firstWhere((s) => s.id == subjectId);
-              logSubjectSelected(subject.name);
-              
-              // Count chapters for this subject
-              final subjectChapters = allChapters.where((chapter) => 
-                chapter['subject']?.toString().toLowerCase() == subject.name.toLowerCase()
-              ).length;
-              
-              logSubjectChaptersOpened(
-                subjectName: subject.name,
-                subjectId: subjectId,
-                totalChapters: subjectChapters,
-              );
-              
-              setState(() {
-                _subjectView = subjectId;
-                _subjectOverlayOpenTime = DateTime.now();
-              });
-            },
-          ),
-          const SizedBox(height: 32),
-          ..._buildContinueChapters(),
-          ..._buildContinueLearning(),
-          _buildRecommendedSection(),
-          ..._buildFromParentsSection(),
-        ],
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      backgroundColor: AppColors.bg,
+      color: AppColors.accent,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            HomeHeader(firstName: userProfile?['firstName']),
+            const SizedBox(height: 16),
+            HomeSearchButton(
+              onTap: _openSearch,
+              searchFocusNode: _searchFocusNode,
+            ),
+            const SizedBox(height: 28),
+            SubjectsSection(
+              subjects: subjects,
+              onSubjectTap: (subjectId) {
+                final subject = subjects.firstWhere((s) => s.id == subjectId);
+                logSubjectSelected(subject.name);
+
+                // Count chapters for this subject
+                final subjectChapters = allChapters
+                    .where((chapter) =>
+                        chapter['subject']?.toString().toLowerCase() ==
+                        subject.name.toLowerCase())
+                    .length;
+
+                logSubjectChaptersOpened(
+                  subjectName: subject.name,
+                  subjectId: subjectId,
+                  totalChapters: subjectChapters,
+                );
+
+                setState(() {
+                  _subjectView = subjectId;
+                  _subjectOverlayOpenTime = DateTime.now();
+                });
+              },
+            ),
+            const SizedBox(height: 32),
+            ..._buildContinueChapters(),
+            ..._buildContinueLearning(),
+            _buildRecommendedSection(),
+            ..._buildFromParentsSection(),
+          ],
+        ),
       ),
     );
   }
@@ -1480,7 +1708,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
       return [];
     }
-    
+
     // Log section viewed and track visit
     logSectionViewed(
       sectionName: "continue_chapters",
@@ -1498,7 +1726,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         onAction: () {
           logViewAllClicked("continue_chapters");
           logViewAllOverlayOpened(
-            sectionType: "continue_chapters", 
+            sectionType: "continue_chapters",
             totalItems: chapterStats.length,
           );
           setState(() {
@@ -1512,10 +1740,10 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         value: _filterContinueChapters,
         onChanged: (value) {
           final previousFilter = _filterContinueChapters;
-          final filteredItemCount = value == "all" 
+          final filteredItemCount = value == "all"
               ? chapterStats.length
               : chapterStats.where((c) => c.subjectId == value).length;
-          
+
           if (value == "all" && previousFilter != "all") {
             logFilterCleared(
               sectionType: "continue_chapters",
@@ -1530,7 +1758,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
               filteredItemCount: filteredItemCount,
             );
           }
-          
+
           setState(() => _filterContinueChapters = value);
         },
         allowedSubjectIds:
@@ -1548,7 +1776,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             .toList(),
         onChapterTap: (chapter) {
           logChapterSelected(chapter.key);
-          
+
           logChapterOverlayOpened(
             chapterName: chapter.chapter,
             subject: chapter.subject,
@@ -1556,7 +1784,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             totalLessons: chapter.total,
             completedLessons: chapter.completed,
           );
-          
+
           setState(() {
             _chapterView = {
               'subjectId': chapter.subjectId,
@@ -1580,7 +1808,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       );
       return [];
     }
-    
+
     // Log section viewed and track visit
     logSectionViewed(
       sectionName: "continue_learning",
@@ -1614,8 +1842,10 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           final previousFilter = _filterContinue;
           final filteredItemCount = value == "all"
               ? continueLearningLessons.length
-              : continueLearningLessons.where((l) => l.subjectId == value).length;
-          
+              : continueLearningLessons
+                  .where((l) => l.subjectId == value)
+                  .length;
+
           if (value == "all" && previousFilter != "all") {
             logFilterCleared(
               sectionType: "continue",
@@ -1630,7 +1860,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
               filteredItemCount: filteredItemCount,
             );
           }
-          
+
           setState(() => _filterContinue = value);
         },
         allowedSubjectIds:
@@ -1661,7 +1891,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       scrollPosition: 0, // We don't have scroll tracking implemented
     );
     _sectionsVisited.add("recommended");
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1689,7 +1919,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
             final filteredItemCount = value == "all"
                 ? recommendedLessons.length
                 : recommendedLessons.where((l) => l.subjectId == value).length;
-            
+
             if (value == "all" && previousFilter != "all") {
               logFilterCleared(
                 sectionType: "recommended",
@@ -1704,7 +1934,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
                 filteredItemCount: filteredItemCount,
               );
             }
-            
+
             setState(() => _filterRecommended = value);
           },
           allowedSubjectIds:
@@ -1729,20 +1959,18 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   List<Widget> _buildFromParentsSection() {
-    final parentsLessons =
-        recommendedLessons.where((l) => l.fromParent).toList();
-    if (parentsLessons.isEmpty) {
+    if (parentLessons.isEmpty) {
       logEmptySectionShown(
         sectionName: "from_parents",
         emptyReason: "no_data",
       );
       return [];
     }
-    
+
     // Log section viewed and track visit
     logSectionViewed(
       sectionName: "from_parents",
-      itemCount: parentsLessons.length,
+      itemCount: parentLessons.length,
       isEmpty: false,
       scrollPosition: 0, // We don't have scroll tracking implemented
     );
@@ -1757,7 +1985,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           logViewAllClicked("from_parents");
           logViewAllOverlayOpened(
             sectionType: "parents",
-            totalItems: recommendedLessons.where((l) => l.fromParent).length,
+            totalItems: parentLessons.length,
           );
           setState(() {
             _viewAll = "parents";
@@ -1770,16 +1998,15 @@ class _HomeScreenV2State extends State<HomeScreenV2>
         value: _filterParents,
         onChanged: (value) {
           final previousFilter = _filterParents;
-          final parentsLessons = recommendedLessons.where((l) => l.fromParent).toList();
           final filteredItemCount = value == "all"
-              ? parentsLessons.length
-              : parentsLessons.where((l) => l.subjectId == value).length;
-          
+              ? parentLessons.length
+              : parentLessons.where((l) => l.subjectId == value).length;
+
           if (value == "all" && previousFilter != "all") {
             logFilterCleared(
               sectionType: "parents",
               previousFilter: previousFilter,
-              totalItemCount: parentsLessons.length,
+              totalItemCount: parentLessons.length,
             );
           } else if (value != "all") {
             logSubjectFilterApplied(
@@ -1789,17 +2016,17 @@ class _HomeScreenV2State extends State<HomeScreenV2>
               filteredItemCount: filteredItemCount,
             );
           }
-          
+
           setState(() => _filterParents = value);
         },
         allowedSubjectIds:
-            parentsLessons.map((l) => l.subjectId).toSet().toList(),
+            parentLessons.map((l) => l.subjectId).toSet().toList(),
         subjects: subjects,
         onFilterClicked: logSubjectFilterClicked,
       ),
       const SizedBox(height: 12),
       LessonList(
-        lessons: parentsLessons
+        lessons: parentLessons
             .where(
                 (l) => _filterParents == "all" || l.subjectId == _filterParents)
             .toList(),
@@ -1865,7 +2092,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           platform: isAndroid ? 'android' : 'ios',
           updateNotes: notes,
         );
-        
+
         showUpdateSheet(
           context,
           message: message,
@@ -1888,7 +2115,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
           platform: isAndroid ? 'android' : 'ios',
           updateNotes: notes,
         );
-        
+
         showUpdateSheet(
           context,
           message: message,
