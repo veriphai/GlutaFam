@@ -33,13 +33,13 @@
                 <data android:scheme="tuto" />
             </intent-filter>
 
-            <!-- App Links for Universal Deep Linking (will be activated once backend is ready) -->
+            <!-- App Links for Universal Deep Linking -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https"
-                      android:host="share.tuto.app" />
+                      android:host="glutaclass.com" />
             </intent-filter>
 
         </activity>

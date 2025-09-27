@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "JPT63LFZ75.com.example.eurekaApp",
+        "paths": [
+          "/referral",
+          "/profile", 
+          "/achievement",
+          "/collection",
+          "/lesson"
+        ]
+      }
+    ]
+  }
+}

@@ -5,6 +5,8 @@ import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/homepageWeb/tutoHomePage.dart';
 import 'package:eureka_app/newEvents/notificationEvents.dart';
 import 'package:eureka_app/parentDashboard/parentDashboardPage.dart';
+import 'package:eureka_app/screens/aiTutor/newLesson.dart';
+import 'package:eureka_app/screens/aiTutor/statistics_lesson.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/home/homeScreenV2.dart';
@@ -13,11 +15,14 @@ import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/micTest.dart';
 import 'package:eureka_app/screens/ncertPodcasts/sectionsListingScreen.dart';
 import 'package:eureka_app/screens/profileScreen.dart';
+import 'package:eureka_app/screens/vaultScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/services/simpleNetworkService.dart';
 import 'package:eureka_app/providers/simpleNetworkProvider.dart';
 import 'package:eureka_app/widgets/networkListener.dart';
+import 'package:singular_flutter_sdk/singular.dart';
+import 'package:singular_flutter_sdk/singular_config.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:eureka_app/utils/lifecycle_event_handler.dart';
@@ -121,6 +126,9 @@ void main() async {
     if (!kIsWeb) {
       final deepLinkService = DeepLinkService();
       await deepLinkService.initialize();
+
+      // Initialize Singular SDK
+      await initializeSingular();
     }
   });
 
@@ -212,6 +220,7 @@ class MyApp extends StatelessWidget {
                       chapterId: "",
                     ),
                 '/parent-dashboard': (_) => ParentDashboardPage(),
+                '/vault': (_) => VaultScreen(),
               },
             ),
           );
@@ -250,7 +259,10 @@ class _MainPageState extends State<MainPage> {
       // WeeklyLeaderboardContent(),
       // ProgressReportScreen(),
       // ProfileScreen(),
-      HtmlExampleScreen(),
+      // HtmlExampleScreen(),
+      // StatisticsLessonScreen()
+      // UrbanPlannerLesson()
+      VaultScreen()
       // MicSmokeTest()
       // OnboardingScreenV4()
       // ResumeLessonsPage()
@@ -461,5 +473,25 @@ Future<void> setFirebaseTrackingId(SharedPreferences prefs) async {
     }
   } catch (e) {
     print("Error setting Firebase user ID: $e");
+  }
+}
+
+/// Initialize Singular SDK for deferred deep linking
+Future<void> initializeSingular() async {
+  try {
+    // Your actual Singular API Key and Secret
+    const String SINGULAR_API_KEY = 'trytuto_590c9adb';
+    const String SINGULAR_SECRET = 'c7b0ed3598ac60cd649b1495f11e828d';
+
+    // Configure Singular
+    SingularConfig config = SingularConfig(SINGULAR_API_KEY, SINGULAR_SECRET);
+
+    // Initialize Singular
+    Singular.start(config);
+
+    print('✅ Singular SDK initialized successfully');
+    print('📱 Singular will handle deferred deep linking automatically');
+  } catch (e) {
+    print('❌ Error initializing Singular SDK: $e');
   }
 }

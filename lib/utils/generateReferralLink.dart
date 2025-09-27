@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-const String BASE_DOMAIN = 'https://share.tuto.app';
+const String BASE_DOMAIN = 'https://glutaclass.com';
 
 /// Generate a referral link
 Future<String> generateReferralLink(String referralCode) async {
@@ -161,4 +161,27 @@ Future<bool> checkDeepLinkServiceHealth() async {
     print('Deep link service health check failed: $e');
   }
   return false;
+}
+
+/// Generate Singular invite link with deferred deep linking
+Future<String> generateSingularInviteLink(String inviteCode,
+    {String? campaign}) async {
+  // Your Singular link template - you'll get this from Singular dashboard
+  const String SINGULAR_LINK_TEMPLATE =
+      'trytuto.sng.link'; // Replace with actual
+
+  // Construct the Singular link with parameters
+  final Map<String, String> params = {
+    'code': inviteCode,
+    'deep_link_value': 'invite?code=$inviteCode', // For deferred deep linking
+    'custom_campaign': campaign ?? 'invite_sharing',
+  };
+
+  final String queryString = Uri(queryParameters: params).query;
+  return '$SINGULAR_LINK_TEMPLATE?$queryString';
+}
+
+/// Generate regular invite link (fallback)
+Future<String> generateRegularInviteLink(String inviteCode) async {
+  return '$BASE_DOMAIN/invite?code=$inviteCode';
 }
