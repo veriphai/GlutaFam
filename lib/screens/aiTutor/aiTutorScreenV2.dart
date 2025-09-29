@@ -87,7 +87,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   // Preferences and WebSocket
   late SharedPreferences prefs;
   late ConfettiController _confettiController;
-  late StompClient stompClient;
+  StompClient? stompClient;
 
   @override
   void initState() {
@@ -199,7 +199,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         url: 'ws://localhost:8080/gluta/ws',
 
         onConnect: (frame) {
-          stompClient.subscribe(
+          stompClient?.subscribe(
             destination: '/topic/$conversationKey',
             callback: (message) async {
               final payload = json.decode(message.body!);
@@ -210,11 +210,17 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         onWebSocketError: (error) => debugPrint('WS error: $error'),
       ),
     );
-    stompClient.activate();
+    stompClient?.activate();
   }
 
   Future<void> _handleWebSocketMessage(
       Map<String, dynamic> payload, String conversationKey) async {
+    // Check if widget is still mounted before processing websocket messages
+    if (!mounted) {
+      debugPrint('Widget not mounted, ignoring websocket message');
+      return;
+    }
+    
     if (payload['type'] == 'transcription_complete') {
       final transcribed_text = payload['payload']['transcribed_text'];
       final conversationId = payload['payload']
@@ -988,11 +994,24 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   }
 
   Future<void> _playBase64Audio(String base64Audio, String uniqueKey) async {
+    // Check if widget is still mounted before playing audio
+    if (!mounted) {
+      debugPrint('Widget not mounted, skipping audio playback');
+      return;
+    }
+    
     try {
       final audioBytes = base64Decode(base64Audio);
       final tempDir = await getTemporaryDirectory();
       final audioFile = File('${tempDir.path}/${uniqueKey}_response_audio.wav');
       await audioFile.writeAsBytes(audioBytes);
+      
+      // Double check if still mounted after async operations
+      if (!mounted) {
+        debugPrint('Widget unmounted during audio preparation, skipping playback');
+        return;
+      }
+      
       await player.openPlayer();
       await player.startPlayer(fromURI: audioFile.path);
     } catch (e) {
@@ -2279,10 +2298,20 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   void dispose() {
     _scrollController.dispose();
     _recorder?.closeRecorder();
+    
+    // Stop and close audio player properly
     if (player.isPlaying) {
       player.stopPlayer();
     }
     player.closePlayer();
+    
+    // Disconnect websocket connection to prevent continued audio playback
+    try {
+      stompClient?.deactivate();
+    } catch (e) {
+      debugPrint('Error deactivating stomp client: $e');
+    }
+    
     _confettiController.dispose();
     _timer?.cancel();
     _recordingTimer?.cancel();
