@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Manim Web - Matrix Transformation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+            color: #4CAF50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Enable interaction */
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100%;
+            max-height: 100%;
+            /* Enable canvas interaction */
+            pointer-events: auto;
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 15px 25px;
+            border-radius: 30px;
+            color: white;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .controls button {
+            padding: 8px 16px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .controls button:hover {
+            background-color: #764ba2;
+            transform: scale(1.05);
+        }
+
+        .controls button:active {
+            transform: scale(0.95);
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 80px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            max-width: 250px;
+            font-size: 12px;
+        }
+
+        .info-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #FF9800;
+        }
+
+        .info-panel ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-panel li {
+            margin: 5px 0;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .info-panel li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #4CAF50;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 500;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .info-panel {
+                display: none;
+            }
+            
+            .header h1 {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            🎬 Matrix Transformation Scene
+            <span class="badge">✓ INTERACTIVE</span>
+        </h1>
+        <p><strong>Scene:</strong> MatrixTransformationScene | Click and drag on canvas to interact!</p>
+    </div>
+
+    <div class="info-panel">
+        <h3>🎮 Interaction Guide:</h3>
+        <ul>
+            <li>Click & drag to move</li>
+            <li>Scroll to zoom</li>
+            <li>Watch the matrix transform</li>
+            <li>Observe grid deformations</li>
+        </ul>
+    </div>
+
+    <div id="canvas-container">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Loading Matrix Transformation...</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="restartAnimation()">🔄 Restart</button>
+        <button onclick="togglePause()">⏯️ Pause/Play</button>
+        <button onclick="toggleInfo()">ℹ️ Info</button>
+    </div>
+
+    <!-- Load the compiled JavaScript -->
+    <script type="application/javascript" src="manim_web_test_screen.dart.js"></script>
+
+    <script>
+        // Enable full interactivity
+        let isPaused = false;
+
+        // Hide loading after animation initializes
+        setTimeout(() => {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.opacity = '0';
+                setTimeout(() => loading.style.display = 'none', 500);
+            }
+        }, 2000);
+
+        // Control functions
+        function restartAnimation() {
+            console.log('Restarting animation...');
+            location.reload();
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            console.log(isPaused ? 'Animation paused' : 'Animation resumed');
+            // Note: Actual pause implementation depends on Manim Web's API
+        }
+
+        function toggleInfo() {
+            const info = document.querySelector('.info-panel');
+            if (info) {
+                info.style.display = info.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Enable canvas interaction
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for canvas to be created
+            const checkCanvas = setInterval(() => {
+                const canvas = document.querySelector('canvas');
+                if (canvas) {
+                    clearInterval(checkCanvas);
+                    
+                    // Enable all interaction events
+                    canvas.style.pointerEvents = 'auto';
+                    canvas.style.touchAction = 'none';
+                    
+                    // Log mouse/touch events for debugging
+                    canvas.addEventListener('mousedown', (e) => {
+                        console.log('Canvas clicked at:', e.offsetX, e.offsetY);
+                    });
+                    
+                    canvas.addEventListener('touchstart', (e) => {
+                        console.log('Canvas touched');
+                    });
+                    
+                    canvas.addEventListener('wheel', (e) => {
+                        console.log('Canvas scrolled');
+                    });
+                    
+                    console.log('✅ Canvas interaction enabled');
+                    console.log('   Canvas size:', canvas.width, 'x', canvas.height);
+                    console.log('   Pointer events:', canvas.style.pointerEvents);
+                }
+            }, 100);
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    togglePause();
+                    break;
+                case 'r':
+                case 'R':
+                    restartAnimation();
+                    break;
+                case 'i':
+                case 'I':
+                    toggleInfo();
+                    break;
+            }
+        });
+
+        console.log('🎬 Manim Web interactive page loaded');
+        console.log('📋 Keyboard shortcuts:');
+        console.log('   Space: Pause/Play');
+        console.log('   R: Restart');
+        console.log('   I: Toggle info panel');
+    </script>
+</body>
+</html>
+

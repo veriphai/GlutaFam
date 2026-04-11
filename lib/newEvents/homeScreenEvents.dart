@@ -171,14 +171,14 @@ Future<void> _safeLogEvent({
     }
 
     // Add user ID if available
-    try {
-      final profile = await getCachedProfile();
-      if (profile != null && profile['id'] != null) {
-        enhancedDetails['userId'] = profile['id'];
-      }
-    } catch (e) {
-      // User ID not available
-    }
+    // try {
+    //   final profile = await getCachedProfile();
+    //   if (profile != null && profile['id'] != null) {
+    //     enhancedDetails['userId'] = profile['id'];
+    //   }
+    // } catch (e) {
+    //   // User ID not available
+    // }
 
     await logEvent(
       eventName: eventName,

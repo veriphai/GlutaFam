@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:http/http.dart' as http;
@@ -5,10 +6,14 @@ import 'package:http/http.dart' as http;
 Future<Map<String, dynamic>> fetchCheckpointFeedback({
   required String conceptConversationsKey,
   required int checkpointNumber,
+  bool retry = false,
 }) async {
   try {
-    String url = 'https://glutaclass.com:8080/gluta/tutor/checkpoint-feedback'
-        '?conceptConversationKey=$conceptConversationsKey&checkpointNo=$checkpointNumber';
+    // String url = 'http://192.168.165.204:8080/gluta/tutor/checkpoint-feedback'
+    //     '?conceptConversationKey=$conceptConversationsKey&checkpointNo=$checkpointNumber';
+    String url = 'http://localhost:8080/gluta/tutor/checkpoint-feedback'
+        '?conceptConversationKey=$conceptConversationsKey&checkpointNo=$checkpointNumber'
+        '${retry ? '&retry=true' : ''}';
 
     final AuthTokenService authTokenService = AuthTokenService();
     final String? authToken = await authTokenService.getAuthToken();
@@ -19,6 +24,12 @@ Future<Map<String, dynamic>> fetchCheckpointFeedback({
         'Authorization': 'Bearer $authToken',
         'Content-Type': 'application/json',
         'Accept-Encoding': 'gzip'
+      },
+    ).timeout(
+      const Duration(seconds: 15),
+      onTimeout: () {
+        throw TimeoutException(
+            'Checkpoint feedback request timeout after 15 seconds');
       },
     );
 

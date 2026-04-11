@@ -9,6 +9,7 @@ import 'package:eureka_app/apis/fetchLanguagesAndVoices.dart';
 import 'package:eureka_app/apis/fetchLessonHistory.dart';
 import 'package:eureka_app/apis/generateTutorResponse.dart';
 import 'package:eureka_app/apis/resolveGap.dart';
+import 'package:eureka_app/apis/retryTranscription.dart';
 import 'package:eureka_app/newEvents/aiTutorScreenEvents.dart';
 import 'package:eureka_app/screens/aiTutor/components/compact_feedback_card.dart';
 import 'package:flutter/material.dart';
@@ -79,11 +80,14 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   String? _audioPath;
   Timer? _recordingTimer;
   Timer? _timer;
+  Timer? _transcriptionTimer;
+  Timer? _assistantResponseTimer;
+  Map<int, Timer?> _checkpointFeedbackTimers = {};
 
   // Preferences and WebSocket
   late SharedPreferences prefs;
   late ConfettiController _confettiController;
-  late StompClient stompClient;
+  StompClient? stompClient;
 
   @override
   void initState() {
@@ -191,9 +195,11 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   void _subscribeToTopic(String conversationKey) {
     stompClient = StompClient(
       config: StompConfig(
-        url: 'wss://glutaclass.com:8080/gluta/ws',
+        // url: 'wss://glutaclass.com:8080/gluta/ws',
+        url: 'ws://localhost:8080/gluta/ws',
+
         onConnect: (frame) {
-          stompClient.subscribe(
+          stompClient?.subscribe(
             destination: '/topic/$conversationKey',
             callback: (message) async {
               final payload = json.decode(message.body!);
@@ -204,14 +210,23 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         onWebSocketError: (error) => debugPrint('WS error: $error'),
       ),
     );
-    stompClient.activate();
+    stompClient?.activate();
   }
 
   Future<void> _handleWebSocketMessage(
       Map<String, dynamic> payload, String conversationKey) async {
+    // Check if widget is still mounted before processing websocket messages
+    if (!mounted) {
+      debugPrint('Widget not mounted, ignoring websocket message');
+      return;
+    }
+    
     if (payload['type'] == 'transcription_complete') {
       final transcribed_text = payload['payload']['transcribed_text'];
-      _updateTranscription(transcribed_text);
+      final conversationId = payload['payload']
+          ['conversationId']; // Get conversation ID from payload
+      // _updateTranscription(transcribed_text, conversationId);
+      _updateTranscription(transcribed_text, "123");
     } else if (payload['type'] == 'audio') {
       final base64Audio = payload['payload']['audio'];
       if (base64Audio != null) {
@@ -238,11 +253,20 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     }
   }
 
-  void _updateTranscription(String transcribedText) {
+  void _updateTranscription(String transcribedText, [String? conversationId]) {
     setState(() {
       for (int i = 0; i < _state.conversations.length; i++) {
-        if (_state.conversations[i]['role'] == 'user' &&
-            _state.conversations[i]['isTranscribing'] == true) {
+        // If conversationId is provided, match by ID; otherwise match by isTranscribing status
+        final shouldUpdate = conversationId != null
+            ? (_state.conversations[i]['conversationId'] == conversationId &&
+                _state.conversations[i]['role'] == 'user')
+            : (_state.conversations[i]['role'] == 'user' &&
+                _state.conversations[i]['isTranscribing'] == true);
+
+        if (shouldUpdate) {
+          final existingConversationId =
+              _state.conversations[i]['conversationId'];
+          final audioPath = _state.conversations[i]['audioPath'];
           _state.conversations[i] = {
             'role': 'user',
             'content': '',
@@ -252,11 +276,17 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
             'feedbackExpanded':
                 true, // Preserve expanded state for new transcription
             'timestamp': DateTime.now().millisecondsSinceEpoch,
+            'conversationId':
+                existingConversationId, // Preserve conversation ID
+            'audioPath': audioPath, // Preserve audio path for potential retry
+            'transcriptionFailed': false,
           };
+          _transcriptionTimer?.cancel(); // Cancel timeout timer
+
           break;
         }
       }
-      
+
       // Auto-scroll to bottom when transcription is updated
       _scrollToBottom();
     });
@@ -604,7 +634,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
 
     _processAllConversationFeedback();
     _processExtractedContentForAllConversations();
-    
+
     // Auto-scroll to bottom when conversations are updated
     _scrollToBottom();
   }
@@ -829,7 +859,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
       Map<String, dynamic>? learningObjectivesStatus,
       bool? hintRequest,
       String? userPromptType,
-      String? userPromptText}) async {
+      String? userPromptText,
+      String? conversationId}) async {
     try {
       // If userPromptText is provided, add it as a user message first
       if (userPromptText != null && userPromptText.isNotEmpty) {
@@ -854,11 +885,15 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           // Remove checkpoint feedback notification cards when user sends a message
           _state.wsEvents.removeWhere(
               (event) => event['role'] == 'checkpoint_feedback_notification');
-          
+
           // Auto-scroll to bottom when user message is added
           _scrollToBottom();
         });
       }
+
+      final assistantConversationId = conversationId != null
+          ? "${conversationId}_assistant"
+          : "${DateTime.now().millisecondsSinceEpoch}_assistant";
 
       setState(() {
         _state.showDots = true;
@@ -870,15 +905,20 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           'greeting': false,
           'isLoading': true,
           'timestamp': DateTime.now().millisecondsSinceEpoch,
+          'conversationId': assistantConversationId,
+          'responseGenerationFailed': false,
         });
         if (_state.conversations.length >= 2) {
           _state.conversations[_state.conversations.length - 2]['latest'] =
               false;
         }
-        
+
         // Auto-scroll to bottom when assistant loading message is added
         _scrollToBottom();
       });
+
+      // Start assistant response timeout
+      _startAssistantResponseTimeout(assistantConversationId);
 
       final tutorResponse = await generateTutorResponse(
           conceptId: widget.conceptId,
@@ -897,7 +937,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           remainingTime: _state.timeLeftSeconds,
           voice: _state.selectedVoice,
           hintRequest: hintRequest,
-          userPromptType: userPromptType);
+          userPromptType: userPromptType,
+          userConversationId: conversationId);
 
       _state.latestTutorResponse = tutorResponse;
 
@@ -938,6 +979,9 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         });
       }
 
+      // Cancel assistant response timeout as we received a successful response
+      _assistantResponseTimer?.cancel();
+
       setState(() {
         _mergeConversationsPreservingFeedback(conversationsList,
             isHintResponse: hintRequest == true);
@@ -950,11 +994,24 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   }
 
   Future<void> _playBase64Audio(String base64Audio, String uniqueKey) async {
+    // Check if widget is still mounted before playing audio
+    if (!mounted) {
+      debugPrint('Widget not mounted, skipping audio playback');
+      return;
+    }
+    
     try {
       final audioBytes = base64Decode(base64Audio);
       final tempDir = await getTemporaryDirectory();
       final audioFile = File('${tempDir.path}/${uniqueKey}_response_audio.wav');
       await audioFile.writeAsBytes(audioBytes);
+      
+      // Double check if still mounted after async operations
+      if (!mounted) {
+        debugPrint('Widget unmounted during audio preparation, skipping playback');
+        return;
+      }
+      
       await player.openPlayer();
       await player.startPlayer(fromURI: audioFile.path);
     } catch (e) {
@@ -1111,6 +1168,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
       // Collapse all previous user message feedback before adding new message
       _collapseAllPreviousUserFeedback();
 
+      final conversationId = DateTime.now().millisecondsSinceEpoch.toString();
+
       setState(() {
         _state.wsEvents.removeWhere((event) => event['role'] == 'gap');
         _state.wsEvents.removeWhere(
@@ -1124,22 +1183,290 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
           'isTranscribing': true,
           'feedbackExpanded': true, // Set initial state to expanded
           'timestamp': DateTime.now().millisecondsSinceEpoch,
+          'conversationId': conversationId,
+          'audioPath': _audioPath, // Store audio path for retry
+          'transcriptionFailed': false,
         });
         if (_state.conversations.length >= 2) {
           _state.conversations[_state.conversations.length - 2]['latest'] =
               false;
         }
-        
+
         // Auto-scroll to bottom when user recording is sent
         _scrollToBottom();
       });
 
-      await _followUpConversation(File(_audioPath!), null);
+      // Start transcription timeout timer (10 seconds)
+      _startTranscriptionTimeout(conversationId);
+
+      await _followUpConversation(File(_audioPath!), null,
+          conversationId: conversationId);
     }
   }
 
   void _cancelRecording() async {
     await _stopRecording();
+  }
+
+  void _startTranscriptionTimeout(String conversationId) {
+    _transcriptionTimer?.cancel();
+    _transcriptionTimer = Timer(const Duration(seconds: 10), () {
+      // Find the conversation with the matching ID and mark it as failed
+      setState(() {
+        for (int i = 0; i < _state.conversations.length; i++) {
+          if (_state.conversations[i]['conversationId'] == conversationId &&
+              _state.conversations[i]['isTranscribing'] == true) {
+            _state.conversations[i]['isTranscribing'] = false;
+            _state.conversations[i]['transcriptionFailed'] = true;
+            _state.conversations[i]['text'] = 'Transcription failed';
+            debugPrint(
+                'Transcription timeout for conversation: $conversationId');
+            break;
+          }
+        }
+      });
+    });
+  }
+
+  void _startAssistantResponseTimeout(String conversationId) {
+    _assistantResponseTimer?.cancel();
+    _assistantResponseTimer = Timer(const Duration(seconds: 15), () {
+      // Find the assistant conversation with the matching ID and mark it as failed
+      setState(() {
+        for (int i = 0; i < _state.conversations.length; i++) {
+          if (_state.conversations[i]['conversationId'] == conversationId &&
+              _state.conversations[i]['role'] == 'assistant' &&
+              _state.conversations[i]['isLoading'] == true) {
+            _state.conversations[i]['isLoading'] = false;
+            _state.conversations[i]['responseGenerationFailed'] = true;
+            _state.conversations[i]['text'] = 'Response generation failed';
+            debugPrint(
+                'Assistant response timeout for conversation: $conversationId');
+            break;
+          }
+        }
+      });
+    });
+  }
+
+  void _startCheckpointFeedbackTimeout(int checkpointIndex) {
+    _checkpointFeedbackTimers[checkpointIndex]?.cancel();
+    _checkpointFeedbackTimers[checkpointIndex] =
+        Timer(const Duration(seconds: 15), () {
+      // Mark checkpoint feedback as failed due to timeout
+      setState(() {
+        _state.checkpointFeedbackStates[checkpointIndex] = 'failed';
+
+        // Update the corresponding conversation item
+        for (int i = 0; i < _state.conversations.length; i++) {
+          if (_state.conversations[i]['role'] == 'checkpoint_feedback' &&
+              _state.conversations[i]['checkpointIndex'] == checkpointIndex) {
+            _state.conversations[i]['state'] = 'failed';
+            break;
+          }
+        }
+      });
+      debugPrint(
+          'Checkpoint feedback timeout for checkpoint: $checkpointIndex');
+    });
+  }
+
+  Future<void> _retryTranscription(String conversationId) async {
+    // Find the conversation and retry transcription
+    for (int i = 0; i < _state.conversations.length; i++) {
+      if (_state.conversations[i]['conversationId'] == conversationId) {
+        final audioPath = _state.conversations[i]['audioPath'] as String?;
+        if (audioPath != null && File(audioPath).existsSync()) {
+          setState(() {
+            _state.conversations[i]['isTranscribing'] = true;
+            _state.conversations[i]['transcriptionFailed'] = false;
+            _state.conversations[i]['text'] = '';
+          });
+
+          // Start new timeout timer
+          _startTranscriptionTimeout(conversationId);
+
+          try {
+            // Use the retry tutor response API for transcription retry
+            final response = await retryTutorResponse(
+              conceptId: widget.conceptId,
+              studentName: _state.studentName,
+              checkpointNo: _state.currentCheckpointIndex,
+              conceptConversationsKey: _state.conceptConversationsKey,
+              retryType: RetryType.transcribeText,
+              remainingTime: _state.timeLeftSeconds,
+              conversationItemId: conversationId,
+              language: _state.selectedLanguage,
+              voice: _state.selectedVoice,
+              audioFile: File(audioPath), // Send the audio file for retry
+            );
+
+            // If response contains transcription, update it directly
+            if (response.isNotEmpty && response['message'] != null) {
+              _transcriptionTimer?.cancel(); // Cancel timeout timer
+              _updateTranscription(response['message'], conversationId);
+
+              // Also update conversations with feedback if present in the retry response
+              if (response['conversations'] != null &&
+                  response['conversations'] is List) {
+                final List<Map<String, dynamic>> conversationsList =
+                    (response['conversations'] as List)
+                        .map((item) => Map<String, dynamic>.from(item as Map))
+                        .toList();
+                _mergeConversationsPreservingFeedback(conversationsList);
+              }
+            }
+          } catch (e) {
+            debugPrint('Error retrying transcription: $e');
+            // If retry fails, mark as failed again
+            setState(() {
+              _state.conversations[i]['isTranscribing'] = false;
+              _state.conversations[i]['transcriptionFailed'] = true;
+              _state.conversations[i]['text'] = 'Transcription failed';
+            });
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  Future<void> _retryAssistantMessage(String conversationId) async {
+    // Find the assistant conversation and retry response generation
+    for (int i = 0; i < _state.conversations.length; i++) {
+      if (_state.conversations[i]['conversationId'] == conversationId &&
+          _state.conversations[i]['role'] == 'assistant') {
+        setState(() {
+          _state.conversations[i]['isLoading'] = true;
+          _state.conversations[i]['responseGenerationFailed'] = false;
+          _state.conversations[i]['text'] = '';
+        });
+
+        // Start new timeout timer
+        _startAssistantResponseTimeout(conversationId);
+
+        try {
+          // Use the retry tutor response API for assistant message retry
+          final response = await retryTutorResponse(
+            conceptId: widget.conceptId,
+            studentName: _state.studentName,
+            checkpointNo: _state.currentCheckpointIndex,
+            conceptConversationsKey: _state.conceptConversationsKey,
+            retryType: RetryType.tutorMessage,
+            remainingTime: _state.timeLeftSeconds,
+            conversationItemId: conversationId,
+            language: _state.selectedLanguage,
+            voice: _state.selectedVoice,
+          );
+
+          // If response contains the new message, update it directly
+          if (response.isNotEmpty) {
+            _assistantResponseTimer?.cancel(); // Cancel timeout timer
+
+            // Update conversations with the retry response
+            if (response['conversations'] != null &&
+                response['conversations'] is List) {
+              final List<Map<String, dynamic>> conversationsList =
+                  (response['conversations'] as List)
+                      .map((item) => Map<String, dynamic>.from(item as Map))
+                      .toList();
+              _mergeConversationsPreservingFeedback(conversationsList);
+            } else if (response['message'] != null) {
+              // If just a message is returned, update the specific conversation
+              setState(() {
+                _state.conversations[i]['isLoading'] = false;
+                _state.conversations[i]['text'] = response['message'];
+                _state.conversations[i]['responseGenerationFailed'] = false;
+              });
+            }
+          }
+        } catch (e) {
+          debugPrint('Error retrying assistant message: $e');
+          // If retry fails, mark as failed again
+          setState(() {
+            _state.conversations[i]['isLoading'] = false;
+            _state.conversations[i]['responseGenerationFailed'] = true;
+            _state.conversations[i]['text'] = 'Response generation failed';
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  Future<void> _retryCheckpointFeedback(int checkpointIndex) async {
+    setState(() {
+      _state.checkpointFeedbackStates[checkpointIndex] = 'loading';
+
+      // Update the corresponding conversation item
+      for (int i = 0; i < _state.conversations.length; i++) {
+        if (_state.conversations[i]['role'] == 'checkpoint_feedback' &&
+            _state.conversations[i]['checkpointIndex'] == checkpointIndex) {
+          _state.conversations[i]['state'] = 'loading';
+          break;
+        }
+      }
+    });
+
+    // Start timeout timer for retry
+    _startCheckpointFeedbackTimeout(checkpointIndex);
+
+    try {
+      final feedbackData =
+          await CheckpointFeedbackService.getCheckpointFeedback(
+        conceptConversations: _state.conceptConversationsKey,
+        checkpointNumber: checkpointIndex,
+        retry: true,
+      );
+
+      // Cancel timeout timer on success
+      _checkpointFeedbackTimers[checkpointIndex]?.cancel();
+
+      // Check if feedback data is empty
+      if (feedbackData.objectives.isEmpty &&
+          feedbackData.gaps.isEmpty &&
+          feedbackData.shining.isEmpty) {
+        throw Exception('Empty feedback data received');
+      }
+
+      setState(() {
+        _state.checkpointFeedbackStates[checkpointIndex] = 'ready';
+        _state.checkpointFeedbackData[checkpointIndex] = feedbackData;
+
+        // Update the corresponding conversation item
+        for (int i = 0; i < _state.conversations.length; i++) {
+          if (_state.conversations[i]['role'] == 'checkpoint_feedback' &&
+              _state.conversations[i]['checkpointIndex'] == checkpointIndex) {
+            _state.conversations[i]['state'] = 'ready';
+            _state.conversations[i]['data'] = feedbackData;
+            break;
+          }
+        }
+
+        // Add a notification card to wsEvents (current conversation position)
+        _state.wsEvents.add({
+          'role': 'checkpoint_feedback_notification',
+          'checkpointIndex': checkpointIndex,
+          'state': 'ready',
+          'data': feedbackData,
+          'ts': DateTime.now().millisecondsSinceEpoch,
+        });
+      });
+    } catch (e) {
+      debugPrint('Error retrying checkpoint feedback: $e');
+      setState(() {
+        _state.checkpointFeedbackStates[checkpointIndex] = 'failed';
+
+        // Update the corresponding conversation item
+        for (int i = 0; i < _state.conversations.length; i++) {
+          if (_state.conversations[i]['role'] == 'checkpoint_feedback' &&
+              _state.conversations[i]['checkpointIndex'] == checkpointIndex) {
+            _state.conversations[i]['state'] = 'failed';
+            break;
+          }
+        }
+      });
+    }
   }
 
   void _switchToTyping() {
@@ -1161,6 +1488,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     // Collapse all previous user message feedback before adding new message
     _collapseAllPreviousUserFeedback();
 
+    final conversationId = DateTime.now().millisecondsSinceEpoch.toString();
+
     setState(() {
       _state.inputMode = InputMode.compact;
       _state.wsEvents.removeWhere((event) => event['role'] == 'gap');
@@ -1174,18 +1503,19 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
         'greeting': false,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
         'feedbackExpanded': true, // Set initial state to expanded
+        'conversationId': conversationId,
       });
       if (_state.conversations.length >= 2) {
         _state.conversations[_state.conversations.length - 2]['latest'] = false;
       }
-      
+
       // Auto-scroll to bottom when user text message is sent
       _scrollToBottom();
     });
 
     player.stopPlayer();
     _messageController.clear();
-    _followUpConversation(null, text);
+    _followUpConversation(null, text, conversationId: conversationId);
   }
 
   void _continueFlow() async {
@@ -1710,12 +2040,25 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
 
   // Load checkpoint feedback asynchronously
   void _loadCheckpointFeedback(int checkpointIndex) async {
+    // Start timeout timer
+    _startCheckpointFeedbackTimeout(checkpointIndex);
+
     try {
       final feedbackData =
           await CheckpointFeedbackService.getCheckpointFeedback(
         conceptConversations: _state.conceptConversationsKey,
         checkpointNumber: checkpointIndex,
       );
+
+      // Cancel timeout timer on success
+      _checkpointFeedbackTimers[checkpointIndex]?.cancel();
+
+      // Check if feedback data is empty
+      if (feedbackData.objectives.isEmpty &&
+          feedbackData.gaps.isEmpty &&
+          feedbackData.shining.isEmpty) {
+        throw Exception('Empty feedback data received');
+      }
 
       setState(() {
         _state.checkpointFeedbackStates[checkpointIndex] = 'ready';
@@ -1743,13 +2086,13 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
     } catch (e) {
       debugPrint('Error loading checkpoint feedback: $e');
       setState(() {
-        _state.checkpointFeedbackStates[checkpointIndex] = 'error';
+        _state.checkpointFeedbackStates[checkpointIndex] = 'failed';
 
         // Update the corresponding conversation item
         for (int i = 0; i < _state.conversations.length; i++) {
           if (_state.conversations[i]['role'] == 'checkpoint_feedback' &&
               _state.conversations[i]['checkpointIndex'] == checkpointIndex) {
-            _state.conversations[i]['state'] = 'error';
+            _state.conversations[i]['state'] = 'failed';
             break;
           }
         }
@@ -1887,6 +2230,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
       'attemptedIndexes': _state.attemptedCheckpointIndexes,
       'currentCheckpointIndex': _state.currentCheckpointIndex,
       'xpGained': _state.xpGained,
+      'totalCheckpoints': _state.conceptCheckpoints.length,
+      'conceptConversationsKey': _state.conceptConversationsKey,
     };
     Navigator.pop(context, completionData);
   }
@@ -1953,13 +2298,31 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   void dispose() {
     _scrollController.dispose();
     _recorder?.closeRecorder();
+    
+    // Stop and close audio player properly
     if (player.isPlaying) {
       player.stopPlayer();
     }
     player.closePlayer();
+    
+    // Disconnect websocket connection to prevent continued audio playback
+    try {
+      stompClient?.deactivate();
+    } catch (e) {
+      debugPrint('Error deactivating stomp client: $e');
+    }
+    
     _confettiController.dispose();
     _timer?.cancel();
     _recordingTimer?.cancel();
+    _transcriptionTimer?.cancel();
+    _assistantResponseTimer?.cancel();
+
+    // Dispose checkpoint feedback timers
+    for (final timer in _checkpointFeedbackTimers.values) {
+      timer?.cancel();
+    }
+    _checkpointFeedbackTimers.clear();
 
     // Dispose gap text controllers
     for (final controller in _state.gapTextControllers.values) {
@@ -2478,10 +2841,15 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
                             _state.selectedTutor,
                             _onToggleNotes,
                             _onToggleBoard,
+                            _retryAssistantMessage,
                           );
                         } else if (role == 'user') {
-                          return MessageBubbles.userBubble(convo['text'] ?? "",
-                              convo, _onToggleFeedback, index);
+                          return MessageBubbles.userBubble(
+                              convo['text'] ?? "",
+                              convo,
+                              _onToggleFeedback,
+                              index,
+                              _retryTranscription);
                         } else if (role == 'checkpoint_feedback') {
                           // return FeedbackCards.checkpointFeedbackCard(
                           //   convo['checkpointIndex'] as int,
@@ -2511,6 +2879,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
                                       convo['checkpointIndex'] as int),
                                   showDismissButton:
                                       false, // No dismiss button in this screen
+                                  onRetryFeedback: _retryCheckpointFeedback,
                                 );
                         }
                         return const SizedBox.shrink();

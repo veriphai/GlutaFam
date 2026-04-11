@@ -7,17 +7,21 @@ import 'package:flutter/foundation.dart';
 enum NetworkQuality { excellent, good, poor, offline }
 
 class SimpleNetworkService extends ChangeNotifier {
-  static final SimpleNetworkService _instance = SimpleNetworkService._internal();
+  static final SimpleNetworkService _instance =
+      SimpleNetworkService._internal();
   factory SimpleNetworkService() => _instance;
   SimpleNetworkService._internal();
 
   NetworkQuality _currentQuality = NetworkQuality.offline;
   bool _isOnline = false;
   Timer? _monitoringTimer;
+  int _timerCallCount = 0;
 
   NetworkQuality get currentQuality => _currentQuality;
   bool get isOnline => _isOnline;
   bool get isSlowConnection => _currentQuality == NetworkQuality.poor;
+  bool get isTimerActive => _monitoringTimer?.isActive ?? false;
+  int get timerCallCount => _timerCallCount;
 
   Future<void> initialize() async {
     debugPrint('🚀 Initializing SimpleNetworkService');
@@ -26,25 +30,35 @@ class SimpleNetworkService extends ChangeNotifier {
     await _checkNetworkStatus();
 
     // Monitor every 15 seconds
+    debugPrint('⏰ Setting up monitoring timer (15 seconds interval)');
     _monitoringTimer = Timer.periodic(
       const Duration(seconds: 15),
-      (timer) => _checkNetworkStatus(),
+      (timer) {
+        _timerCallCount++;
+        debugPrint(
+            '⏰ Timer triggered (#$_timerCallCount) - checking network status');
+        _checkNetworkStatus();
+      },
     );
 
     // Listen to connectivity changes
     Connectivity().onConnectivityChanged.listen((_) => _checkNetworkStatus());
 
     debugPrint('✅ SimpleNetworkService initialized');
+    debugPrint(
+        '📊 Timer active: ${isTimerActive}, Call count: $timerCallCount');
   }
 
   Future<void> _checkNetworkStatus() async {
+    debugPrint('🔍 Checking network status at ${DateTime.now()}');
     try {
       final connectivityResults = await Connectivity().checkConnectivity();
       final hasInternet = await InternetConnection().hasInternetAccess;
 
       NetworkQuality newQuality;
 
-      if (!hasInternet || connectivityResults.contains(ConnectivityResult.none)) {
+      if (!hasInternet ||
+          connectivityResults.contains(ConnectivityResult.none)) {
         newQuality = NetworkQuality.offline;
       } else {
         // Simple bandwidth test
@@ -63,7 +77,8 @@ class SimpleNetworkService extends ChangeNotifier {
         _isOnline = hasInternet;
         notifyListeners();
 
-        debugPrint('📡 Network Status: ${newQuality.name} (Online: $hasInternet)');
+        debugPrint(
+            '📡 Network Status: ${newQuality.name} (Online: $hasInternet)');
       }
     } catch (e) {
       debugPrint('❌ Network check failed: $e');
