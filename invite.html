@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>You're Invited to Tuto!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px 20px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .invite-code {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .download-btn {
+            display: inline-block;
+            background: #FF6B35;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 10px;
+            margin: 10px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .download-btn:hover {
+            transform: scale(1.05);
+        }
+        .android { background: #34A853; }
+        .ios { background: #007AFF; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">TUTO</div>
+        <h1>🎉 You're Invited!</h1>
+        <p>Someone special invited you to join Tuto - AI Tutor for Class 6-12 students</p>
+        
+        <div class="invite-code" id="invite-code">
+            Invite Code: Loading...
+        </div>
+        
+        <p>Download the app and use this invite code to get started!</p>
+        
+        <div id="download-buttons">
+            <a href="https://play.google.com/store/apps/details?id=com.gluta.glutafam" class="download-btn android">
+                📱 Download for Android
+            </a>
+            <a href="https://apps.apple.com/us/app/tuto-ai-tutor-for-class-6-12/id6736943726" class="download-btn ios">
+                🍎 Download for iOS
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Extract invite code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteCode = urlParams.get('code');
+        
+        if (inviteCode) {
+            document.getElementById('invite-code').textContent = `Invite Code: ${inviteCode}`;
+        } else {
+            document.getElementById('invite-code').textContent = 'Invite Code: Not found';
+        }
+
+        // Auto-detect platform and redirect to store apps
+        const userAgent = navigator.userAgent;
+        
+        function openStore() {
+            if (/iPhone|iPad/.test(userAgent)) {
+                // Try to open App Store app first, fallback to web
+                window.location.href = 'itms-apps://apps.apple.com/us/app/tuto-ai-tutor-for-class-6-12/id6736943726';
+                
+                // Fallback to web version after 2 seconds if app didn't open
+                setTimeout(() => {
+                    window.location.href = 'https://apps.apple.com/us/app/tuto-ai-tutor-for-class-6-12/id6736943726';
+                }, 2000);
+                
+            } else if (/Android/.test(userAgent)) {
+                // Try to open Play Store app first, fallback to web
+                window.location.href = 'market://details?id=com.gluta.glutafam';
+                
+                // Fallback to web version after 2 seconds if app didn't open
+                setTimeout(() => {
+                    window.location.href = 'https://play.google.com/store/apps/details?id=com.gluta.glutafam';
+                }, 2000);
+            }
+        }
+        
+        // Auto-redirect after 3 seconds (longer than referral to show invite code)
+        setTimeout(openStore, 3000);
+    </script>
+</body>
+</html>

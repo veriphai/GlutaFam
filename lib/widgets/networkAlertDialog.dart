@@ -236,7 +236,8 @@ class _NetworkAlertDialogState extends State<NetworkAlertDialog>
     return _AlertConfig(
       icon: Icons.wifi_off_rounded,
       title: 'No Internet Connection',
-      description: 'Please check your connection and try again. Some features may be limited in offline mode.',
+      description:
+          'Please check your connection and try again. Some features may be limited in offline mode.',
       color: const Color(0xFFE53E3E), // Red
     );
   }
@@ -245,7 +246,8 @@ class _NetworkAlertDialogState extends State<NetworkAlertDialog>
     return _AlertConfig(
       icon: Icons.network_wifi_1_bar,
       title: 'Slow Connection Detected',
-      description: 'Your internet seems slow. This might affect your learning experience.',
+      description:
+          'Your internet seems slow. This might affect your learning experience.',
       color: const Color(0xFFED8936), // Orange
     );
   }

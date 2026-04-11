@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -24,10 +25,12 @@ Future<Map<String, dynamic>> generateTutorResponse(
     Map<String, dynamic>? questionsData,
     Map<String, dynamic>? learningObjectivesStatus,
     bool? hintRequest,
-    String? userPromptType}) async {
+    String? userPromptType,
+    String? userConversationId}) async {
   try {
-    const url = 'https://glutaclass.com:8080/gluta/tutor/responseV2';
-    // const url = 'http://localhost:8080/gluta/tutor/responseV2';
+    // const url = 'https://glutaclass.com:8080/gluta/tutor/responseV2';
+    // const url = 'http://192.168.165.204:8080/gluta/tutor/responseV2';
+    const url = 'http://localhost:8080/gluta/tutor/responseV2';
 
     final uri = Uri.parse(url);
 
@@ -54,7 +57,8 @@ Future<Map<String, dynamic>> generateTutorResponse(
       "remainingTime": remainingTime,
       // New fields for hint and prompt types
       "hintRequest": hintRequest,
-      "userPromptType": userPromptType
+      "userPromptType": userPromptType,
+      "userConversationItemId": userConversationId
     };
 
     // Prepare multipart request
@@ -80,8 +84,13 @@ Future<Map<String, dynamic>> generateTutorResponse(
       ));
     }
 
-    // Send request
-    var streamedResponse = await request.send();
+    // Send request with timeout
+    var streamedResponse = await request.send().timeout(
+      const Duration(seconds: 15),
+      onTimeout: () {
+        throw TimeoutException('Request timeout after 30 seconds');
+      },
+    );
     var response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {

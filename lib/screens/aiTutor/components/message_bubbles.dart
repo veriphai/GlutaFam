@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -6,6 +8,7 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:taudio/taudio.dart';
 import 'package:eureka_app/utils/tutorAvatars.dart';
 import 'text_highlighter.dart';
 import 'ai_tutor_helpers.dart';
@@ -21,10 +24,13 @@ class MessageBubbles {
     Map<String, dynamic> selectedTutor,
     Function(int, String) onToggleNotes,
     Function(int, String) onToggleBoard,
+    Function(String)? onRetryAssistantMessage,
   ) {
     // Check if this is a hint message
     final isHint = conversations[index]['isHint'] == true;
     final isLoading = conversations[index]['isLoading'] == true;
+    final responseGenerationFailed =
+        conversations[index]['responseGenerationFailed'] == true;
 
     if (isHint) {
       return _buildHintCard(text);
@@ -62,14 +68,19 @@ class MessageBubbles {
                 children: [
                   if (isLoading)
                     _buildAssistantLoadingState()
+                  else if (responseGenerationFailed)
+                    _buildAssistantFailedState(
+                        conversations[index], onRetryAssistantMessage)
                   else
                     _buildHighlightedMarkdownText(text, conversations[index]),
                   // Show color legend if there are highlighted terms
-                  if (!isLoading && _hasHighlights(conversations[index])) ...[
+                  if (!isLoading &&
+                      !responseGenerationFailed &&
+                      _hasHighlights(conversations[index])) ...[
                     const SizedBox(height: 8),
                     _buildHighlightLegend(conversations[index]),
                   ],
-                  if (!isLoading) ...[
+                  if (!isLoading && !responseGenerationFailed) ...[
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -131,8 +142,10 @@ class MessageBubbles {
   static Widget userBubble(String text,
       [Map<String, dynamic>? conversation,
       Function(int)? onToggleFeedback,
-      int? messageIndex]) {
+      int? messageIndex,
+      Function(String)? onRetryTranscription]) {
     final isTranscribing = conversation?['isTranscribing'] == true;
+    final transcriptionFailed = conversation?['transcriptionFailed'] == true;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -170,6 +183,9 @@ class MessageBubbles {
                       children: [
                         if (isTranscribing)
                           _buildTranscribingLoadingState()
+                        else if (transcriptionFailed)
+                          _buildTranscriptionFailedState(
+                              conversation, onRetryTranscription)
                         else
                           RichText(
                             text: TextSpan(
@@ -190,7 +206,7 @@ class MessageBubbles {
                     ),
                   ),
                   // Separator and feedback section
-                  if (!isTranscribing) ...[
+                  if (!isTranscribing && !transcriptionFailed) ...[
                     _FeedbackSectionWithDivider(
                       conversation: conversation,
                       onToggleFeedback: onToggleFeedback,
@@ -1285,6 +1301,61 @@ class MessageBubbles {
     );
   }
 
+  static Widget _buildAssistantFailedState(Map<String, dynamic> conversation,
+      Function(String)? onRetryAssistantMessage) {
+    final conversationId = conversation['conversationId'] as String?;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 16,
+                color: const Color(0xFFDC2626),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Response generation failed',
+                style: GoogleFonts.raleway(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFDC2626),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (conversationId != null && onRetryAssistantMessage != null)
+            ElevatedButton.icon(
+              onPressed: () => onRetryAssistantMessage(conversationId),
+              icon: const Icon(Icons.refresh, size: 16),
+              label: Text(
+                'Retry Response',
+                style: GoogleFonts.raleway(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1D4ED8),
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                minimumSize: Size.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   static Widget _buildTranscribingLoadingState() {
     return Shimmer.fromColors(
       baseColor: Colors.black,
@@ -1313,6 +1384,102 @@ class MessageBubbles {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  static Widget _buildTranscriptionFailedState(
+      Map<String, dynamic>? conversation,
+      Function(String)? onRetryTranscription) {
+    final conversationId = conversation?['conversationId'] as String?;
+    final audioPath = conversation?['audioPath'] as String?;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 16,
+                color: const Color(0xFFDC2626),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Transcription failed',
+                style: GoogleFonts.raleway(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFDC2626),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Audio player section
+          if (audioPath != null) _buildAudioPlayerSection(audioPath),
+          const SizedBox(height: 8),
+          if (conversationId != null && onRetryTranscription != null)
+            ElevatedButton.icon(
+              onPressed: () => onRetryTranscription(conversationId),
+              icon: const Icon(Icons.refresh, size: 16),
+              label: Text(
+                'Retry Transcription',
+                style: GoogleFonts.raleway(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1D4ED8),
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                minimumSize: Size.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildAudioPlayerSection(String audioPath) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.audiotrack,
+                size: 16,
+                color: const Color(0xFF6B7280),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Your recorded audio:',
+                style: GoogleFonts.raleway(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6B7280),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _AudioPlayerWidget(audioPath: audioPath),
+        ],
       ),
     );
   }
@@ -1651,7 +1818,7 @@ class _FeedbackLoadingWithTimeoutState
       }
 
       // If not timed out yet, listen for timeout
-      Future.delayed(const Duration(seconds: 7), () {
+      Future.delayed(const Duration(seconds: 10), () {
         if (mounted) {
           setState(() {
             _showLoading = false;
@@ -1668,5 +1835,222 @@ class _FeedbackLoadingWithTimeoutState
     }
 
     return MessageBubbles._buildFeedbackLoadingState();
+  }
+}
+
+class _AudioPlayerWidget extends StatefulWidget {
+  final String audioPath;
+
+  const _AudioPlayerWidget({required this.audioPath});
+
+  @override
+  State<_AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
+}
+
+class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
+  late FlutterSoundPlayer _player;
+  bool _isPlaying = false;
+  bool _isInitialized = false;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
+  Timer? _positionTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePlayer();
+  }
+
+  Future<void> _initializePlayer() async {
+    _player = FlutterSoundPlayer();
+    try {
+      await _player.openPlayer();
+      setState(() {
+        _isInitialized = true;
+      });
+      await _getDuration();
+    } catch (e) {
+      debugPrint('Error initializing audio player: $e');
+    }
+  }
+
+  Future<void> _getDuration() async {
+    try {
+      if (File(widget.audioPath).existsSync()) {
+        // For now, we'll set a default duration since taudio doesn't provide easy duration access
+        // In a production app, you might want to use a different audio package or calculate duration
+        setState(() {
+          _duration = const Duration(seconds: 10); // Placeholder duration
+        });
+      }
+    } catch (e) {
+      debugPrint('Error getting audio duration: $e');
+    }
+  }
+
+  Future<void> _playPause() async {
+    if (!_isInitialized) return;
+
+    try {
+      if (_isPlaying) {
+        await _player.pausePlayer();
+        _positionTimer?.cancel();
+        setState(() {
+          _isPlaying = false;
+        });
+      } else {
+        await _player.startPlayer(
+          fromURI: widget.audioPath,
+          whenFinished: () {
+            _positionTimer?.cancel();
+            setState(() {
+              _isPlaying = false;
+              _position = Duration.zero;
+            });
+          },
+        );
+        setState(() {
+          _isPlaying = true;
+        });
+        _startPositionTracking();
+      }
+    } catch (e) {
+      debugPrint('Error playing/pausing audio: $e');
+    }
+  }
+
+  void _startPositionTracking() {
+    _positionTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!_isPlaying) {
+        timer.cancel();
+        return;
+      }
+
+      // Simple position tracking - in a real app, you'd get actual position from the player
+      setState(() {
+        _position = _position + const Duration(milliseconds: 100);
+        if (_position >= _duration) {
+          _position = _duration;
+          _isPlaying = false;
+          timer.cancel();
+        }
+      });
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  @override
+  void dispose() {
+    _positionTimer?.cancel();
+    if (_isInitialized) {
+      if (_player.isPlaying) {
+        _player.stopPlayer();
+      }
+      _player.closePlayer();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return const SizedBox(
+        height: 40,
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 60,
+      child: Row(
+        children: [
+          // Play/Pause button
+          GestureDetector(
+            onTap: _playPause,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D4ED8),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _isPlaying ? Icons.pause : Icons.play_arrow,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Progress section
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Progress bar
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape:
+                        const RoundSliderOverlayShape(overlayRadius: 12),
+                  ),
+                  child: Slider(
+                    value: _duration.inMilliseconds > 0
+                        ? _position.inMilliseconds / _duration.inMilliseconds
+                        : 0.0,
+                    onChanged: (value) {
+                      final newPosition = Duration(
+                        milliseconds:
+                            (value * _duration.inMilliseconds).round(),
+                      );
+                      setState(() {
+                        _position = newPosition;
+                      });
+                    },
+                    activeColor: const Color(0xFF1D4ED8),
+                    inactiveColor: const Color(0xFFE5E7EB),
+                  ),
+                ),
+                // Time display
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatDuration(_position),
+                      style: GoogleFonts.raleway(
+                        fontSize: 10,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
+                    Text(
+                      _formatDuration(_duration),
+                      style: GoogleFonts.raleway(
+                        fontSize: 10,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

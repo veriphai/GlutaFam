@@ -33,6 +33,8 @@ class LessonData {
   final int? timeRemaining;
   final bool? resumeLesson;
   final bool? completed;
+  final String? taskId;
+  final String? journeyId;
 
   const LessonData({
     required this.id,
@@ -55,6 +57,8 @@ class LessonData {
     this.timeRemaining,
     this.resumeLesson,
     this.completed,
+    this.taskId,
+    this.journeyId,
   });
 }
 

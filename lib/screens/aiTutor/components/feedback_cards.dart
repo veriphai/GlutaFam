@@ -778,11 +778,12 @@ class FeedbackCards {
 
   static Widget checkpointFeedbackCard(
     int checkpointIndex,
-    String feedbackState, // 'loading', 'ready', 'error'
+    String feedbackState, // 'loading', 'ready', 'error', 'failed'
     dynamic feedbackData,
     Function() onViewFeedback, {
     bool showDismissButton = false,
     Function()? onDismiss,
+    Function(int)? onRetryFeedback,
   }) {
     Widget cardContent;
     Color cardColor;
@@ -804,6 +805,12 @@ class FeedbackCards {
         cardColor = const Color(0xFFFFEBEE); // Light red
         borderColor = const Color(0xFFF44336); // Red border
         cardContent = _buildErrorFeedbackContent();
+        break;
+      case 'failed':
+        cardColor = const Color(0xFFFFEBEE); // Light red
+        borderColor = const Color(0xFFF44336); // Red border
+        cardContent =
+            _buildFailedFeedbackContent(checkpointIndex, onRetryFeedback);
         break;
       default:
         return const SizedBox.shrink();
@@ -1050,6 +1057,77 @@ class FeedbackCards {
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  static Widget _buildFailedFeedbackContent(
+      int checkpointIndex, Function(int)? onRetryFeedback) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF44336),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(
+                Icons.error_outline,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Feedback generation failed',
+                    style: GoogleFonts.raleway(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0B1220),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Unable to generate feedback. Please try again.',
+                    style: GoogleFonts.raleway(
+                      fontSize: 12,
+                      color: const Color(0xFF70695B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (onRetryFeedback != null)
+          ElevatedButton.icon(
+            onPressed: () => onRetryFeedback(checkpointIndex),
+            icon: const Icon(Icons.refresh, size: 16),
+            label: Text(
+              'Retry Feedback',
+              style: GoogleFonts.raleway(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1D4ED8),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
       ],
     );
   }
