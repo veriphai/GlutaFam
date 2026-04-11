@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<UserCredential?> signInWithApple() async {
-    if (!Platform.isIOS) {
+    if (kIsWeb || !Platform.isIOS) {
       // Only available on iOS
       return Future.error('Apple Sign-In is only supported on iOS devices');
     }
@@ -288,9 +288,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
-                    if (Platform.isIOS) const SizedBox(height: 20),
+                    if (!kIsWeb && Platform.isIOS) const SizedBox(height: 20),
 
-                    if (Platform.isIOS)
+                    if (!kIsWeb && Platform.isIOS)
                       OutlinedButton(
                         onPressed: () async {
                           try {

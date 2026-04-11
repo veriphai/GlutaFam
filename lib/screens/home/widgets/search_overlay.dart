@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:eureka_app/models/searchableConcept.dart';
 import '../models/app_colors.dart';
 
@@ -91,7 +92,7 @@ class SearchOverlay extends StatelessWidget {
                               child: GestureDetector(
                                 onTap: () {
                                   searchFocusNode.requestFocus();
-                                  if (Platform.isIOS) {
+                                  if (!kIsWeb && Platform.isIOS) {
                                     Future.delayed(
                                         const Duration(milliseconds: 50), () {
                                       SystemChannels.textInput
@@ -138,7 +139,7 @@ class SearchOverlay extends StatelessWidget {
                                           ),
                                           onChanged: onSearchChanged,
                                           onTap: () {
-                                            if (Platform.isIOS) {
+                                            if (!kIsWeb && Platform.isIOS) {
                                               searchFocusNode.requestFocus();
                                               Future.delayed(
                                                   const Duration(

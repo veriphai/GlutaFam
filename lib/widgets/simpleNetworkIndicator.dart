@@ -30,7 +30,7 @@ class SimpleNetworkIndicator extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                provider.isOnline ? Icons.signal_wifi_1_bar : Icons.wifi_off,
+                provider.isOnline ? Icons.network_wifi_1_bar : Icons.wifi_off,
                 size: 14,
                 color: provider.isOnline ? Colors.orange : Colors.red,
               ),

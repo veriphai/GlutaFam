@@ -1,5 +1,6 @@
 import 'package:eureka_app/apis/logEventsApi.dart';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
 
@@ -159,7 +160,7 @@ Future<void> _safeLogEvent({
       ...eventDetails,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
       'screenName': 'HomeScreenV2',
-      'platform': Platform.isAndroid ? 'android' : 'ios',
+      'platform': kIsWeb ? 'web' : (Platform.isAndroid ? 'android' : 'ios'),
     };
 
     // Add app version if available
@@ -172,7 +173,7 @@ Future<void> _safeLogEvent({
 
     // Add user ID if available
     try {
-      final profile = await getCachedProfile();
+      final profile = await getProfile();
       if (profile != null && profile['id'] != null) {
         enhancedDetails['userId'] = profile['id'];
       }

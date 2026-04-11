@@ -17,6 +17,7 @@ import 'package:eureka_app/newEvents/homeScreenEvents.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:chiclet/chiclet.dart';
 import 'package:eureka_app/apis/getAppVersionDetails.dart';
 import 'package:eureka_app/apis/saveAppVersion.dart';
@@ -104,6 +105,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   String? _viewAll;
   String? _subjectView;
   Map<String, String>? _chapterView;
+  bool _showSuperPadhaiBanner = true;
 
   // Animation controllers
   late AnimationController _searchAnimationController;
@@ -830,7 +832,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   void _showKeyboardForSearch() {
     // For iOS, we need to be more careful about timing
-    if (Platform.isIOS) {
+    if (!kIsWeb && Platform.isIOS) {
       // Give the animation and layout time to settle
       Future.delayed(const Duration(milliseconds: 400), () {
         if (mounted && _isSearchOpen) {
@@ -1425,12 +1427,134 @@ class _HomeScreenV2State extends State<HomeScreenV2>
     return Future.value(true);
   }
 
+  Widget _buildSuperPadhaiBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1D4ED8), Color(0xFF7C3AED)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1D4ED8).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -15,
+            bottom: -15,
+            child: Icon(Icons.auto_awesome, size: 80, color: Colors.white.withOpacity(0.06)),
+          ),
+          // Close button at top-right
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showSuperPadhaiBanner = false;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.close, color: Colors.white.withOpacity(0.8), size: 14),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 36, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Introducing SuperPadhai',
+                      style: GoogleFonts.raleway(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Our new AI tutor — with visual diagrams, root-cause fixing & step-by-step guidance',
+                  style: GoogleFonts.raleway(
+                    color: Colors.white.withOpacity(0.85),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () async {
+                      final url = Uri.parse('https://superpadhai.com');
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Try it now',
+                            style: GoogleFonts.raleway(
+                              color: const Color(0xFF1D4ED8),
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.arrow_forward_rounded, color: Color(0xFF1D4ED8), size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMainContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_showSuperPadhaiBanner) _buildSuperPadhaiBanner(),
           HomeHeader(firstName: userProfile?['firstName']),
           const SizedBox(height: 16),
           HomeSearchButton(
@@ -1827,7 +1951,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
   }
 
   void launchAppStore() async {
-    final url = Platform.isAndroid
+    final url = (!kIsWeb && Platform.isAndroid)
         ? Uri.parse(
             'https://play.google.com/store/apps/details?id=com.gluta.glutafam')
         : Uri.parse(
@@ -1844,8 +1968,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       final currentVersion = await getCurrentAppVersion();
       final versionInfo = await getLatestAppVersinDetails();
 
-      // Platform detection
-      final bool isAndroid = Platform.isAndroid;
+      final bool isAndroid = !kIsWeb && Platform.isAndroid;
 
       final String latestVersion = isAndroid
           ? versionInfo['latestVersionAndroid']

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/app_colors.dart';
 
 class HomeSearchButton extends StatelessWidget {
@@ -19,7 +20,7 @@ class HomeSearchButton extends StatelessWidget {
       onTap: () {
         onTap();
         // For iOS, also try to request focus immediately after state change
-        if (Platform.isIOS && searchFocusNode != null) {
+        if (!kIsWeb && Platform.isIOS && searchFocusNode != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Future.delayed(const Duration(milliseconds: 100), () {
               if (searchFocusNode!.canRequestFocus) {

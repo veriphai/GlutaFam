@@ -243,7 +243,7 @@ class _NetworkAlertDialogState extends State<NetworkAlertDialog>
 
   _AlertConfig _getSlowConfig() {
     return _AlertConfig(
-      icon: Icons.signal_wifi_1_bar_rounded,
+      icon: Icons.network_wifi_1_bar,
       title: 'Slow Connection Detected',
       description: 'Your internet seems slow. This might affect your learning experience.',
       color: const Color(0xFFED8936), // Orange
