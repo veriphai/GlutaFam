@@ -22,8 +22,8 @@ Future<Map<String, dynamic>> resolveGap({
   String? userPromptType,
 }) async {
   try {
-    // const url = 'https://glutaclass.com:8080/gluta/tutor/gap-resolution';
-    const url = 'http://localhost:8080/gluta/tutor/gap-resolution';
+    const url = 'https://glutaclass.com:8080/gluta/tutor/gap-resolution';
+    // const url = 'http://localhost:8080/gluta/tutor/gap-resolution';
 
     final uri = Uri.parse(url);
 

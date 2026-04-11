@@ -71,6 +71,17 @@ class NetworkAlertManager {
     });
   }
 
+  void dismissIfShowing(BuildContext context) {
+    if (_isShowingAlert) {
+      debugPrint('✅ NetworkAlertManager: Auto-dismissing alert (back online)');
+      final navigatorContext = navigatorKey.currentContext;
+      if (navigatorContext != null) {
+        Navigator.of(navigatorContext, rootNavigator: true).pop();
+      }
+      _isShowingAlert = false;
+    }
+  }
+
   void hideAlert() {
     _overlayEntry?.remove();
     _overlayEntry = null;

@@ -28,9 +28,9 @@ Future<Map<String, dynamic>> generateTutorResponse(
     String? userPromptType,
     String? userConversationId}) async {
   try {
-    // const url = 'https://glutaclass.com:8080/gluta/tutor/responseV2';
+    const url = 'https://glutaclass.com:8080/gluta/tutor/responseV2';
     // const url = 'http://192.168.165.204:8080/gluta/tutor/responseV2';
-    const url = 'http://localhost:8080/gluta/tutor/responseV2';
+    // const url = 'http://localhost:8080/gluta/tutor/responseV2';
 
     final uri = Uri.parse(url);
 

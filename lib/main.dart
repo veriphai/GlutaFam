@@ -258,11 +258,11 @@ class _MainPageState extends State<MainPage> {
       // TimetableEditorScreen(),
       // WeeklyLeaderboardContent(),
       // ProgressReportScreen(),
-      // ProfileScreen(),
+      ProfileScreen(),
       // HtmlExampleScreen(),
       // StatisticsLessonScreen()
       // UrbanPlannerLesson()
-      VaultScreen()
+      // VaultScreen()
       // MicSmokeTest()
       // OnboardingScreenV4()
       // ResumeLessonsPage()

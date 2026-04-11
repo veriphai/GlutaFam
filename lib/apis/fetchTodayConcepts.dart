@@ -4,11 +4,10 @@ import 'package:http/http.dart' as http;
 
 Future<Map<String, dynamic>> fetchTodayConcepts() async {
   try {
-    const url = 'http://localhost:8080/gluta/tutor/today-concepts';
+    const url = 'https://glutaclass.com:8080/gluta/tutor/today-concepts';
 
     final AuthTokenService authTokenService = AuthTokenService();
-    // final String? authToken = await authTokenService.getAuthToken();
-    final String? authToken = "master";
+    final String? authToken = await authTokenService.getAuthToken();
 
     print('Fetching today concepts from: $url'); // Debug log
     final response = await http.get(
