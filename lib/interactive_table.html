@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Student Table</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 36px;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .input-group input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 15px 20px;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #eee;
+            transition: all 0.3s;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tbody tr:nth-child(even):hover {
+            background: #e9ecef;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #ffb300;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-new {
+            background: #28a745;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .export-section {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                flex-direction: column;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .input-group input {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Student Roll List</h1>
+        <p class="subtitle">Interactive table - Add, edit, and manage student records</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3 id="totalStudents">0</h3>
+                <p>Total Students</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="lastRoll">---</h3>
+                <p>Last Roll Number</p>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <h2 style="margin-bottom: 15px; color: #333; font-size: 20px;">➕ Add New Student</h2>
+            <div class="input-group">
+                <input type="text" id="studentName" placeholder="Enter student name" />
+                <input type="text" id="rollNumber" placeholder="Enter roll number" />
+                <button class="btn btn-primary" onclick="addStudent()">Add Student</button>
+                <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="studentTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Roll Number</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Rows will be added here dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+            <h3>📝 No students added yet</h3>
+            <p>Add your first student using the form above!</p>
+        </div>
+
+        <div class="export-section">
+            <button class="btn btn-primary" onclick="exportToJSON()">📥 Export JSON</button>
+            <button class="btn btn-secondary" onclick="exportToCSV()">📊 Export CSV</button>
+            <button class="btn btn-secondary" onclick="clearAllStudents()">🗑️ Clear All</button>
+        </div>
+    </div>
+
+    <script>
+        let students = [];
+        let editingIndex = -1;
+
+        // Load data from localStorage on page load
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('studentData');
+            if (saved) {
+                students = JSON.parse(saved);
+                renderTable();
+            }
+        });
+
+        function saveToLocalStorage() {
+            localStorage.setItem('studentData', JSON.stringify(students));
+        }
+
+        function addStudent() {
+            const nameInput = document.getElementById('studentName');
+            const rollInput = document.getElementById('rollNumber');
+            
+            const name = nameInput.value.trim();
+            const roll = rollInput.value.trim();
+
+            if (!name || !roll) {
+                alert('Please enter both name and roll number!');
+                return;
+            }
+
+            if (editingIndex >= 0) {
+                // Update existing student
+                students[editingIndex] = { name, roll };
+                editingIndex = -1;
+                document.querySelector('.btn-primary').textContent = 'Add Student';
+            } else {
+                // Add new student
+                students.push({ name, roll, isNew: true });
+                
+                // Remove "new" badge after 3 seconds
+                setTimeout(() => {
+                    if (students.length > 0) {
+                        students[students.length - 1].isNew = false;
+                        renderTable();
+                    }
+                }, 3000);
+            }
+
+            saveToLocalStorage();
+            renderTable();
+            clearForm();
+        }
+
+        function editStudent(index) {
+            const student = students[index];
+            document.getElementById('studentName').value = student.name;
+            document.getElementById('rollNumber').value = student.roll;
+            editingIndex = index;
+            document.querySelector('.btn-primary').textContent = 'Update Student';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteStudent(index) {
+            if (confirm(`Are you sure you want to delete ${students[index].name}?`)) {
+                students.splice(index, 1);
+                saveToLocalStorage();
+                renderTable();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('studentName').value = '';
+            document.getElementById('rollNumber').value = '';
+            editingIndex = -1;
+            document.querySelector('.btn-primary').textContent = 'Add Student';
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            tbody.innerHTML = '';
+            
+            if (students.length === 0) {
+                emptyState.style.display = 'block';
+                document.getElementById('totalStudents').textContent = '0';
+                document.getElementById('lastRoll').textContent = '---';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            students.forEach((student, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>
+                        ${student.name}
+                        ${student.isNew ? '<span class="badge badge-new">NEW</span>' : ''}
+                    </td>
+                    <td>${student.roll}</td>
+                    <td class="action-btns">
+                        <button class="btn-small btn-edit" onclick="editStudent(${index})">✏️ Edit</button>
+                        <button class="btn-small btn-delete" onclick="deleteStudent(${index})">🗑️ Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update stats
+            document.getElementById('totalStudents').textContent = students.length;
+            document.getElementById('lastRoll').textContent = students[students.length - 1].roll;
+        }
+
+        function exportToJSON() {
+            const dataStr = JSON.stringify(students, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'students.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportToCSV() {
+            let csv = 'Name,Roll Number\n';
+            students.forEach(s => {
+                csv += `"${s.name}","${s.roll}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'students.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearAllStudents() {
+            if (confirm('Are you sure you want to delete all students? This cannot be undone!')) {
+                students = [];
+                saveToLocalStorage();
+                renderTable();
+            }
+        }
+
+        // Handle Enter key in inputs
+        document.getElementById('studentName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addStudent();
+        });
+
+        document.getElementById('rollNumber').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addStudent();
+        });
+    </script>
+</body>
+</html>
+

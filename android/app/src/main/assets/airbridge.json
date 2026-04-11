@@ -1,0 +1,12 @@
+{
+  "sdkEnabled": true,
+  "logLevel": "info",
+  "autoStartTrackingEnabled": true,
+  "trackAirbridgeDeeplinkOnlyEnabled": false,
+  "trackInSessionLifecycleEventEnabled": true,
+  "hashUserInformationEnabled": false,
+  "clearEventBufferOnInitializeEnabled": true,
+  "eventBufferCountLimit": 1000,
+  "eventTransmitIntervalInSecond": 10,
+  "isHandleAirbridgeDeeplinkOnly": false
+}
