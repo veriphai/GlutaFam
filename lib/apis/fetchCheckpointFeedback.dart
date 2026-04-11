@@ -11,7 +11,7 @@ Future<Map<String, dynamic>> fetchCheckpointFeedback({
   try {
     // String url = 'http://192.168.165.204:8080/gluta/tutor/checkpoint-feedback'
     //     '?conceptConversationKey=$conceptConversationsKey&checkpointNo=$checkpointNumber';
-    String url = 'http://localhost:8080/gluta/tutor/checkpoint-feedback'
+    String url = 'https://glutaclass.com:8080/gluta/tutor/checkpoint-feedback'
         '?conceptConversationKey=$conceptConversationsKey&checkpointNo=$checkpointNumber'
         '${retry ? '&retry=true' : ''}';
 
@@ -26,10 +26,10 @@ Future<Map<String, dynamic>> fetchCheckpointFeedback({
         'Accept-Encoding': 'gzip'
       },
     ).timeout(
-      const Duration(seconds: 15),
+      const Duration(seconds: 30),
       onTimeout: () {
         throw TimeoutException(
-            'Checkpoint feedback request timeout after 15 seconds');
+            'Checkpoint feedback request timeout after 30 seconds');
       },
     );
 

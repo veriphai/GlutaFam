@@ -32,8 +32,8 @@ Future<Map<String, dynamic>> retryTutorResponse({
   File? audioFile,
 }) async {
   try {
-    // const baseUrl = 'https://glutaclass.com:8080/gluta/tutor/retry';
-    const baseUrl = 'http://localhost:8080/gluta/tutor/retry';
+    const baseUrl = 'https://glutaclass.com:8080/gluta/tutor/retry';
+    // const baseUrl = 'http://localhost:8080/gluta/tutor/retry';
 
     final uri = Uri.parse(baseUrl);
 

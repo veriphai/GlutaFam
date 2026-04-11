@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -20,14 +21,14 @@ void resetNetworkListenerState() {
 }
 
 class _NetworkListenerState extends State<NetworkListener> {
-  bool _wasOnline = false; // Start with false to match service initial state
+  bool _wasOnline = false;
   bool _wasSlowConnection = false;
   bool _isInitialized = false;
+  Timer? _offlineDebounceTimer;
 
   @override
   void initState() {
     super.initState();
-    // Explicitly reset all states on init
     _wasOnline = false;
     _wasSlowConnection = false;
     _isInitialized = false;
@@ -37,15 +38,39 @@ class _NetworkListenerState extends State<NetworkListener> {
   }
 
   @override
+  void dispose() {
+    _offlineDebounceTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<SimpleNetworkProvider>(
       builder: (context, networkProvider, child) {
-        // Check for network state changes
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _handleNetworkChange(context, networkProvider);
         });
 
         return widget.child;
+      },
+    );
+  }
+
+  void _showOfflineAlert(BuildContext context) {
+    NetworkAlertManager.instance.showNetworkAlert(
+      context,
+      isOffline: true,
+      isSlowConnection: false,
+      onContinueOffline: () {
+        final scaffoldContext = navigatorKey.currentContext;
+        if (scaffoldContext != null) {
+          ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+            const SnackBar(
+              content: Text('You are now in offline mode'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       },
     );
   }
@@ -60,72 +85,38 @@ class _NetworkListenerState extends State<NetworkListener> {
         '📊 Current state: isOnline=$isOnline, isSlowConnection=$isSlowConnection');
     debugPrint(
         '📊 Previous state: _wasOnline=$_wasOnline, _wasSlowConnection=$_wasSlowConnection, _isInitialized=$_isInitialized');
-    debugPrint(
-        '🔍 State check: Should show offline alert? ${!_isInitialized && !isOnline} OR ${_wasOnline && !isOnline}');
 
-    // If not initialized, show alert immediately if offline
     if (!_isInitialized) {
       _isInitialized = true;
       if (!isOnline) {
         debugPrint(
             '🚨 NetworkListener: Initial state is offline, showing alert immediately');
-        NetworkAlertManager.instance.showNetworkAlert(
-          context,
-          isOffline: true,
-          isSlowConnection: false,
-          onContinueOffline: () {
-            final scaffoldContext = navigatorKey.currentContext;
-            if (scaffoldContext != null) {
-              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                const SnackBar(
-                  content: Text('You are now in offline mode'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-          },
-        );
-      } else if (isSlowConnection) {
-        debugPrint(
-            '🚨 NetworkListener: Initial state is slow connection, showing alert immediately');
-        NetworkAlertManager.instance.showNetworkAlert(
-          context,
-          isOffline: false,
-          isSlowConnection: true,
-        );
+        _showOfflineAlert(context);
       }
     }
-    // Show alert when going offline
+    // Going offline — debounce for 3 seconds to avoid false positives (e.g. phone lock/unlock)
     else if (_wasOnline && !isOnline) {
-      debugPrint('🚨 NetworkListener: Showing offline alert');
-      NetworkAlertManager.instance.showNetworkAlert(
-        context,
-        isOffline: true,
-        isSlowConnection: false,
-        onContinueOffline: () {
-          // Handle offline mode if needed
-          final scaffoldContext = navigatorKey.currentContext;
-          if (scaffoldContext != null) {
-            ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-              const SnackBar(
-                content: Text('You are now in offline mode'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        },
-      );
+      debugPrint(
+          '⏳ NetworkListener: Went offline, starting 3s debounce before showing alert');
+      _offlineDebounceTimer?.cancel();
+      _offlineDebounceTimer = Timer(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        final currentProvider =
+            Provider.of<SimpleNetworkProvider>(context, listen: false);
+        if (!currentProvider.isOnline) {
+          debugPrint(
+              '🚨 NetworkListener: Still offline after 3s debounce, showing alert');
+          _showOfflineAlert(context);
+        } else {
+          debugPrint(
+              '✅ NetworkListener: Back online within 3s, skipping alert');
+        }
+      });
     }
-    // Show alert when connection becomes slow
-    else if (isOnline && !_wasSlowConnection && isSlowConnection) {
-      NetworkAlertManager.instance.showNetworkAlert(
-        context,
-        isOffline: false,
-        isSlowConnection: true,
-      );
-    }
-    // Show success message when connection improves
+    // Back online — cancel any pending debounce, dismiss alert if showing
     else if (!_wasOnline && isOnline) {
+      _offlineDebounceTimer?.cancel();
+      NetworkAlertManager.instance.dismissIfShowing(context);
       final scaffoldContext = navigatorKey.currentContext;
       if (scaffoldContext != null) {
         ScaffoldMessenger.of(scaffoldContext).showSnackBar(

@@ -5,11 +5,10 @@ import 'package:http/http.dart' as http;
 Future<Map<String, dynamic>> updateTaskStatus(
     String taskId, String status, String journeyId) async {
   try {
-    final url = 'http://localhost:8080/gluta/api/tasks/$taskId/status';
+    final url = 'https://glutaclass.com:8080/gluta/api/tasks/$taskId/status';
 
-    // final AuthTokenService authTokenService = AuthTokenService();
-    // final String? authToken = await authTokenService.getAuthToken();
-    final String? authToken = "master";
+    final AuthTokenService authTokenService = AuthTokenService();
+    final String? authToken = await authTokenService.getAuthToken();
 
     print('Updating task status for $taskId to $status at: $url'); // Debug log
 

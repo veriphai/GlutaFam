@@ -195,8 +195,8 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   void _subscribeToTopic(String conversationKey) {
     stompClient = StompClient(
       config: StompConfig(
-        // url: 'wss://glutaclass.com:8080/gluta/ws',
-        url: 'ws://localhost:8080/gluta/ws',
+        url: 'wss://glutaclass.com:8080/gluta/ws',
+        // url: 'ws://localhost:8080/gluta/ws',
 
         onConnect: (frame) {
           stompClient?.subscribe(
@@ -225,8 +225,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
       final transcribed_text = payload['payload']['transcribed_text'];
       final conversationId = payload['payload']
           ['conversationId']; // Get conversation ID from payload
-      // _updateTranscription(transcribed_text, conversationId);
-      _updateTranscription(transcribed_text, "123");
+      _updateTranscription(transcribed_text, conversationId);
     } else if (payload['type'] == 'audio') {
       final base64Audio = payload['payload']['audio'];
       if (base64Audio != null) {
@@ -1252,7 +1251,7 @@ class _AITutorScreenV2State extends State<AITutorScreenV2> {
   void _startCheckpointFeedbackTimeout(int checkpointIndex) {
     _checkpointFeedbackTimers[checkpointIndex]?.cancel();
     _checkpointFeedbackTimers[checkpointIndex] =
-        Timer(const Duration(seconds: 15), () {
+        Timer(const Duration(seconds: 30), () {
       // Mark checkpoint feedback as failed due to timeout
       setState(() {
         _state.checkpointFeedbackStates[checkpointIndex] = 'failed';

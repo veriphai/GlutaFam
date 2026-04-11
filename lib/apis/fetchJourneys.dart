@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:eureka_app/utils/authTokenService.dart';
 import 'package:http/http.dart' as http;
 
 Future<Map<String, dynamic>> fetchJourneys({String? childUserId}) async {
@@ -6,11 +7,10 @@ Future<Map<String, dynamic>> fetchJourneys({String? childUserId}) async {
     // Use provided childUserId or default to 'child-1'
     final String queryChildUserId = childUserId ?? 'child-1';
     final url =
-        'http://localhost:8080/gluta/api/journeys?childUserId=$queryChildUserId';
+        'https://glutaclass.com:8080/gluta/api/journeys?childUserId=$queryChildUserId';
 
-    // final AuthTokenService authTokenService = AuthTokenService();
-    // final String? authToken = await authTokenService.getAuthToken();
-    final String? authToken = "master";
+    final AuthTokenService authTokenService = AuthTokenService();
+    final String? authToken = await authTokenService.getAuthToken();
 
     print('Fetching journeys from: $url'); // Debug log
     final response = await http.get(
