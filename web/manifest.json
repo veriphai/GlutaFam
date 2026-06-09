@@ -1,11 +1,11 @@
 {
-    "name": "Tuto: AI Tutor for Classes 6-12",
-    "short_name": "Tuto: AI Tutor for Classes 6-12",
+    "name": "HowWow",
+    "short_name": "HowWow",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Leaning made fun",
+    "description": "The How Behind The Wow",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

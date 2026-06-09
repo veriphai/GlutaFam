@@ -1,0 +1,443 @@
+{
+  "antenna_base.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      64,
+      203,
+      1181,
+      1034
+    ],
+    "content_center_norm": [
+      0.4964,
+      0.4932
+    ],
+    "output_size": [
+      512,
+      381
+    ],
+    "transparent_pct": 44.4
+  },
+  "antenna_dish.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      230,
+      118,
+      1032,
+      1104
+    ],
+    "content_center_norm": [
+      0.5032,
+      0.4872
+    ],
+    "output_size": [
+      416,
+      512
+    ],
+    "transparent_pct": 43.2
+  },
+  "battery_module.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      128,
+      213,
+      1137,
+      1024
+    ],
+    "content_center_norm": [
+      0.5044,
+      0.4932
+    ],
+    "output_size": [
+      512,
+      412
+    ],
+    "transparent_pct": 28.3
+  },
+  "camera_module.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      167,
+      154,
+      1098,
+      1084
+    ],
+    "content_center_norm": [
+      0.5044,
+      0.4936
+    ],
+    "output_size": [
+      512,
+      511
+    ],
+    "transparent_pct": 20.8
+  },
+  "computer_core_chip.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      136,
+      161,
+      1118,
+      1093
+    ],
+    "content_center_norm": [
+      0.5,
+      0.5
+    ],
+    "output_size": [
+      512,
+      486
+    ],
+    "transparent_pct": 29.0
+  },
+  "correct_slot_glow.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      159,
+      259,
+      1128,
+      1101
+    ],
+    "content_center_norm": [
+      0.5132,
+      0.5423
+    ],
+    "output_size": [
+      512,
+      445
+    ],
+    "transparent_pct": 40.6
+  },
+  "drop_zone_ring.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      113,
+      416,
+      1133,
+      834
+    ],
+    "content_center_norm": [
+      0.4968,
+      0.4984
+    ],
+    "output_size": [
+      512,
+      210
+    ],
+    "transparent_pct": 45.5
+  },
+  "energy_flow_line.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      0,
+      368,
+      1254,
+      846
+    ],
+    "content_center_norm": [
+      0.5,
+      0.4841
+    ],
+    "output_size": [
+      512,
+      195
+    ],
+    "transparent_pct": 49.5
+  },
+  "energy_particle.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      351,
+      357,
+      908,
+      836
+    ],
+    "content_center_norm": [
+      0.502,
+      0.4757
+    ],
+    "output_size": [
+      192,
+      165
+    ],
+    "transparent_pct": 35.4
+  },
+  "left_hinge.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      374,
+      239,
+      913,
+      1002
+    ],
+    "content_center_norm": [
+      0.5132,
+      0.4948
+    ],
+    "output_size": [
+      362,
+      512
+    ],
+    "transparent_pct": 27.8
+  },
+  "right_hinge.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      74,
+      299,
+      1160,
+      903
+    ],
+    "content_center_norm": [
+      0.492,
+      0.4793
+    ],
+    "output_size": [
+      512,
+      285
+    ],
+    "transparent_pct": 34.2
+  },
+  "satellite_body_empty.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      54,
+      88,
+      1197,
+      1154
+    ],
+    "content_center_norm": [
+      0.4988,
+      0.4952
+    ],
+    "output_size": [
+      820,
+      765
+    ],
+    "transparent_pct": 37.0
+  },
+  "signal_wave_effect.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      181,
+      117,
+      1088,
+      1144
+    ],
+    "content_center_norm": [
+      0.506,
+      0.5028
+    ],
+    "output_size": [
+      452,
+      512
+    ],
+    "transparent_pct": 52.4
+  },
+  "snap_flash.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      96,
+      74,
+      1158,
+      1153
+    ],
+    "content_center_norm": [
+      0.5,
+      0.4892
+    ],
+    "output_size": [
+      504,
+      512
+    ],
+    "transparent_pct": 71.6
+  },
+  "solar_panel_glow_overlay.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      204,
+      54,
+      1060,
+      1179
+    ],
+    "content_center_norm": [
+      0.504,
+      0.4916
+    ],
+    "output_size": [
+      390,
+      512
+    ],
+    "transparent_pct": 25.2
+  },
+  "solar_panel_left.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      280,
+      88,
+      1021,
+      1125
+    ],
+    "content_center_norm": [
+      0.5187,
+      0.4837
+    ],
+    "output_size": [
+      366,
+      512
+    ],
+    "transparent_pct": 26.6
+  },
+  "solar_panel_right.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      293,
+      98,
+      935,
+      1136
+    ],
+    "content_center_norm": [
+      0.4896,
+      0.492
+    ],
+    "output_size": [
+      317,
+      512
+    ],
+    "transparent_pct": 28.2
+  },
+  "thermal_blanket.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      103,
+      208,
+      1166,
+      997
+    ],
+    "content_center_norm": [
+      0.506,
+      0.4805
+    ],
+    "output_size": [
+      512,
+      380
+    ],
+    "transparent_pct": 27.6
+  },
+  "thruster.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      0,
+      0,
+      1091,
+      994
+    ],
+    "content_center_norm": [
+      0.435,
+      0.3963
+    ],
+    "output_size": [
+      512,
+      466
+    ],
+    "transparent_pct": 51.7
+  },
+  "thruster_flame.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      277,
+      140,
+      974,
+      1134
+    ],
+    "content_center_norm": [
+      0.4988,
+      0.508
+    ],
+    "output_size": [
+      269,
+      384
+    ],
+    "transparent_pct": 45.1
+  },
+  "wrong_slot_warning.png": {
+    "orig_size": [
+      1254,
+      1254
+    ],
+    "content_bbox": [
+      167,
+      197,
+      1059,
+      985
+    ],
+    "content_center_norm": [
+      0.4888,
+      0.4713
+    ],
+    "output_size": [
+      512,
+      452
+    ],
+    "transparent_pct": 45.5
+  }
+}

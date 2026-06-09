@@ -1,6 +1,8 @@
 import 'package:eureka_app/apis/fetchRewardDetails.dart';
 import 'package:eureka_app/apis/refreshAccessToken.dart';
 import 'package:eureka_app/apis/updateFCMToken.dart';
+import 'package:eureka_app/apis/howwow/howwowAuth.dart';
+import 'package:eureka_app/utils/routeObserver.dart';
 import 'package:eureka_app/events/genericEvents.dart';
 import 'package:eureka_app/homepageWeb/tutoHomePage.dart';
 import 'package:eureka_app/newEvents/notificationEvents.dart';
@@ -10,6 +12,8 @@ import 'package:eureka_app/screens/aiTutor/statistics_lesson.dart';
 import 'package:eureka_app/screens/conceptLearningScreenV2.dart';
 import 'package:eureka_app/screens/friendsProfileScreen.dart';
 import 'package:eureka_app/screens/home/homeScreenV2.dart';
+import 'package:eureka_app/screens/home/career/careerHomeScreen.dart';
+import 'package:eureka_app/screens/auth/authGate.dart';
 import 'package:eureka_app/screens/htmlExampleScreen.dart';
 import 'package:eureka_app/screens/loginScreen.dart';
 import 'package:eureka_app/screens/micTest.dart';
@@ -20,6 +24,10 @@ import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
 import 'package:eureka_app/services/simpleNetworkService.dart';
 import 'package:eureka_app/providers/simpleNetworkProvider.dart';
+import 'package:app_links/app_links.dart';
+import 'package:eureka_app/utils/deeplink/howwowDeeplinkRouter.dart';
+import 'package:eureka_app/utils/howwowEventLogger.dart';
+import 'package:eureka_app/utils/howwowEventNames.dart';
 import 'package:eureka_app/widgets/networkListener.dart';
 import 'package:singular_flutter_sdk/singular.dart';
 import 'package:singular_flutter_sdk/singular_config.dart';
@@ -49,9 +57,15 @@ import 'package:url_launcher/url_launcher.dart';
 
 // import 'package:miniplayer/miniplayer.dart'; // Add miniplayer import
 import 'dart:io' show Platform;
+import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Force google_fonts to use only the TTF files bundled under /google_fonts/
+  // in pubspec — no runtime network fetch, so the first paint already has
+  // Poppins available. Eliminates the cold-start font-flash where text
+  // initially rendered in the system default font and then re-flowed.
+  GoogleFonts.config.allowRuntimeFetching = false;
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -88,6 +102,16 @@ void main() async {
         if (!firstLaunch) {
           updateFCMToken(fcmToken: token ?? "");
         }
+        // Howwow: push the current FCM token on every cold start. The helper
+        // no-ops when there's no stored appJwt (anonymous session) so this
+        // is safe regardless of auth state.
+        howwowSetFcmToken(token);
+        // Howwow: also watch for FCM-initiated token rotation (~270d idle,
+        // reinstall, etc.) so the backend never holds a stale token.
+        FirebaseMessaging.instance.onTokenRefresh.listen((rotated) {
+          prefs.setString("fcmToken", rotated);
+          howwowSetFcmToken(rotated);
+        });
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
           logNotificationReceived();
         });
@@ -132,10 +156,80 @@ void main() async {
     }
   });
 
+  // Initialise howwow analytics logger BEFORE any screen fires events.
+  // Loads the persistent offline queue, mints/restores the anonymousId
+  // (device-stable UUID kept in SharedPreferences), and kicks off the
+  // 30 s periodic flush timer. The very first event fired is app_opened.
+  await HowwowEventLogger.instance.init();
+  HowwowEventLogger.instance.logImmediate(HowwowEvents.appOpened, props: {
+    'first_launch': firstLaunch,
+  });
+
+  // Subscribe app_links for howwow:// URLs (cold-start + foreground
+  // stream). The legacy DeepLinkService also subscribes for tuto://
+  // routes; each handler filters by scheme so they coexist without
+  // conflict.
+  await _initHowwowDeeplinks();
+
   runApp(MyApp(
     firstLaunch: firstLaunch,
     notificationService: notificationService,
   ));
+}
+
+/// Logs `screen_viewed` on every named route push and `app_backgrounded`
+/// on app lifecycle paused state. Wired into MaterialApp via
+/// `navigatorObservers:` and the global WidgetsBindingObserver.
+class _HowwowScreenObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _emit(route);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (newRoute != null) _emit(newRoute);
+  }
+
+  void _emit(Route<dynamic> route) {
+    final name = route.settings.name;
+    if (name == null || name.isEmpty) return;
+    HowwowEventLogger.instance.log(
+      HowwowEvents.screenViewed,
+      props: {'screen': name},
+    );
+  }
+}
+
+/// Adds the howwow `app_backgrounded` flush hook on top of the existing
+/// LifecycleEventHandler so the analytics queue drains before the OS
+/// freezes the process.
+class _HowwowLifecycleObserver with WidgetsBindingObserver {
+  DateTime? _foregroundSince;
+
+  void start() {
+    WidgetsBinding.instance.addObserver(this);
+    _foregroundSince = DateTime.now();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      final sec = _foregroundSince == null
+          ? 0
+          : DateTime.now().difference(_foregroundSince!).inSeconds;
+      HowwowEventLogger.instance.log(
+        HowwowEvents.appBackgrounded,
+        props: {'session_duration_sec': sec},
+      );
+      // Best-effort flush — fire-and-forget; OS may freeze us before it
+      // completes, but the queue is persisted to SharedPreferences.
+      HowwowEventLogger.instance.flush();
+    } else if (state == AppLifecycleState.resumed) {
+      _foregroundSince = DateTime.now();
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -145,6 +239,10 @@ class MyApp extends StatelessWidget {
   static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   static FirebaseAnalyticsObserver observer =
       FirebaseAnalyticsObserver(analytics: analytics);
+  static final _HowwowScreenObserver howwowScreenObserver =
+      _HowwowScreenObserver();
+  static final _HowwowLifecycleObserver _howwowLifecycle =
+      _HowwowLifecycleObserver()..start();
   const MyApp({
     super.key,
     required this.firstLaunch,
@@ -153,6 +251,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Touch the lifecycle observer so the static initialiser runs even
+    // when the build path elides the singleton field. No-op at runtime.
+    // ignore: unnecessary_statements
+    _howwowLifecycle;
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => MyAppState()),
@@ -179,6 +281,8 @@ class MyApp extends StatelessWidget {
               ),
               navigatorObservers: [
                 observer,
+                howwowScreenObserver,
+                appRouteObserver,
               ],
               debugShowCheckedModeBanner: false,
               onGenerateInitialRoutes: (initialRoute) {
@@ -200,6 +304,10 @@ class MyApp extends StatelessWidget {
                           : LoginScreen())
                       : MainPage();
                 }
+                // Howwow launch flow: AuthGate checks for a stored appJwt
+                // (from a previous howwowLogin) and routes to either the
+                // CareerHomeScreen or the HowwowLoginScreen.
+                start = const AuthGate();
                 return [
                   MaterialPageRoute(
                       builder: (_) => start,
@@ -215,7 +323,10 @@ class MyApp extends StatelessWidget {
               //         : LoginScreen())
               //     : MainPage(),
               routes: {
-                '/home': (_) => TutoHomePage(),
+                // howwow: '/home' now points at the new career home. The
+                // legacy TutoHomePage still ships in the bundle but is no
+                // longer reachable via a named route.
+                '/home': (_) => const CareerHomeScreen(),
                 '/chapterDetails': (context) => Sectionscreen(
                       chapterId: "",
                     ),
@@ -473,6 +584,39 @@ Future<void> setFirebaseTrackingId(SharedPreferences prefs) async {
     }
   } catch (e) {
     print("Error setting Firebase user ID: $e");
+  }
+}
+
+/// Subscribe to app_links for `howwow://` URLs and route them through
+/// {@link HowwowDeeplinkRouter}. Two paths:
+///   • cold-start — the URL that launched the process (if any).
+///   • foreground — every URL delivered while the app is running.
+/// URLs from other schemes (e.g. `tuto://`) are ignored here; the legacy
+/// {@code DeepLinkService} subscribes separately for those.
+Future<void> _initHowwowDeeplinks() async {
+  try {
+    final appLinks = AppLinks();
+
+    // Cold-start.
+    final initial = await appLinks.getInitialLink();
+    if (initial != null && initial.scheme == 'howwow') {
+      // ignore: discarded_futures
+      HowwowDeeplinkRouter.handle(initial, defaultSource: 'external');
+    }
+
+    // Foreground stream. The subscription leaks intentionally — it's
+    // valid for the lifetime of the process.
+    appLinks.uriLinkStream.listen((uri) {
+      if (uri.scheme != 'howwow') return;
+      // ignore: discarded_futures
+      HowwowDeeplinkRouter.handle(uri, defaultSource: 'external');
+    }, onError: (e) {
+      // ignore: avoid_print
+      print('howwow deeplink stream error: $e');
+    });
+  } catch (e) {
+    // ignore: avoid_print
+    print('howwow deeplink init failed (non-fatal): $e');
   }
 }
 

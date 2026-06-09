@@ -46,6 +46,14 @@
           }
         },
         {
+          "client_id": "550557666388-s8vj6df10ieodi18bpp0qh4eslbdd7v2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gluta.glutafam",
+            "certificate_hash": "ac90865fa22bc2dc3671a20132ac3f909631dbee"
+          }
+        },
+        {
           "client_id": "550557666388-63droq2fcbdbp6b0is1seudikinugev3.apps.googleusercontent.com",
           "client_type": 3
         }

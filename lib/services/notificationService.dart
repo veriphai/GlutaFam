@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io'; // ✅ Required for Platform check
 
+import '../utils/deeplink/howwowDeeplinkRouter.dart';
+
 class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
@@ -69,6 +71,14 @@ class NotificationService {
 
     // Handle background and terminated messages
     FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundMessage);
+
+    // Cold-launch case: if the user tapped a notification while the app
+    // was killed, FCM exposes that initial RemoteMessage here. Route it
+    // immediately so the in-app deeplink fires on first frame.
+    final initial = await FirebaseMessaging.instance.getInitialMessage();
+    if (initial != null) {
+      _routeNotificationDeeplink(initial, source: 'push_cold_start');
+    }
   }
 
   // Handle foreground message by showing a local notification
@@ -79,9 +89,29 @@ class NotificationService {
     }
   }
 
-  // Handle background and terminated messages
+  // Handle background and terminated messages — the user tapped the
+  // notification while the app was already in the OS task switcher
+  // (background or recently-used), bringing it to the foreground.
   void _handleBackgroundMessage(RemoteMessage message) {
-    // Here you can navigate to a specific screen if needed
+    _routeNotificationDeeplink(message, source: 'push');
+  }
+
+  /// Extract `data.url` from the FCM payload and hand it to
+  /// {@link HowwowDeeplinkRouter}. Notifications without a `url` field
+  /// are silently ignored — they're informational pushes (no destination).
+  void _routeNotificationDeeplink(RemoteMessage message,
+      {required String source}) {
+    final data = message.data;
+    final raw = data['url'];
+    if (raw is! String || raw.isEmpty) return;
+    final uri = Uri.tryParse(raw);
+    if (uri == null) {
+      // ignore: avoid_print
+      print('notification deeplink: malformed url=$raw');
+      return;
+    }
+    // ignore: discarded_futures
+    HowwowDeeplinkRouter.handle(uri, defaultSource: source);
   }
 
   // Show local notification for foreground messages

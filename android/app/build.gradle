@@ -72,7 +72,13 @@ android {
     }
    buildTypes {
       release {
-          signingConfig signingConfigs.release
+          // Use the prod release keystore when key.properties is present;
+          // fall back to the debug keystore otherwise so size-comparison
+          // and on-device test builds work without prod credentials.
+          // Replace before shipping to the Play Store.
+          signingConfig keystorePropertiesFile.exists()
+                  ? signingConfigs.release
+                  : signingConfigs.debug
       }
    }
 }

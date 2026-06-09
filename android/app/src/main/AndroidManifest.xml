@@ -10,7 +10,7 @@
     <!-- ALSO ADD THIS PERMISSION IF TARGETING SDK 34 -->
 
 
-    <application android:label="Tuto" android:name="${applicationName}" android:icon="@mipmap/logo">
+    <application android:label="HowWow" android:name="${applicationName}" android:icon="@mipmap/logo">
         <activity
             android:name="com.ryanheise.audioservice.AudioServiceActivity" android:exported="true" android:launchMode="singleTop" android:theme="@style/LaunchTheme" android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize">
 
@@ -31,6 +31,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="tuto" />
+            </intent-filter>
+
+            <!-- howwow:// scheme for in-app notification deeplinks
+                 (career, lesson, world). Handled by HowwowDeeplinkRouter,
+                 NOT the legacy DeepLinkService. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="howwow" />
             </intent-filter>
 
             <!-- App Links for Universal Deep Linking -->

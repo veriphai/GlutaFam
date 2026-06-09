@@ -41,13 +41,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDSnUmZMztLXvS-iQHmoaTgoxoF7uExMns',
-    appId: '1:550557666388:web:96bb959257ae6d478f31c1',
+    apiKey: 'AIzaSyCmpPeafMwqvEI4KlXGrTPLfDzlS47R-F0',
+    appId: '1:550557666388:web:9d5d08cb51d3678c8f31c1',
     messagingSenderId: '550557666388',
     projectId: 'glutafam-4aa2f',
     authDomain: 'glutafam-4aa2f.firebaseapp.com',
     storageBucket: 'glutafam-4aa2f.firebasestorage.app',
-    measurementId: 'G-5JFCQKDY1P',
+    measurementId: 'G-NGG9KC600J',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

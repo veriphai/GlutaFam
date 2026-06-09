@@ -1,5 +1,5 @@
 name: eureka_app
-description: "Tuto: AI Tutor for Classes 6-12"
+description: "The How Behind The Wow"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
@@ -40,6 +40,10 @@ dependencies:
   webview_flutter_wkwebview: ^3.14.0
   flutter_inappwebview: ^6.0.0
   fluttertoast: ^8.2.8
+  # Reads the device's IANA timezone id (e.g. "Asia/Kolkata") via native APIs.
+  # Captured on login + sent to the backend via PUT /howwow/profile/timezone
+  # so the streak day-boundary aligns with the user's actual local day.
+  flutter_timezone: ^4.0.0
   share_plus: ^12.0.0
   google_sign_in: ^6.2.0
   intl_phone_number_input: ^0.7.4
@@ -92,6 +96,8 @@ dependencies:
   intl: ^0.20.2
   page_transition: ^2.2.1
   flutter_animate: ^4.5.2
+  flame: ^1.35.1
+  phosphor_flutter: ^2.1.0 # premium icon set (font-based; renders in Flame too)
   # soundpool: ^2.4.1  # REMOVED: Package discontinued, replaced by audioplayers
 
 dev_dependencies:
@@ -108,16 +114,67 @@ flutter:
     - assets/correct_answer.mp3
     - assets/incorrect_answer.mp3
     - assets/jumpSound.mp3
+    - assets/levelComplete.mp3
+    # Brand logo — the "magical box" illustration used both as the
+    # native-splash image AND as the centrepiece of
+    # WowFirstHowNextScreen. Bundling it explicitly so Image.asset can
+    # load it at runtime (flutter_native_splash's own image directive
+    # isn't enough — that path only matters during the native splash
+    # phase).
+    - assets/howwow-logo.png
+    # `assets/videos/` keeps the small home-screen onboarding loop
+    # (intro_loop.mp4 ~1.7 MB + intro_first_frame.jpg ~215 KB) — they're
+    # hot-path and must paint instantly. Lesson cutscene videos
+    # (restore_earth intro/outro etc.) are served from S3 and streamed
+    # progressively via VideoPlayerController.networkUrl — see
+    # MissionVideoScreen for the http* prefix detection.
+    - assets/videos/
+    # Locally-bundled Poppins fonts. The google_fonts package auto-discovers
+    # any *.ttf placed under this exact folder name (`google_fonts/`) and
+    # uses them in preference to network downloads. Combined with
+    # `GoogleFonts.config.allowRuntimeFetching = false` in main.dart this
+    # eliminates the cold-start font-flash on the welcome screen.
+    - google_fonts/
     - lib/assets/avatars/
     - lib/assets/achievements/
     - lib/assets/leagues/
     - lib/assets/animations/
     - lib/screens/testing.html
+    # Top-level PNGs (profession / world cards: astronaut.png, ai_engineer.png,
+    # space_world.png, satellite_engineer.png, etc.) stay bundled. Subfolders
+    # for the 10 Satellite Engineer activities are NOT declared — those images
+    # are served from S3 (https://the-how-wow-prod.s3.ap-south-1.amazonaws.com/
+    # activities/<id>/...) and precached at lesson-start via
+    # lib/utils/s3_assets.dart + the manifests below.
+    - assets/images/
+    # Voltix — the electricity-concept companion mascot (8 moods). Bundled
+    # (not S3) because it renders instantly and is shared across every episode.
+    - assets/images/voltix/
+    # Per-activity asset manifests consumed by precacheActivityImages() +
+    # precacheActivityAudio(). Regenerate via
+    # tools/generate_activity_manifests.sh whenever sprites or sounds are
+    # added/renamed for one of the 11 activities.
+    - assets/manifests/
+    # Activity audio (Orbit voice-over, BGM, SFX — ~129 MB across the 11
+    # activities) is NOT bundled. It lives on S3 at
+    # activities/<id>/audio/<path> (upload via
+    # tools/upload_activity_audio_to_s3.sh) and is downloaded to the app
+    # cache dir at lesson start by precacheActivityAudio() so voice still
+    # plays with file-local latency — see lib/utils/s3_audio.dart.
+    # Only the small app-wide SFX above (correct_answer.mp3 etc.) stay
+    # bundled.
 
 flutter_native_splash:
-  color: "#131F24" # Background color
-  # image: assets/logo-latest.png
-  image: assets/tuto-logo.png
+  # Starry CosmicBackground render (same look as the login screen) — regenerate
+  # with tools/generate_splash_background.py if the career theme changes.
+  background_image: assets/splash-background.png
+  # image: assets/howwow-logo.png  # (old rocket-box illustration)
+  image: assets/howwow-icon.png
+  # Android 12+ uses the system splash (centered icon on a solid color);
+  # full-bleed background images aren't supported there.
+  android_12:
+    color: "#07162F" # CareerColors.bgMid
+    image: assets/howwow-icon.png
   android: true
   ios: true
   fullscreen: true # Optional: Set to true for full-screen splash
