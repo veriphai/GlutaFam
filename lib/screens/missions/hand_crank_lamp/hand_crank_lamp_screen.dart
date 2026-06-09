@@ -124,17 +124,18 @@ class _HandCrankLampScreenState extends State<HandCrankLampScreen>
             // The collectible earn moment — Voltix's outro lands, then the
             // "Conservation of Energy" card flies in. Adding it to the deck
             // completes the lesson resource (pops back to the concept timeline).
-            ValueListenableBuilder<bool>(
-              valueListenable: _controller.canFinish,
-              builder: (context, show, _) {
-                if (!show) return const SizedBox.shrink();
-                return Positioned.fill(
-                  child: CollectibleEarnOverlay(
-                    card: kConservationCard,
-                    onDone: _finish,
-                  ),
-                );
-              },
+            //
+            // MUST stay Positioned.fill: a non-positioned Stack child (e.g. a
+            // bare SizedBox.shrink while hidden) makes the Stack size to THAT
+            // child (0×0) under the Scaffold body's loose constraints, collapsing
+            // every other Positioned.fill layer to nothing → a black screen.
+            Positioned.fill(
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _controller.canFinish,
+                builder: (context, show, _) => show
+                    ? CollectibleEarnOverlay(card: kConservationCard, onDone: _finish)
+                    : const IgnorePointer(child: SizedBox.shrink()),
+              ),
             ),
           ],
         ),

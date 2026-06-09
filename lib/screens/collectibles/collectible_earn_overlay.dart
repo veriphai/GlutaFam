@@ -1,9 +1,9 @@
 // The earn moment — ONE orchestrated hero animation (per the spec): the card
 // scales up from a point with a soft radial glow-burst, settles with a slight
-// overshoot, a medium haptic fires, and "Tap to add to your deck" appears.
-// Voltix accompanies in voltix_celebrating (the one place that rare mood earns
-// its keep). ~1.2–1.8s, satisfying, not a slot machine. Reduced motion → a
-// simple scale-and-fade.
+// overshoot, a medium haptic fires, and an "Add to your deck" CTA appears at the
+// bottom. Voltix accompanies in voltix_celebrating with a proper tailed message
+// box (the same speech-bubble language as the activity). ~1.2–1.8s, satisfying,
+// not a slot machine. Reduced motion → a simple scale-and-fade.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -40,7 +40,6 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
   void initState() {
     super.initState();
     _entry.addListener(() {
-      // Medium haptic at the settle (the "charge lands").
       if (!_hapticFired && _entry.value >= 0.55) {
         _hapticFired = true;
         HapticFeedback.mediumImpact();
@@ -68,7 +67,7 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final cardW = (media.size.width * 0.66).clamp(220.0, 300.0);
+    final cardW = (media.size.width * 0.62).clamp(210.0, 290.0);
     final accent = widget.card.section.accent;
 
     return Material(
@@ -81,72 +80,95 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   radius: 1.1,
-                  colors: [const Color(0xFF10183A).withValues(alpha: 0.96), const Color(0xFF05070F).withValues(alpha: 0.985)],
+                  colors: [
+                    const Color(0xFF10183A).withValues(alpha: 0.97),
+                    const Color(0xFF05070F).withValues(alpha: 0.99),
+                  ],
                 ),
               ),
             ),
           ),
           SafeArea(
-            child: AnimatedBuilder(
-              animation: _entry,
-              builder: (context, _) {
-                final e = _reduced ? 1.0 : Curves.easeOutBack.transform(_entry.value.clamp(0.0, 1.0));
-                final burst = Curves.easeOut.transform(_entry.value.clamp(0.0, 1.0));
-                final settled = _entry.value > 0.85 || _reduced;
-                return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: AnimatedBuilder(
+                animation: _entry,
+                builder: (context, _) {
+                  final e = _reduced
+                      ? 1.0
+                      : Curves.easeOutBack.transform(_entry.value.clamp(0.0, 1.0));
+                  final burst = Curves.easeOut.transform(_entry.value.clamp(0.0, 1.0));
+                  final settled = _entry.value > 0.85 || _reduced;
+                  return Column(
                     children: [
-                      _voltixHeader(settled),
-                      SizedBox(height: media.size.height * 0.018),
-                      // Card + glow-burst.
-                      SizedBox(
-                        width: cardW * 1.6,
-                        height: cardW * 7 / 5 + 40,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Radial glow-burst behind the card.
-                            Opacity(
-                              opacity: (1 - burst) * 0.9,
-                              child: Container(
-                                width: cardW * (0.7 + burst * 1.1),
-                                height: cardW * (0.7 + burst * 1.1),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      _glowColor(accent).withValues(alpha: 0.6),
-                                      _glowColor(accent).withValues(alpha: 0),
-                                    ],
-                                  ),
+                      // Voltix + tailed message box (top).
+                      AnimatedOpacity(
+                        opacity: settled ? 1 : 0,
+                        duration: const Duration(milliseconds: 320),
+                        child: const _VoltixMessage(),
+                      ),
+                      // Card + glow-burst, centred in the remaining space.
+                      Expanded(
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: cardW * 1.7,
+                                height: cardW * 7 / 5 + 24,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Opacity(
+                                      opacity: (1 - burst) * 0.9,
+                                      child: Container(
+                                        width: cardW * (0.7 + burst * 1.1),
+                                        height: cardW * (0.7 + burst * 1.1),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: RadialGradient(
+                                            colors: [
+                                              _glowColor(accent).withValues(alpha: 0.6),
+                                              _glowColor(accent).withValues(alpha: 0),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Opacity(
+                                      opacity: _reduced ? _entry.value : burst,
+                                      child: Transform.scale(
+                                        scale: _reduced ? (0.9 + 0.1 * _entry.value) : e,
+                                        child: CollectibleCardView(
+                                          card: widget.card,
+                                          width: cardW,
+                                          interactive: settled,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                            Opacity(
-                              opacity: _reduced ? _entry.value : burst,
-                              child: Transform.scale(
-                                scale: _reduced ? (0.9 + 0.1 * _entry.value) : e,
-                                child: CollectibleCardView(
-                                  card: widget.card,
-                                  width: cardW,
-                                  interactive: settled,
-                                ),
+                              const SizedBox(height: 14),
+                              AnimatedOpacity(
+                                opacity: settled ? 1 : 0,
+                                duration: const Duration(milliseconds: 280),
+                                child: _flipHint(),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                      SizedBox(height: media.size.height * 0.01),
+                      // "Add to your deck" — pinned at the bottom.
                       AnimatedOpacity(
                         opacity: settled ? 1 : 0,
                         duration: const Duration(milliseconds: 280),
-                        child: _prompt(),
+                        child: _addButton(),
                       ),
                     ],
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -157,102 +179,158 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
   Color _glowColor(Color accent) =>
       widget.card.section.isPrismatic ? const Color(0xFFBFCBEA) : accent;
 
-  Widget _voltixHeader(bool show) {
-    return AnimatedOpacity(
-      opacity: show ? 1 : 0,
-      duration: const Duration(milliseconds: 320),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Floaty(
-            amplitude: 3,
-            child: Image.asset(
-              'assets/images/voltix/voltix_celebrating.png',
-              height: 78,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
+  Widget _flipHint() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.touch_app_rounded, size: 14, color: Colors.white.withValues(alpha: 0.55)),
+        const SizedBox(width: 5),
+        Text(
+          'Tap the card to flip it',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withValues(alpha: 0.6),
           ),
-          const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'NEW CARD',
-                style: GoogleFonts.ibmPlexMono(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2.4,
-                  color: const Color(0xFFFFD970),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'You earned a law of the universe.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _prompt() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.touch_app_rounded, size: 14, color: Colors.white.withValues(alpha: 0.6)),
-            const SizedBox(width: 5),
-            Text(
-              'Tap the card to flip it',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.65),
-              ),
+  Widget _addButton() {
+    return PressableScale(
+      onTap: _addToDeck,
+      child: Container(
+        height: 54,
+        width: double.infinity,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: CareerGradients.gold,
+          borderRadius: BorderRadius.circular(CareerRadii.pill),
+          boxShadow: [
+            BoxShadow(
+              color: CareerColors.gold.withValues(alpha: 0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        PressableScale(
-          onTap: _addToDeck,
-          child: Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: CareerGradients.gold,
-              borderRadius: BorderRadius.circular(CareerRadii.pill),
-              boxShadow: [
-                BoxShadow(
-                  color: CareerColors.gold.withValues(alpha: 0.5),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Add to your deck',
+                style: CareerText.cta.copyWith(color: CareerColors.onLight, fontSize: 14.5)),
+            const SizedBox(width: 6),
+            const Icon(Icons.arrow_forward_rounded, size: 20, color: CareerColors.onLight),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Voltix (celebrating) + a tailed speech bubble — the same message-box language
+/// as the activity. The "NEW CARD" eyebrow + brag line live inside the bubble.
+class _VoltixMessage extends StatelessWidget {
+  const _VoltixMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Floaty(
+          amplitude: 3,
+          child: Image.asset(
+            'assets/images/voltix/voltix_celebrating.png',
+            height: 92,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox(width: 56),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: CustomPaint(
+            painter: _TailBubblePainter(
+              fill: const Color(0xFF0E1E3C).withValues(alpha: 0.95),
+              border: CareerColors.gold.withValues(alpha: 0.7),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Add to your deck',
-                    style: CareerText.cta.copyWith(color: CareerColors.onLight)),
-                const SizedBox(width: 6),
-                const Icon(Icons.arrow_forward_rounded, size: 19, color: CareerColors.onLight),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 11, 14, 11),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'NEW CARD',
+                    style: GoogleFonts.ibmPlexMono(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2.2,
+                      color: const Color(0xFFFFD970),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Whoa — your first card. A real law of the universe.',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.5,
+                      height: 1.28,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ],
     );
   }
+}
+
+/// Dark + gold speech bubble with a left tail pointing at Voltix — one
+/// continuous outline (tail folded into the left edge) so the border has no seam.
+class _TailBubblePainter extends CustomPainter {
+  _TailBubblePainter({required this.fill, required this.border});
+
+  final Color fill;
+  final Color border;
+
+  static const double _tail = 12;
+  static const double _tailHalf = 9;
+  static const double _r = 16;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final cy = h * 0.5;
+    final p = Path()
+      ..moveTo(_tail + _r, 0)
+      ..lineTo(w - _r, 0)
+      ..arcToPoint(Offset(w, _r), radius: const Radius.circular(_r))
+      ..lineTo(w, h - _r)
+      ..arcToPoint(Offset(w - _r, h), radius: const Radius.circular(_r))
+      ..lineTo(_tail + _r, h)
+      ..arcToPoint(Offset(_tail, h - _r), radius: const Radius.circular(_r))
+      ..lineTo(_tail, cy + _tailHalf)
+      ..lineTo(0, cy)
+      ..lineTo(_tail, cy - _tailHalf)
+      ..lineTo(_tail, _r)
+      ..arcToPoint(Offset(_tail + _r, 0), radius: const Radius.circular(_r))
+      ..close();
+    canvas.drawShadow(p, Colors.black.withValues(alpha: 0.5), 5, false);
+    canvas.drawPath(p, Paint()..color = fill);
+    canvas.drawPath(
+      p,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..color = border,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_TailBubblePainter old) => old.fill != fill || old.border != border;
 }
