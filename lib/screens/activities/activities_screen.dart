@@ -11,13 +11,18 @@ import '../missions/build_satellite/build_satellite_intro_screen.dart';
 import '../missions/choose_right_satellite/choose_right_satellite_screen.dart';
 import '../missions/code_satellite/code_satellite_screen.dart';
 import '../missions/earth_detective/earth_detective_screen.dart';
+import '../missions/hand_crank_lamp/hand_crank_lamp_screen.dart';
 import '../missions/how_much_can_you_see/how_much_can_you_see_screen.dart';
+import '../missions/leaky_bucket/leaky_bucket_screen.dart';
 import '../missions/orbit_launcher/orbit_launcher_screen.dart';
 import '../missions/power_balance/power_balance_screen.dart';
+import '../missions/recipe_creature/recipe_creature_screen.dart';
 import '../missions/restore_earth/restore_earth_intro_screen.dart';
 import '../missions/satellite_doctor/satellite_doctor_screen.dart';
 import '../missions/save_coastal_city/save_coastal_city_screen.dart';
 import '../missions/signal_rescue/signal_rescue_screen.dart';
+import '../missions/source_personalities/source_personalities_screen.dart';
+import '../missions/trace_it_back/trace_it_back_screen.dart';
 
 class _ActivityEntry {
   final String title;
@@ -37,6 +42,46 @@ class _ActivityEntry {
 }
 
 final List<_ActivityEntry> _activities = [
+  _ActivityEntry(
+    title: 'The One Thing You Need',
+    subtitle: 'Build a creature from its instructions, lose it, then discover the one thing that brings it back.',
+    tag: 'HOW DE-EXTINCTION WORKS · PROLOGUE',
+    icon: Icons.biotech_rounded,
+    gradient: const [Color(0xFF13331F), Color(0xFF101A30)],
+    builder: (_) => const RecipeCreatureScreen(),
+  ),
+  _ActivityEntry(
+    title: 'Power for a Day',
+    subtitle: 'Run a whole town on one source at a time across a day — and feel why none of them is perfect.',
+    tag: 'HOW THINGS WORK · ELECTRICITY · EP 1.2',
+    icon: Icons.location_city_rounded,
+    gradient: const [Color(0xFF2A1E3E), Color(0xFF14233F)],
+    builder: (_) => const SourcePersonalitiesScreen(),
+  ),
+  _ActivityEntry(
+    title: 'The Leaky Bucket',
+    subtitle: 'Send a power plant’s energy down the chain and watch most of it escape as heat — then try to do better.',
+    tag: 'HOW THINGS WORK · ELECTRICITY · EP 1.3',
+    icon: Icons.local_fire_department_rounded,
+    gradient: const [Color(0xFF3A2412), Color(0xFF1A1330)],
+    builder: (_) => const LeakyBucketScreen(),
+  ),
+  _ActivityEntry(
+    title: 'Trace It Back',
+    subtitle: 'Spin a magnet, clip on a turbine, swap the source — find the one trick behind every power plant.',
+    tag: 'HOW THINGS WORK · ELECTRICITY · EP 1',
+    icon: Icons.bolt_rounded,
+    gradient: const [Color(0xFF3A2C12), Color(0xFF1A1330)],
+    builder: (_) => const TraceItBackScreen(),
+  ),
+  _ActivityEntry(
+    title: 'Hand-Crank Lamp',
+    subtitle: 'Crank a generator and watch the lamp live and die with your effort — nothing is stored.',
+    tag: 'HOW THINGS WORK · ELECTRICITY · PROLOGUE',
+    icon: Icons.flashlight_on_rounded,
+    gradient: const [Color(0xFF2C2A12), Color(0xFF161330)],
+    builder: (_) => const HandCrankLampScreen(),
+  ),
   _ActivityEntry(
     title: 'Build Your Satellite',
     subtitle: 'Assemble a working satellite, part by part.',

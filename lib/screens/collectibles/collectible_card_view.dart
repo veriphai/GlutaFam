@@ -19,6 +19,24 @@ const Color _paperMist = Color(0xFFE8ECF7); // body text
 const Color _gold = Color(0xFFF5C451);
 const Color _goldBright = Color(0xFFFFD970);
 
+/// The art-window motif painter for a card — one painter per [CardMotif].
+CustomPainter _motifPainter(CollectibleCard card, double phase) {
+  switch (card.motif) {
+    case CardMotif.energyLoop:
+      return EnergyLoopPainter(section: card.section, phase: phase);
+    case CardMotif.induction:
+      return InductionMotifPainter(section: card.section, phase: phase);
+    case CardMotif.tradeoff:
+      return TradeoffMotifPainter(section: card.section, phase: phase);
+    case CardMotif.escape:
+      return EscapeMotifPainter(section: card.section, phase: phase);
+    case CardMotif.synthesis:
+      return SynthesisMotifPainter(section: card.section, phase: phase);
+    case CardMotif.recipe:
+      return RecipeMotifPainter(section: card.section, phase: phase);
+  }
+}
+
 class CollectibleCardView extends StatefulWidget {
   const CollectibleCardView({
     super.key,
@@ -26,12 +44,14 @@ class CollectibleCardView extends StatefulWidget {
     required this.width,
     this.interactive = true,
     this.animate = true,
+    this.tossOnEnter = false,
   });
 
   final CollectibleCard card;
   final double width;
   final bool interactive; // tap to flip
   final bool animate; // ambient sheen + prismatic drift
+  final bool tossOnEnter; // coin-toss spin on first appearance, landing on front
 
   @override
   State<CollectibleCardView> createState() => _CollectibleCardViewState();
@@ -43,8 +63,19 @@ class _CollectibleCardViewState extends State<CollectibleCardView>
       AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
   late final AnimationController _drift =
       AnimationController(vsync: this, duration: const Duration(seconds: 7));
+  // Coin-toss entry spin (0 = just landed wound-up, 1 = settled on front).
+  late final AnimationController _toss =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+  static const double _tossTurns = 3; // full rotations before landing on front
+  bool _tossKicked = false;
 
   bool get _reducedMotion => MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.tossOnEnter) _toss.value = 1; // no toss → already settled
+  }
 
   @override
   void didChangeDependencies() {
@@ -54,12 +85,22 @@ class _CollectibleCardViewState extends State<CollectibleCardView>
     } else if ((!widget.animate || _reducedMotion) && _drift.isAnimating) {
       _drift.stop();
     }
+    // Kick the entry toss once. Reduced motion → skip straight to settled.
+    if (widget.tossOnEnter && !_tossKicked) {
+      _tossKicked = true;
+      if (_reducedMotion) {
+        _toss.value = 1;
+      } else {
+        _toss.forward(from: 0);
+      }
+    }
   }
 
   @override
   void dispose() {
     _flip.dispose();
     _drift.dispose();
+    _toss.dispose();
     super.dispose();
   }
 
@@ -75,7 +116,8 @@ class _CollectibleCardViewState extends State<CollectibleCardView>
   @override
   Widget build(BuildContext context) {
     final w = widget.width;
-    final h = w * 7 / 5;
+    // Pre-rendered hero art is square (its own frame/glow); painted cards are 5:7.
+    final h = widget.card.hasImageFaces ? w : w * 7 / 5;
     final radius = w * 0.06;
     final band = w * 0.066;
 
@@ -85,11 +127,14 @@ class _CollectibleCardViewState extends State<CollectibleCardView>
         width: w,
         height: h,
         child: AnimatedBuilder(
-          animation: Listenable.merge([_flip, _drift]),
+          animation: Listenable.merge([_flip, _drift, _toss]),
           builder: (context, _) {
             final phase = _drift.value * 2 * math.pi;
-            final angle = _flip.value * math.pi;
-            final showBack = angle > math.pi / 2;
+            // Entry toss (decelerating spin → lands on front) + tap-flip combine.
+            final tossT = Curves.decelerate.transform(_toss.value);
+            final angle = (1 - tossT) * _tossTurns * 2 * math.pi + _flip.value * math.pi;
+            final mod = angle % (2 * math.pi);
+            final showBack = mod > math.pi / 2 && mod < math.pi * 1.5;
 
             Widget face = showBack
                 ? Transform(
@@ -157,6 +202,21 @@ class _Face extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pre-rendered hero art: the PNG IS the card (frame + glow baked in), so we
+    // just present it — no procedural frame/panels. The parent flip transform
+    // already mirrors the back face, so render it normally here.
+    if (card.hasImageFaces) {
+      return SizedBox(
+        width: size.width,
+        height: size.height,
+        child: Image.asset(
+          front ? card.frontImage! : card.backImage!,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+        ),
+      );
+    }
+
     final accent = card.section.accent;
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -230,7 +290,7 @@ class _Face extends StatelessWidget {
               border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: CustomPaint(
-              painter: EnergyLoopPainter(section: card.section, phase: phase),
+              painter: _motifPainter(card, phase),
             ),
           ),
         ),
@@ -327,7 +387,7 @@ class _Face extends StatelessWidget {
           child: IgnorePointer(
             child: Opacity(
               opacity: 0.06,
-              child: CustomPaint(painter: EnergyLoopPainter(section: card.section, phase: phase)),
+              child: CustomPaint(painter: _motifPainter(card, phase)),
             ),
           ),
         ),
@@ -368,16 +428,15 @@ class _Face extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            if (card.linkedCardName != null) _linkBadge(card.linkedCardName!, accent),
             SizedBox(height: w * 0.02),
-            // Small Voltix mark.
+            // Small companion mark (Voltix on electricity, Helix on de-extinction).
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(Icons.bolt_rounded, size: w * 0.05, color: _goldBright.withValues(alpha: 0.8)),
+                Icon(card.companionIcon, size: w * 0.05, color: _goldBright.withValues(alpha: 0.8)),
                 SizedBox(width: w * 0.01),
                 Text(
-                  'VOLTIX',
+                  card.companionName,
                   style: GoogleFonts.ibmPlexMono(
                     fontSize: w * 0.03,
                     fontWeight: FontWeight.w700,
@@ -390,38 +449,6 @@ class _Face extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _linkBadge(String linkedName, Color accent) {
-    final w = size.width;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.018),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(w * 0.03),
-        border: Border.all(color: accent.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.link_rounded, size: w * 0.045, color: accent),
-          SizedBox(width: w * 0.018),
-          Flexible(
-            child: Text(
-              'Linked · $linkedName',
-              style: GoogleFonts.ibmPlexMono(
-                fontSize: w * 0.032,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.6,
-                color: _paperMist,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

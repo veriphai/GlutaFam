@@ -340,13 +340,10 @@ class _CareerHomeScreenState extends State<CareerHomeScreen> {
                     constraints: const BoxConstraints(maxWidth: _maxContentWidth),
                     child: CareerBottomNav(
                       onSelect: (label) {
-                        // 'Play' tab is hidden for now — re-enable the item
-                        // in careerBottomNav.dart and this branch together:
-                        // if (label == 'Play') {
-                        //   Navigator.of(context).push(MaterialPageRoute(
-                        //       builder: (_) => const ActivitiesScreen()));
-                        // }
-                        if (label == 'Worlds') {
+                        if (label == 'Play') {
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => const ActivitiesScreen()));
+                        } else if (label == 'Worlds') {
                           _openAllWorlds();
                         } else if (label == 'Profile') {
                           Navigator.of(context).push(

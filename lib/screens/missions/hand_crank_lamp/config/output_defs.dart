@@ -20,6 +20,7 @@ class OutputDef {
     required this.label,
     required this.icon,
     required this.accent,
+    required this.bloom,
   });
 
   final ActiveOutput output;
@@ -28,6 +29,10 @@ class OutputDef {
 
   /// Drives the device's lit colour (lamp warm-white, heater orange, etc.).
   final Color accent;
+
+  /// The colour the device blooms/throws into the dark (warm lamp/heater, cool
+  /// fan/speaker). Used by the bloom, light rays, and particle effects.
+  final Color bloom;
 }
 
 const Map<ActiveOutput, OutputDef> kOutputDefs = {
@@ -36,24 +41,28 @@ const Map<ActiveOutput, OutputDef> kOutputDefs = {
     label: 'Lamp',
     icon: Icons.lightbulb_rounded,
     accent: Color(0xFFFFE9A8), // warm LED white
+    bloom: Color(0xFFFFE9B8),
   ),
   ActiveOutput.fan: OutputDef(
     output: ActiveOutput.fan,
     label: 'Fan',
     icon: Icons.mode_fan_off_rounded,
     accent: CareerColors.cyan,
+    bloom: Color(0xFF7FC8FF),
   ),
   ActiveOutput.heater: OutputDef(
     output: ActiveOutput.heater,
     label: 'Heater',
     icon: Icons.local_fire_department_rounded,
     accent: CareerColors.orange,
+    bloom: Color(0xFFFF8A4D),
   ),
   ActiveOutput.speaker: OutputDef(
     output: ActiveOutput.speaker,
     label: 'Speaker',
     icon: Icons.volume_up_rounded,
     accent: CareerColors.green,
+    bloom: Color(0xFF8FE6C2),
   ),
 };
 

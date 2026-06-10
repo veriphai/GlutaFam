@@ -1,68 +1,56 @@
 // The activity controller — owns the physics AND the geometry (the
-// "controller-owns-geometry" pattern for continuous-logic activities). The
-// view reports the stage size once and forwards raw pointer positions; the
-// controller computes signed angular velocity, energy, brightness, the
-// discovery transition, and drives the bot engine. The painter is then a pure
-// renderer that reads controller getters and repaints via `repaint: controller`.
+// "controller-owns-geometry" pattern for continuous-logic activities). The view
+// reports the stage size once and forwards raw pointer positions; the controller
+// computes signed angular velocity, energy, brightness, particles, and drives a
+// SEQUENTIAL step machine (lamp → fan → heater → speaker, one at a time — no
+// device chooser). The painter is a pure renderer reading getters via
+// `repaint: controller`.
 //
 // THE LOAD-BEARING REQUIREMENT (PRD §4.4) lives in tick(): when generation
 // ceases, brightness is HARD-GATED to zero the same frame — no eased fade, no
-// coast-down, no afterglow. Everything else is in service of not softening that.
-//
-// Notification model:
-//   • This ChangeNotifier notifies EVERY frame → the single CustomPainter
-//     repaints (no widget rebuild — it reads getters directly).
-//   • Discrete UI changes (bot line, swap-unlock, active output) are pushed to
-//     dedicated ValueNotifiers so the bubble/tray rebuild only on real changes,
-//     not 60×/second.
+// coast-down, no afterglow. Each step is "drive it, let go (it dies instantly),
+// advance".
 
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart' show Offset, Size;
+import 'package:flutter/widgets.dart' show Color, Offset, Size;
 
-import '../config/beat_script.dart';
 import '../config/crank_config.dart';
 import '../config/output_defs.dart';
-import '../engine/bot_beat_engine.dart';
-
-/// Voltix introduces himself ONCE per app run (the intro is the first-session
-/// hook; later runs get the plain beforeLine). No cross-launch persistence in
-/// this self-contained module — this process-level flag is a faithful
-/// approximation of "first-ever entry" for the session.
-bool _voltixIntroSeen = false;
+import '../config/sequence.dart';
+import 'crank_particles.dart';
 
 class CrankController extends ChangeNotifier {
-  CrankController() {
-    _engine = BotBeatEngine(
-      config: kHandCrankBeat,
-      onLine: (u) => botLine.value = u,
-      onDiscoveryVisual: (_) => _startDiscoveryFlash(),
-      onOutro: () => canFinish.value = true,
-    );
-  }
+  // --- Sequential step machine (discrete UI channels) ------------------------
+  /// The active device — driven by the step machine, NOT by user choice.
+  final ValueNotifier<ActiveOutput> activeOutput =
+      ValueNotifier(kSequence.first.device);
 
-  late final BotBeatEngine _engine;
+  /// The short, large top instruction ("Spin the Handle", "Try the Fan", …).
+  final ValueNotifier<String> instruction = ValueNotifier(kSequence.first.prompt);
 
-  // --- Discrete UI channels (rebuild only on change) -------------------------
-  final ValueNotifier<BotUtterance?> botLine = ValueNotifier(null);
-  final ValueNotifier<bool> swapUnlocked = ValueNotifier(false);
-  final ValueNotifier<ActiveOutput> activeOutput = ValueNotifier(ActiveOutput.lamp);
+  /// 0-based index of the current step (clamped to kSequence.length while done).
+  final ValueNotifier<int> stepIndex = ValueNotifier(0);
 
-  /// True once Voltix's outro has landed — the screen reveals a "Continue" CTA
-  /// so the kid can finish the lesson resource.
-  final ValueNotifier<bool> canFinish = ValueNotifier(false);
+  /// True once every device has been driven → the Continue / earn-card moment.
+  final ValueNotifier<bool> done = ValueNotifier(false);
 
-  /// Non-lamp devices Voltix has already reacted to (so revisiting one doesn't
-  /// re-fire "it's spinning now?").
-  final Set<ActiveOutput> _reactedSwaps = {};
+  bool _stepLit = false; // current device driven clearly this step
 
-  // --- Optional polish hooks (stubbed at the call site; PRD §6) --------------
+  // The lamp's death message ("No Spin, No Light") is held for a beat before
+  // advancing, so the lesson lands.
+  bool _diedHolding = false;
+  double _diedElapsed = 0;
+  static const double _diedHoldSeconds = 1.8;
+
+  // --- Auto-crank victory lap (done state) -----------------------------------
+  bool _autoCrank = false;
+  static const double _autoCrankSpeed = 7.2; // rad/s → a bright, lively glow
+
+  // --- Optional polish hook --------------------------------------------------
   /// A light haptic tick per crank rotation step (keys off MOTION, not contact).
   void Function()? onCrankTick;
-
-  /// Sound presence tracks `isGenerating` (cuts WITH the light on stop).
-  void Function(bool generating)? onGeneratingChanged;
 
   // --- Geometry (pixels, derived from factors × stage size) ------------------
   Size _stage = Size.zero;
@@ -79,10 +67,19 @@ class CrankController extends ChangeNotifier {
         CrankConfig.outputFactor.dy * _stage.height,
       );
   double get outputRadius => CrankConfig.outputRadiusFactor * _stage.width;
-  Offset get wireStart => Offset(
-        CrankConfig.wireStartFactor.dx * _stage.width,
-        CrankConfig.wireStartFactor.dy * _stage.height,
+
+  /// The generator box between the handle and the device.
+  Offset get boxCenter => Offset(
+        CrankConfig.boxFactor.dx * _stage.width,
+        CrankConfig.boxFactor.dy * _stage.height,
       );
+  Size get boxSize => Size(
+        CrankConfig.boxWidthFactor * _stage.width,
+        CrankConfig.boxHeightFactor * _stage.width,
+      );
+
+  /// The wire runs UP from the GENERATOR BOX (top edge) to the device above it.
+  Offset get wireStart => Offset(boxCenter.dx, boxCenter.dy - boxSize.height / 2 * 0.92);
   Offset get wireEnd => Offset(
         CrankConfig.wireEndFactor.dx * _stage.width,
         CrankConfig.wireEndFactor.dy * _stage.height,
@@ -94,8 +91,6 @@ class CrankController extends ChangeNotifier {
   double _brightness = 0; // [0,1]
   double _energyInput = 0; // normalize(abs(angularVelocity))
   bool _isGenerating = false; // abs(angularVelocity) > lowSpeedFloor
-  bool _hasLitOnce = false; // brightness crossed clearlyLitThreshold
-  bool _hasStoppedOnce = false; // isGenerating went false after hasLitOnce
   double _handleAngle = 0; // visual handle rotation (sign-driven)
   double _pulsePhase = 0; // wire pulse travel [0,1)
   double _spinAngle = 0; // fan-blade / device motion angle (FROZEN on stop)
@@ -107,43 +102,43 @@ class CrankController extends ChangeNotifier {
   double _sampleElapsed = 0;
   double _hapticAccum = 0; // abs rotation since last haptic tick
 
-  // Discovery flash envelope.
+  // Discovery flash envelope (fires on each "let go").
   bool _flashActive = false;
   double _flashElapsed = 0;
 
-  // Idle clock (ms of no productive progress).
-  double _idleElapsed = 0;
-  bool _started = false;
-
   // --- Read-only getters for the painter -------------------------------------
-  bool get isPointerDown => _isPointerDown;
   bool get isGenerating => _isGenerating;
   double get angularVelocity => _angularVelocity;
   double get brightness => _brightness;
   double get energyInput => _energyInput;
-  bool get hasLitOnce => _hasLitOnce;
-  bool get hasStoppedOnce => _hasStoppedOnce;
   double get handleAngle => _handleAngle;
   double get pulsePhase => _pulsePhase;
   double get spinAngle => _spinAngle;
+
+  /// The crank knob's live position (where sparks fly off).
+  Offset get knobPosition => Offset(
+        pivot.dx + handleLength * math.cos(_handleAngle),
+        pivot.dy + handleLength * math.sin(_handleAngle),
+      );
+
+  /// Live energy particles for the painter (sparks + device debris).
+  List<Particle> get particles => _particleField.particles;
+  final ParticleField _particleField = ParticleField();
 
   /// Discovery flash intensity [0,1] — fast rise, slow decay; 0 when inactive.
   double get flashIntensity {
     if (!_flashActive) return 0;
     final t = (_flashElapsed / CrankConfig.discoveryFlashSeconds).clamp(0.0, 1.0);
-    // Rise in the first 15%, decay over the rest.
     return t < 0.15 ? t / 0.15 : 1.0 - (t - 0.15) / 0.85;
   }
 
+  /// Free-running seconds clock (always advances) — drives idle breathing.
+  double _clock = 0;
+  double get clock => _clock;
+
   // --- Lifecycle -------------------------------------------------------------
-  /// Begin the beat: fires Voltix's intro (first session) or beforeLine.
-  void start() {
-    if (_started) return;
-    _started = true;
-    final firstSession = !_voltixIntroSeen;
-    _voltixIntroSeen = true;
-    _engine.enter(firstSession: firstSession);
-  }
+  /// No-op kept for shell compatibility (the first instruction is set up front).
+  void start() {}
 
   // --- Pointer input (forwarded from the gesture surface) --------------------
   void onPointerDown(Offset local) {
@@ -165,8 +160,7 @@ class CrankController extends ChangeNotifier {
     _sampleThisFrame = true;
   }
 
-  /// Release ⇒ angular velocity goes to zero PROMPTLY, not on a spin-down curve
-  /// (PRD §3.2, §4.4). No coasting that keeps generating.
+  /// Release ⇒ angular velocity goes to zero PROMPTLY (PRD §3.2, §4.4).
   void onPointerUp() {
     _isPointerDown = false;
     _angularVelocity = 0;
@@ -179,8 +173,6 @@ class CrankController extends ChangeNotifier {
     return math.atan2(local.dy - p.dy, local.dx - p.dx);
   }
 
-  /// Normalise an angle delta into (-π, π] so crossing the ±π seam doesn't read
-  /// as a huge spurious velocity.
   static double _unwrap(double d) {
     while (d > math.pi) {
       d -= 2 * math.pi;
@@ -191,20 +183,23 @@ class CrankController extends ChangeNotifier {
     return d;
   }
 
-  // --- The tick: physics + discovery + engine timers -------------------------
+  // --- The tick: physics + step machine --------------------------------------
   void tick(double dt) {
     if (dt <= 0) return;
+    _clock += dt;
 
     // 1) Resolve signed angular velocity for this frame.
-    if (_sampleThisFrame) {
-      _angularVelocity = _frameAngleDelta / dt; // average over the frame
+    if (_autoCrank) {
+      _angularVelocity = _autoCrankSpeed; // done-state victory lap, ignores input
+      _handleAngle += _autoCrankSpeed * dt;
+      _sampleThisFrame = false;
+    } else if (_sampleThisFrame) {
+      _angularVelocity = _frameAngleDelta / dt;
       _frameAngleDelta = 0;
       _sampleThisFrame = false;
       _sampleElapsed = 0;
     } else {
       _sampleElapsed += dt;
-      // Bridge a <~100ms gap between move events during active cranking; beyond
-      // that (held-still) OR not pointer-down (released) ⇒ velocity is zero.
       if (!_isPointerDown || _sampleElapsed >= CrankConfig.sampleTimeoutSeconds) {
         _angularVelocity = 0;
       }
@@ -215,9 +210,8 @@ class CrankController extends ChangeNotifier {
     final wasGenerating = _isGenerating;
     _isGenerating = CrankConfig.isGeneratingAt(_angularVelocity);
 
-    // 3) Brightness. Ripple-smoothed WHILE generating; HARD-GATED to zero on
-    //    stop — the §4.4 load-bearing instant cutoff. The low-pass is bypassed
-    //    entirely on the stop path so no fade tail can leak in.
+    // 3) Brightness — ripple-smoothed WHILE generating; HARD-GATED to zero on
+    //    stop (the §4.4 instant cutoff). No fade tail.
     if (_isGenerating) {
       final target = CrankConfig.brightnessCurve(_energyInput);
       final alpha = 1 - math.exp(-dt / CrankConfig.rippleTau);
@@ -226,62 +220,84 @@ class CrankController extends ChangeNotifier {
       _brightness = CrankConfig.stopBrightness; // == 0, immediately
     }
 
-    // 4) Wire pulse — advances only while generating; the painter draws it only
-    //    while generating, so it can never persist on a dark/held-still crank.
+    // 4) Wire pulse + device spin advance only while generating.
     if (_isGenerating) {
       _pulsePhase = (_pulsePhase + dt * CrankConfig.pulseSpeed) % 1.0;
-      // Device motion (fan blades / speaker) advances with brightness while
-      // generating and FREEZES in place on stop — the fan stops the instant you
-      // stop, it does NOT spin down (§4.4 applies to all four outputs).
       _spinAngle += dt * (2.0 + 12.0 * _brightness);
     } else {
       _pulsePhase = 0;
     }
 
-    // 5) hasLitOnce — brightness crossed the "clearly lit" threshold. Voltix's
-    //    warm "there it is" (names nothing — the discovery is the STOP).
-    if (!_hasLitOnce && _brightness >= CrankConfig.clearlyLitThreshold) {
-      _hasLitOnce = true;
-      _engine.reportFirstLight();
+    // 4b) Energy particles — cleared instantly on stop (the cutoff is total).
+    if (_isGenerating && _brightness > 0.02) {
+      final bloom = kOutputDefs[activeOutput.value]!.bloom;
+      _particleField.spawnSparks(
+        dt: dt,
+        knob: knobPosition,
+        knobSpeed: _angularVelocity.abs() * handleLength,
+        dirSign: _angularVelocity.sign,
+        handleAngle: _handleAngle,
+        energy: _energyInput,
+        color: const Color(0xFFFFF1C2),
+      );
+      switch (activeOutput.value) {
+        case ActiveOutput.heater:
+          _particleField.spawnEmbers(
+              dt: dt, center: outputCenter, r: outputRadius, b: _brightness, color: bloom);
+        case ActiveOutput.fan:
+          _particleField.spawnWind(
+              dt: dt, center: outputCenter, r: outputRadius, b: _brightness, color: bloom);
+        case ActiveOutput.lamp:
+          _particleField.spawnMotes(
+              dt: dt, center: outputCenter, r: outputRadius, b: _brightness, color: bloom);
+        case ActiveOutput.speaker:
+          break; // air ripples drawn in the painter, not particles
+      }
+      _particleField.update(dt);
+    } else {
+      _particleField.clear();
     }
 
-    // 6) Discovery — the FIRST generating→false transition AFTER hasLitOnce.
-    //    Routes through the engine, which fires the onDiscovery visual
-    //    (suppression-exempt) now and schedules afterLine ~420ms later.
-    if (wasGenerating && !_isGenerating && _hasLitOnce && !_hasStoppedOnce) {
-      _hasStoppedOnce = true;
-      _engine.triggerDiscovery();
-      swapUnlocked.value = true; // output-swap unlocks only AFTER discovery (§4.7)
+    // 5) Step machine. Drive the device clearly, then release: it dies instantly
+    //    (the lesson). The lamp holds "No Spin, No Light" for a beat first; the
+    //    other devices advance straight away.
+    if (!_autoCrank && !done.value) {
+      if (!_stepLit && _brightness >= CrankConfig.clearlyLitThreshold) {
+        _stepLit = true;
+      }
+      if (wasGenerating && !_isGenerating && _stepLit && !_diedHolding) {
+        _startDiscoveryFlash();
+        final dies = kSequence[stepIndex.value].diesText;
+        if (dies != null) {
+          _diedHolding = true;
+          _diedElapsed = 0;
+          _updateInstruction(); // → the death message
+        } else {
+          _advanceStep();
+        }
+      }
+      // Hold the death message, then advance on the next still frame (so the
+      // device never swaps under the kid's hand if they re-crank).
+      if (_diedHolding) {
+        _diedElapsed += dt;
+        if (_diedElapsed >= _diedHoldSeconds && !_isGenerating) {
+          _diedHolding = false;
+          _advanceStep();
+        }
+      }
     }
 
-    // 7) Polish hooks.
-    if (_isGenerating != wasGenerating) {
-      onGeneratingChanged?.call(_isGenerating);
-    }
+    // 6) Haptic tick per rotation.
     if (_isGenerating && _hapticAccum >= _hapticStep) {
       _hapticAccum %= _hapticStep;
       onCrankTick?.call();
     }
 
-    // 8) Idle clock — reset on PROGRESS (generating); otherwise accrue and nudge
-    //    LATE. The engine gates cooldown/maxFires and suppresses after afterLine.
-    if (_isGenerating) {
-      _idleElapsed = 0;
-    } else if (!_hasStoppedOnce) {
-      _idleElapsed += dt * 1000;
-      if (_idleElapsed >= kHandCrankBeat.idleThresholdMs) {
-        _engine.reportIdle();
-      }
-    }
-
-    // 9) Discovery flash envelope.
+    // 7) Discovery flash envelope.
     if (_flashActive) {
       _flashElapsed += dt;
       if (_flashElapsed >= CrankConfig.discoveryFlashSeconds) _flashActive = false;
     }
-
-    // 10) Engine timers (afterLine countdown, cooldowns) in ms.
-    _engine.update(dt * 1000);
 
     notifyListeners(); // repaint the canvas
   }
@@ -293,27 +309,37 @@ class CrankController extends ChangeNotifier {
     _flashElapsed = 0;
   }
 
-  // --- Output swap (PRD §4.7) ------------------------------------------------
-  /// Swap the active output. Gated by the UI to be reachable only after
-  /// discovery (§4.7). Voltix reacts to the first two NEW non-lamp devices and
-  /// then the engine schedules the synthesis; revisiting a device is silent.
-  void setActiveOutput(ActiveOutput out) {
-    if (!swapUnlocked.value) return; // ordering enforced (criterion 8)
-    if (out == activeOutput.value) return;
-    activeOutput.value = out;
-    final line = kDeviceSwapLines[out];
-    if (line != null && _reactedSwaps.add(out)) {
-      _engine.reportDeviceSwap(line);
+  /// Advance to the next device, or — once all are driven — enter the done state:
+  /// switch to the lamp and auto-crank it as a little victory lap.
+  void _advanceStep() {
+    final next = stepIndex.value + 1;
+    _stepLit = false;
+    if (next >= kSequence.length) {
+      done.value = true;
+      activeOutput.value = ActiveOutput.lamp;
+      _autoCrank = true;
+    } else {
+      stepIndex.value = next;
+      activeOutput.value = kSequence[next].device;
     }
-    notifyListeners();
+    _updateInstruction();
+  }
+
+  void _updateInstruction() {
+    if (done.value) {
+      instruction.value = kDoneText;
+      return;
+    }
+    final step = kSequence[stepIndex.value];
+    instruction.value = (_diedHolding && step.diesText != null) ? step.diesText! : step.prompt;
   }
 
   @override
   void dispose() {
-    botLine.dispose();
-    swapUnlocked.dispose();
     activeOutput.dispose();
-    canFinish.dispose();
+    instruction.dispose();
+    stepIndex.dispose();
+    done.dispose();
     super.dispose();
   }
 }

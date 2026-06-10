@@ -150,6 +150,15 @@ flutter:
     # Voltix — the electricity-concept companion mascot (8 moods). Bundled
     # (not S3) because it renders instantly and is shared across every episode.
     - assets/images/voltix/
+    # Helix — the de-extinction companion mascot (5 moods used by the Prologue).
+    - assets/images/helix/
+    # Pre-rendered collectible card faces (premium hero art for specific cards).
+    - assets/images/collectibles/
+    # Hand-Crank Lamp audio — Voltix VO (voltix_01..18.mp3) + BGM. Bundled
+    # locally (not S3) for <100ms voice latency on kid feedback.
+    - assets/sounds/hand_crank_lamp/
+    # Trace It Back audio — Voltix VO (voltix_01..26.mp3) + BGM.
+    - assets/sounds/trace_it_back/
     # Per-activity asset manifests consumed by precacheActivityImages() +
     # precacheActivityAudio(). Regenerate via
     # tools/generate_activity_manifests.sh whenever sprites or sounds are

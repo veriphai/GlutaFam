@@ -91,21 +91,30 @@ class CrankConfig {
   // --- Geometry anchors (factors of the stage rect) ------------------------
   // Eyeballed; expect a live tuning pass. centre = (x*w, y*h).
 
-  /// Crank pivot — left third, vertically centred on the stage.
-  static const Offset pivotFactor = Offset(0.24, 0.52);
+  // VERTICAL layout (like Trace It Back): DEVICE on top → wire down → GENERATOR
+  // BOX in the middle → shaft down → HANDLE at the bottom (the thing you turn).
+  // Everything sits on the central vertical axis.
 
-  /// Handle arm length as a factor of stage width.
-  static const double handleLenFactor = 0.115;
+  /// Output device (lamp/fan/heater/speaker) centre — TOP of the stage.
+  static const Offset outputFactor = Offset(0.5, 0.185);
 
-  /// Output device (lamp/fan/heater/speaker) centre — right third.
-  static const Offset outputFactor = Offset(0.76, 0.46);
+  /// Output glyph radius as a factor of stage width — large, fills the top.
+  static const double outputRadiusFactor = 0.21;
 
-  /// Output glyph radius as a factor of stage width.
-  static const double outputRadiusFactor = 0.135;
+  /// Generator box (the "something between") centre + size (factors of width).
+  static const Offset boxFactor = Offset(0.5, 0.53);
+  static const double boxWidthFactor = 0.18;
+  static const double boxHeightFactor = 0.2; // factor of WIDTH
 
-  /// Where the wire meets the crank (at the pivot, so it visibly joins the base
-  /// — emerges from under the housing/hub) and the output (just left of the
-  /// device). Factors of the stage rect.
-  static const Offset wireStartFactor = pivotFactor;
-  static const Offset wireEndFactor = Offset(0.635, 0.50);
+  /// Crank pivot — BOTTOM of the stage; the handle drives the shaft up into the
+  /// box.
+  static const Offset pivotFactor = Offset(0.5, 0.84);
+
+  /// Handle arm length as a factor of stage width — large, fills the bottom.
+  /// The pivot flange/housing/knob all scale off this in _paintCrank.
+  static const double handleLenFactor = 0.225;
+
+  /// Wire END (the device side, computed in the painter); the wire START is the
+  /// box's TOP edge, computed from the box geometry. Kept for compatibility.
+  static const Offset wireEndFactor = Offset(0.5, 0.34);
 }

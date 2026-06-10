@@ -21,8 +21,7 @@ class _CareerBottomNavState extends State<CareerBottomNav> {
 
   static const List<(IconData, String)> _items = [
     (Icons.home_rounded, 'Home'),
-    // (Icons.sports_esports_rounded, 'Play'),    // hidden for now — the
-    //   activities demo screen stays reachable in code (ActivitiesScreen).
+    (Icons.sports_esports_rounded, 'Play'), // opens the ActivitiesScreen hub
     (Icons.public_rounded, 'Worlds'),
     // (Icons.menu_book_rounded, 'Passport'),     // hidden until the
     //   passport feature ships.

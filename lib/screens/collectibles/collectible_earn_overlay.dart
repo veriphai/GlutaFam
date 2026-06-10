@@ -16,9 +16,30 @@ import 'collectible_models.dart';
 import 'collectible_store.dart';
 
 class CollectibleEarnOverlay extends StatefulWidget {
-  const CollectibleEarnOverlay({super.key, required this.card, required this.onDone});
+  const CollectibleEarnOverlay({
+    super.key,
+    required this.card,
+    required this.onDone,
+    this.eyebrow = 'NEW CARD',
+    this.brag = 'Whoa — your first card. A real law of the universe.',
+    this.mascot,
+    this.showMascot = true,
+  });
 
   final CollectibleCard card;
+
+  /// The mono eyebrow + the one-line brag the companion says in the bubble (his
+  /// `cardEarnLine` for this beat). Defaults to the Prologue/Card-01 copy.
+  final String eyebrow;
+  final String brag;
+
+  /// The companion shown beside the bubble. Null → the default Voltix sprite;
+  /// other modules (de-extinction → Helix) pass their own avatar.
+  final Widget? mascot;
+
+  /// When false, the card-earn message shows NO companion avatar (just a plain
+  /// centred banner) — for activities with no mascot (e.g. Trace It Back).
+  final bool showMascot;
 
   /// Called after the kid adds the card to their deck (persisted by then).
   final VoidCallback onDone;
@@ -67,7 +88,11 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final cardW = (media.size.width * 0.62).clamp(210.0, 290.0);
+    // Image-art cards are square + include their own glow margin, so give them a
+    // bit more width and a square height; painted cards stay 5:7.
+    final hasImage = widget.card.hasImageFaces;
+    final cardW = (media.size.width * (hasImage ? 0.9 : 0.78)).clamp(240.0, hasImage ? 400.0 : 350.0);
+    final cardH = hasImage ? cardW : cardW * 7 / 5;
     final accent = widget.card.section.accent;
 
     return Material(
@@ -105,7 +130,11 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
                       AnimatedOpacity(
                         opacity: settled ? 1 : 0,
                         duration: const Duration(milliseconds: 320),
-                        child: const _VoltixMessage(),
+                        child: _VoltixMessage(
+                            eyebrow: widget.eyebrow,
+                            brag: widget.brag,
+                            mascot: widget.mascot,
+                            showMascot: widget.showMascot),
                       ),
                       // Card + glow-burst, centred in the remaining space.
                       Expanded(
@@ -115,7 +144,7 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
                             children: [
                               SizedBox(
                                 width: cardW * 1.7,
-                                height: cardW * 7 / 5 + 24,
+                                height: cardH + 24,
                                 child: Stack(
                                   alignment: Alignment.center,
                                   children: [
@@ -143,6 +172,7 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
                                           card: widget.card,
                                           width: cardW,
                                           interactive: settled,
+                                          tossOnEnter: true,
                                         ),
                                       ),
                                     ),
@@ -205,13 +235,18 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
         width: double.infinity,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          gradient: CareerGradients.gold,
+          // Calm gold — restrained, not neon (spec §3).
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF5C451), Color(0xFFD9A43B)],
+          ),
           borderRadius: BorderRadius.circular(CareerRadii.pill),
           boxShadow: [
             BoxShadow(
-              color: CareerColors.gold.withValues(alpha: 0.5),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: 0.32),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
@@ -232,21 +267,65 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
 /// Voltix (celebrating) + a tailed speech bubble — the same message-box language
 /// as the activity. The "NEW CARD" eyebrow + brag line live inside the bubble.
 class _VoltixMessage extends StatelessWidget {
-  const _VoltixMessage();
+  const _VoltixMessage({required this.eyebrow, required this.brag, this.mascot, this.showMascot = true});
+
+  final String eyebrow;
+  final String brag;
+  final Widget? mascot;
+  final bool showMascot;
 
   @override
   Widget build(BuildContext context) {
+    // No-mascot: a plain centred banner (no avatar, no speech tail).
+    if (!showMascot) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0E1E3C).withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: CareerColors.gold.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              eyebrow,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.ibmPlexMono(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2.2,
+                color: const Color(0xFFFFD970),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              brag,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                height: 1.28,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Floaty(
           amplitude: 3,
-          child: Image.asset(
-            'assets/images/voltix/voltix_celebrating.png',
-            height: 92,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const SizedBox(width: 56),
-          ),
+          child: mascot ??
+              Image.asset(
+                'assets/images/voltix/voltix_celebrating.png',
+                height: 92,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox(width: 56),
+              ),
         ),
         const SizedBox(width: 6),
         Expanded(
@@ -262,7 +341,7 @@ class _VoltixMessage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'NEW CARD',
+                    eyebrow,
                     style: GoogleFonts.ibmPlexMono(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -272,7 +351,7 @@ class _VoltixMessage extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Whoa — your first card. A real law of the universe.',
+                    brag,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12.5,
                       height: 1.28,
