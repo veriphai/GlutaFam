@@ -209,10 +209,22 @@ class Lesson {
       // Honour the server's lock state — the backend computes
       // "lesson N unlocked iff N-1 in completedLessonIds". The dev toggle
       // (debug builds only) overrides it for episode spot-checks.
-      isLocked: (kDebugMode && kDevUnlockAllLessons) ? false : m.locked,
+      //
+      // BUT an episode with NO resources (content not built yet, e.g.
+      // electricity Ep3) stays LOCKED no matter what — finishing the prior
+      // episode must never open an empty one, and the dev unlock can't reach
+      // it either (nothing to spot-check). Because it can't be completed,
+      // this also stalls the unlock chain at the first content-less episode,
+      // keeping every later episode locked too.
+      isLocked: m.resources.isEmpty
+          ? true
+          : (kDebugMode && kDevUnlockAllLessons)
+              ? false
+              : m.locked,
       resources: m.resources,
       lastCompletedResourceIndex: m.lastCompletedResourceIndex,
       startedOnServer: m.started,
+      tag: m.tag,
     );
   }
 }

@@ -12,19 +12,24 @@
 import 'package:flutter/material.dart';
 
 import '../../collectibles/collectible_earn_overlay.dart';
-import '../../collectibles/collectible_models.dart';
-import '../../home/career/careerCommon.dart';
 import '../../home/career/careerTheme.dart';
-import '../episode_board/evidence_models.dart';
-import 'config/cer_copy.dart';
+import '../activity_header.dart';
+import '../episode_board/activity_background.dart';
+import '../lessonRunner.dart';
+import 'config/cer_config.dart';
 import 'state/cer_controller.dart';
 import 'widgets/claim_build_screen.dart';
 import 'widgets/evidence_preview.dart';
 import 'widgets/evidence_select_screen.dart';
 import 'widgets/playback_screen.dart';
+import 'widgets/reasoning_chain_screen.dart';
+import 'widgets/reasoning_grid_screen.dart';
 
 class MakeYourCaseScreen extends StatefulWidget {
-  const MakeYourCaseScreen({super.key});
+  const MakeYourCaseScreen({super.key, this.config = kEp1CerConfig});
+
+  /// The episode's CER definition — catalog, staging, copy, claim template, card.
+  final CerConfig config;
 
   @override
   State<MakeYourCaseScreen> createState() => _MakeYourCaseScreenState();
@@ -37,7 +42,7 @@ class _MakeYourCaseScreenState extends State<MakeYourCaseScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = CerController(episodeId: kEpisode1Id)..addListener(_onChange);
+    _controller = CerController(config: widget.config)..addListener(_onChange);
     _controller.load();
   }
 
@@ -45,7 +50,9 @@ class _MakeYourCaseScreenState extends State<MakeYourCaseScreen> {
     if (_controller.finished && !_popped) {
       _popped = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).maybePop();
+        // COMPLETION (card collected) → advance past the back-guard. The header
+        // back stays maybePop, which the host's guard turns into the leave modal.
+        if (mounted) completeActivity(context);
       });
     }
   }
@@ -65,7 +72,7 @@ class _MakeYourCaseScreenState extends State<MakeYourCaseScreen> {
         backgroundColor: CareerColors.bgMid,
         body: Stack(
           children: [
-            const Positioned.fill(child: _CerBackground()),
+            const Positioned.fill(child: ActivityDossierBackground()),
             Positioned.fill(
               child: SafeArea(
                 child: Padding(
@@ -78,7 +85,10 @@ class _MakeYourCaseScreenState extends State<MakeYourCaseScreen> {
                       }
                       return Column(
                         children: [
-                          _topBar(),
+                          ActivityNameHeader(
+                            onBack: () => Navigator.of(context).maybePop(),
+                            fallbackName: widget.config.beatName,
+                          ),
                           const SizedBox(height: 10),
                           Expanded(
                             child: AnimatedSwitcher(
@@ -130,9 +140,9 @@ class _MakeYourCaseScreenState extends State<MakeYourCaseScreen> {
                 listenable: _controller,
                 builder: (context, _) => _controller.showCardEarn
                     ? CollectibleEarnOverlay(
-                        card: kGridMixCard,
-                        eyebrow: CerCopy.earnEyebrow,
-                        brag: CerCopy.earnBrag,
+                        card: widget.config.card,
+                        eyebrow: widget.config.earnEyebrow,
+                        brag: widget.config.earnBrag,
                         showMascot: false,
                         onDone: _controller.onCardCollected,
                       )
@@ -152,46 +162,14 @@ class _MakeYourCaseScreenState extends State<MakeYourCaseScreen> {
       case CerScreen.claim:
         return ClaimBuildScreen(controller: _controller);
       case CerScreen.playback:
+        // Screen 3: the active reasoning step matched to the episode's argument
+        // shape — coverage grid (EP1 convergence) or build-the-chain (EP2 chain);
+        // episodes with no reasoning spec keep the passive playback montage.
+        final r = _controller.config.reasoning;
+        if (r is CerChainReasoning) return ReasoningChainScreen(controller: _controller);
+        if (r is CerCoverageReasoning) return ReasoningGridScreen(controller: _controller);
         return PlaybackScreen(controller: _controller);
     }
   }
 
-  Widget _topBar() {
-    return Row(
-      children: [
-        PressableScale(
-          onTap: () => Navigator.of(context).maybePop(),
-          child: GlassSurface(
-            radius: 14,
-            padding: const EdgeInsets.all(8),
-            child: const Icon(Icons.arrow_back_rounded, size: 20, color: CareerColors.textPrimary),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          CerCopy.beatName,
-          style: CareerText.cta.copyWith(color: Colors.white, fontSize: 16),
-        ),
-      ],
-    );
-  }
-}
-
-/// A calm deep-space wash — the same world the deck/cards live in, drawn locally
-/// so the module stays self-contained.
-class _CerBackground extends StatelessWidget {
-  const _CerBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(0, -0.4),
-          radius: 1.2,
-          colors: [Color(0xFF161F44), Color(0xFF0A0E22)],
-        ),
-      ),
-    );
-  }
 }

@@ -1,15 +1,14 @@
 // Screen 2 — Claim ("So, what's your answer?", PRD §4.2). The question + ONLY the
 // evidence the kid kept (the screen is already lighter). The claim is BUILT, not
 // chosen from full pre-written options (§5.2): a near-complete sentence with the
-// two key ideas as the kid's taps (MANY, and no-single-one-is-complete), each a
-// quick tap from 2–3 chips. They're AUTHORING the claim — that's what keeps the
-// synthesis theirs.
+// episode's key ideas as the kid's taps (2–3 slots from the config's template),
+// each a quick tap from 2–3 chips. They're AUTHORING the claim — that's what
+// keeps the synthesis theirs.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
-import '../../episode_board/evidence_tile.dart';
-import '../config/cer_copy.dart';
+import '../../episode_board/photo_card.dart';
 import '../state/cer_controller.dart';
 import 'cer_chrome.dart';
 
@@ -25,22 +24,28 @@ class ClaimBuildScreen extends StatelessWidget {
 
     return Column(
       children: [
-        const CerQuestionHeader(step: 2),
+        CerQuestionHeader(question: c.config.question, step: 2),
         const SizedBox(height: 14),
         // Only the kept evidence — the lighter screen (§4.2).
         if (kept.isNotEmpty)
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 6,
+            runSpacing: 6,
             children: [
-              for (final t in kept)
-                EvidenceTileView(tile: t, size: 50, showLabel: false, imageBytes: c.imageBytes[t.id])
+              for (var i = 0; i < kept.length; i++)
+                PhotoCard(
+                  tile: kept[i],
+                  size: 42,
+                  showLabel: false,
+                  tilt: (i.isEven ? 1 : -1) * 0.04,
+                  imageBytes: c.imageBytes[kept[i].id],
+                )
             ],
           ),
         const SizedBox(height: 16),
         Text(
-          CerCopy.claimTask,
+          c.config.claimTask,
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white),
         ),
@@ -51,32 +56,25 @@ class ClaimBuildScreen extends StatelessWidget {
               children: [
                 _ClaimSentence(controller: c),
                 const SizedBox(height: 22),
-                _SlotChips(
-                  caption: 'How many sources?',
-                  options: CerCopy.slot1Options,
-                  selected: c.slot1,
-                  onPick: (v) {
-                    HapticFeedback.selectionClick();
-                    c.setSlot1(v);
-                  },
-                ),
-                const SizedBox(height: 16),
-                _SlotChips(
-                  caption: 'No single one…',
-                  options: CerCopy.slot2Options,
-                  selected: c.slot2,
-                  onPick: (v) {
-                    HapticFeedback.selectionClick();
-                    c.setSlot2(v);
-                  },
-                ),
+                for (var i = 0; i < c.slotValues.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 16),
+                  _SlotChips(
+                    caption: c.config.slotCaptions[i],
+                    options: c.config.slotOptions[i],
+                    selected: c.slotValues[i],
+                    onPick: (v) {
+                      HapticFeedback.selectionClick();
+                      c.setSlot(i, v);
+                    },
+                  ),
+                ],
               ],
             ),
           ),
         ),
         const SizedBox(height: 12),
         CerCtaPill(
-          label: CerCopy.toPlaybackCta,
+          label: c.config.toPlaybackCta,
           enabled: c.claimReady,
           onTap: c.goToPlayback,
         ),
@@ -85,8 +83,9 @@ class ClaimBuildScreen extends StatelessWidget {
   }
 }
 
-/// The claim, assembled live as the kid taps. The two slots highlight as the
-/// editable ideas; everything else is fixed scaffolding.
+/// The claim, assembled live as the kid taps. The slots highlight as the
+/// editable ideas; everything else is fixed scaffolding (the config's text
+/// parts, interleaved with the slot tokens; empty parts render nothing).
 class _ClaimSentence extends StatelessWidget {
   const _ClaimSentence({required this.controller});
   final CerController controller;
@@ -94,6 +93,7 @@ class _ClaimSentence extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const fixed = TextStyle(fontSize: 18, height: 1.5, fontWeight: FontWeight.w600, color: Colors.white);
+    final config = controller.config;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
@@ -107,11 +107,11 @@ class _ClaimSentence extends StatelessWidget {
         spacing: 6,
         runSpacing: 8,
         children: [
-          Text(CerCopy.claimPrefix, style: fixed),
-          _SlotToken(value: controller.slot1, placeholder: CerCopy.slot1Placeholder),
-          Text(CerCopy.claimMid, style: fixed),
-          _SlotToken(value: controller.slot2, placeholder: CerCopy.slot2Placeholder),
-          Text(CerCopy.claimSuffix, style: fixed),
+          for (var i = 0; i < controller.slotValues.length; i++) ...[
+            if (config.textParts[i].isNotEmpty) Text(config.textParts[i], style: fixed),
+            _SlotToken(value: controller.slotValues[i], placeholder: config.slotPlaceholders[i]),
+          ],
+          if (config.textParts.last.isNotEmpty) Text(config.textParts.last, style: fixed),
         ],
       ),
     );

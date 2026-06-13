@@ -34,3 +34,19 @@ Future<HowwowProfessionDetail> howwowGetProfessionDetail(String professionId) as
   );
   return HowwowProfessionDetail.fromJson(json);
 }
+
+/// GET `/howwow/career/concepts`.
+///
+/// The "How Things Work" / WOW-concept rail — curiosity scenarios (electricity,
+/// de-extinction, …). Same wire shape as the professions list (a bare JSON
+/// array, wrapped by ApiClient as `{_data: [...]}`); each item is a concept
+/// card. Tapping one opens the SAME profession-detail screen by id, which
+/// fetches its episodes via [howwowGetProfessionDetail].
+Future<List<HowwowProfession>> howwowGetConcepts() async {
+  final json = await ApiClient.instance.getJson(Endpoints.howwow('/career/concepts'));
+  final list = (json['_data'] as List?) ?? const [];
+  return list
+      .whereType<Map>()
+      .map((e) => HowwowProfession.fromJson(Map<String, dynamic>.from(e)))
+      .toList();
+}

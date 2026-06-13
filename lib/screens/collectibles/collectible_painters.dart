@@ -762,3 +762,618 @@ class RecipeMotifPainter extends CustomPainter {
   @override
   bool shouldRepaint(RecipeMotifPainter old) => old.phase != phase || old.section != section;
 }
+
+// ═══ Episode 2 — "The Long Way Home" (transmission) motif painters ════════════
+// All on the transmission accent (electric blue #3FB9F5) with the shipped house
+// tints (warm energy #FFD27A, heat #FF7A2E, warm bulb #FFE9B8). Same restraint as
+// the EP1 motifs: one quiet icon that names the law at a glance; [phase] drives a
+// subtle drift only. Shared heat/warm tokens for the transmission set:
+
+const Color _txHeat = Color(0xFFFF7A2E);
+const Color _txWarm = Color(0xFFFFD27A);
+const Color _txBulb = Color(0xFFFFE9B8);
+
+void _txGlow(Canvas canvas, Offset at, double r, Color color) {
+  canvas.drawCircle(
+    at,
+    r,
+    Paint()
+      ..color = color
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.6),
+  );
+}
+
+void _txBulbGlyph(Canvas canvas, Offset at, double u, double lit) {
+  if (lit > 0) _txGlow(canvas, at, u * 0.16 * lit, _txBulb.withValues(alpha: 0.55 * lit));
+  canvas.drawCircle(at, u * 0.07,
+      Paint()..color = Color.lerp(const Color(0xFF26304E), _txBulb, lit)!);
+  canvas.drawCircle(at, u * 0.07,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = u * 0.012
+        ..color = Colors.white.withValues(alpha: 0.5));
+}
+
+/// Card 06 — "The Push and the Flow". A vertical pressure column (the voltage you
+/// set) driving a stream of motes around a loop to a lit lamp (the current that
+/// answers). The column's fill + the mote stream pulse together with [phase] —
+/// they rise together, yet the column and the flow are visibly different things.
+class PushFlowMotifPainter extends CustomPainter {
+  PushFlowMotifPainter({required this.section, this.phase = 0});
+
+  final CardSection section;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final accent = section.isPrismatic ? _goldBright : section.accent;
+    final c = Offset(size.width / 2, size.height / 2);
+    final unit = math.min(size.width, size.height);
+    final drive = 0.5 + 0.5 * math.sin(phase); // 0..1 push level
+
+    // The loop wire (rounded rect): lamp top-center, source column bottom-center.
+    final loop = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: c, width: unit * 0.6, height: unit * 0.72),
+      Radius.circular(unit * 0.12),
+    );
+    canvas.drawRRect(loop,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.02
+          ..color = const Color(0xFF566178));
+
+    // Motes riding the loop clockwise, speed/brightness ∝ drive (the current).
+    final path = Path()..addRRect(loop);
+    final metric = path.computeMetrics().first;
+    const motes = 9;
+    for (var i = 0; i < motes; i++) {
+      final t = ((i / motes) + phase / (2 * math.pi)) % 1.0;
+      final pos = metric.getTangentForOffset(t * metric.length)!.position;
+      final a = (0.35 + 0.6 * drive).clamp(0.0, 1.0);
+      canvas.drawCircle(pos, unit * 0.018, Paint()..color = _txWarm.withValues(alpha: a));
+    }
+
+    // The lamp at top, lit ∝ drive.
+    _txBulbGlyph(canvas, Offset(c.dx, c.dy - unit * 0.36), unit, drive);
+
+    // The source column at bottom: a vertical pressure bar, fill = drive.
+    final colW = unit * 0.13, colH = unit * 0.26;
+    final colBase = Offset(c.dx, c.dy + unit * 0.36);
+    final colRect = Rect.fromCenter(
+      center: Offset(colBase.dx, colBase.dy - colH / 2 + colH * 0.5),
+      width: colW,
+      height: colH,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(colRect, Radius.circular(colW * 0.3)),
+      Paint()..color = const Color(0xFF0E1430),
+    );
+    final fillH = colH * drive;
+    final fillRect = Rect.fromLTWH(
+        colRect.left, colRect.bottom - fillH, colW, fillH);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(fillRect, Radius.circular(colW * 0.3)),
+      Paint()..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [accent, accent.withValues(alpha: 0.5)],
+      ).createShader(colRect),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(colRect, Radius.circular(colW * 0.3)),
+      Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.012
+        ..color = accent.withValues(alpha: 0.8),
+    );
+    // up-arrow grab affordance at the fill line.
+    final ay = colRect.bottom - fillH;
+    canvas.drawPath(
+      Path()
+        ..moveTo(colBase.dx, ay - unit * 0.03)
+        ..lineTo(colBase.dx - unit * 0.025, ay)
+        ..lineTo(colBase.dx + unit * 0.025, ay)
+        ..close(),
+      Paint()..color = Colors.white.withValues(alpha: 0.85),
+    );
+  }
+
+  @override
+  bool shouldRepaint(PushFlowMotifPainter old) => old.phase != phase || old.section != section;
+}
+
+/// Card 07 — "The Narrow Pipe". One wire that breathes between long-thin (the
+/// current chokes to a sparse trickle) and short-fat (it surges). [phase] drives
+/// the morph; the flow density inside the wire tracks it — thin fights, fat flows.
+class NarrowPipeMotifPainter extends CustomPainter {
+  NarrowPipeMotifPainter({required this.section, this.phase = 0});
+
+  final CardSection section;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final accent = section.isPrismatic ? _goldBright : section.accent;
+    final c = Offset(size.width / 2, size.height / 2);
+    final unit = math.min(size.width, size.height);
+    final morph = 0.5 + 0.5 * math.sin(phase); // 0 = fat, 1 = thin
+
+    // Vertical wire from top terminal to bottom; width ∝ 1/sqrt(length) feel.
+    final topY = c.dy - unit * 0.40, botY = c.dy + unit * 0.40;
+    final wireW = unit * (0.16 - 0.13 * morph); // fat → thin
+    final wireRect = Rect.fromLTRB(c.dx - wireW / 2, topY, c.dx + wireW / 2, botY);
+
+    // terminals
+    final term = Paint()..color = const Color(0xFF566178);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCenter(center: Offset(c.dx, topY), width: unit * 0.28, height: unit * 0.05),
+            Radius.circular(unit * 0.02)),
+        term);
+
+    // wire body + soft glow
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(wireRect.inflate(unit * 0.015), Radius.circular(wireW)),
+      Paint()..color = accent.withValues(alpha: 0.22)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(wireRect, Radius.circular(wireW * 0.5)),
+      Paint()..color = const Color(0xFF1A2348),
+    );
+
+    // flow packets inside the wire; count/density ∝ (1-morph) (fat = more flow).
+    final count = (3 + 7 * (1 - morph)).round();
+    for (var i = 0; i < count; i++) {
+      final t = ((i / count) + phase / (2 * math.pi)) % 1.0;
+      final y = topY + (botY - topY) * t;
+      canvas.drawCircle(Offset(c.dx, y), wireW * 0.30,
+          Paint()..color = _txWarm.withValues(alpha: 0.9));
+    }
+
+    // small echo lamp below, brightness ∝ flow.
+    _txBulbGlyph(canvas, Offset(c.dx, botY + unit * 0.06), unit, (1 - morph) * 0.9);
+
+    // arrows showing the reshape — squash (◄►) when thin-ish.
+    final arrow = _txWarm.withValues(alpha: 0.5 + 0.4 * morph);
+    final ay = c.dy;
+    for (final sign in [-1.0, 1.0]) {
+      final base = c.dx + sign * (wireW / 2 + unit * 0.06);
+      canvas.drawPath(
+        Path()
+          ..moveTo(base, ay)
+          ..lineTo(base + sign * unit * 0.045, ay - unit * 0.03)
+          ..lineTo(base + sign * unit * 0.045, ay + unit * 0.03)
+          ..close(),
+        Paint()..color = arrow,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(NarrowPipeMotifPainter old) => old.phase != phase || old.section != section;
+}
+
+/// Card 08 — "Electric Friction". A glowing catenary wire shedding rising heat
+/// strokes — the loss leaving as heat. [phase] drifts the heat wisps up + away.
+class ElectricFrictionMotifPainter extends CustomPainter {
+  ElectricFrictionMotifPainter({required this.section, this.phase = 0});
+
+  final CardSection section;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final unit = math.min(size.width, size.height);
+    final lx = c.dx - unit * 0.40, rx = c.dx + unit * 0.40;
+    final topY = c.dy - unit * 0.06, sagY = c.dy + unit * 0.12;
+
+    // posts
+    final post = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = unit * 0.02
+      ..strokeCap = StrokeCap.round
+      ..color = Colors.white.withValues(alpha: 0.4);
+    canvas.drawLine(Offset(lx, topY), Offset(lx, c.dy + unit * 0.36), post);
+    canvas.drawLine(Offset(rx, topY), Offset(rx, c.dy + unit * 0.36), post);
+
+    // the catenary wire, hot at midspan
+    final span = Path()
+      ..moveTo(lx, topY)
+      ..quadraticBezierTo(c.dx, sagY + unit * 0.10, rx, topY);
+    canvas.drawPath(span,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = unit * 0.07
+          ..strokeCap = StrokeCap.round
+          ..color = _txHeat.withValues(alpha: 0.5)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+    canvas.drawPath(span,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = unit * 0.026
+          ..strokeCap = StrokeCap.round
+          ..shader = const LinearGradient(colors: [_txHeat, _txWarm])
+              .createShader(Rect.fromLTRB(lx, topY, rx, sagY)));
+
+    // heat wisps rising off the span, drifting up + out on a loop.
+    final midY = sagY + unit * 0.10;
+    for (var i = 0; i < 4; i++) {
+      final frac = ((phase / (2 * math.pi)) + i / 4.0) % 1.0;
+      final x = c.dx + (i - 1.5) * unit * 0.14;
+      final tip = Offset(x + unit * 0.04 * frac, midY - unit * (0.06 + 0.30 * frac));
+      final a = (1 - frac) * 0.7;
+      final r = unit * (0.02 + 0.02 * frac);
+      canvas.drawCircle(tip, r,
+          Paint()..color = _txHeat.withValues(alpha: a)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r));
+    }
+  }
+
+  @override
+  bool shouldRepaint(ElectricFrictionMotifPainter old) =>
+      old.phase != phase || old.section != section;
+}
+
+/// Card 09 — "The Square Tax". A steep parabola rising off a glowing wire baseline,
+/// with a faint straight ghost line for contrast — heat bends upward far faster
+/// than the current. [phase] pulses a glowing dot climbing the curve.
+class SquareTaxMotifPainter extends CustomPainter {
+  SquareTaxMotifPainter({required this.section, this.phase = 0});
+
+  final CardSection section;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final accent = section.isPrismatic ? _goldBright : section.accent;
+    final unit = math.min(size.width, size.height);
+    final originX = size.width * 0.20, originY = size.height * 0.80;
+    final spanX = size.width * 0.62, spanY = size.height * 0.62;
+
+    // the glowing wire baseline (the source of the heat)
+    canvas.drawLine(
+      Offset(size.width * 0.10, originY),
+      Offset(size.width * 0.90, originY),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = unit * 0.03
+        ..strokeCap = StrokeCap.round
+        ..shader = const LinearGradient(colors: [_txHeat, _txWarm])
+            .createShader(Rect.fromLTWH(0, originY, size.width, 1)),
+    );
+
+    // the ghost straight line (if heat only kept pace).
+    canvas.drawLine(
+      Offset(originX, originY),
+      Offset(originX + spanX, originY - spanY * 0.45),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = unit * 0.012
+        ..color = Colors.white.withValues(alpha: 0.22),
+    );
+
+    // the parabola: y = x², bending upward.
+    final curve = Path()..moveTo(originX, originY);
+    const n = 32;
+    Offset at(double t) =>
+        Offset(originX + spanX * t, originY - spanY * t * t);
+    for (var i = 1; i <= n; i++) {
+      final p = at(i / n);
+      curve.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(curve,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = unit * 0.04
+          ..strokeCap = StrokeCap.round
+          ..color = accent.withValues(alpha: 0.3)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+    canvas.drawPath(curve,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = unit * 0.022
+          ..strokeCap = StrokeCap.round
+          ..color = accent);
+
+    // a glowing dot climbing the curve with phase.
+    final t = (phase / (2 * math.pi)) % 1.0;
+    final dot = at(t);
+    _txGlow(canvas, dot, unit * 0.06, accent.withValues(alpha: 0.6));
+    canvas.drawCircle(dot, unit * 0.025, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(SquareTaxMotifPainter old) => old.phase != phase || old.section != section;
+}
+
+/// Card 10 — "Starve the Wire". A tall thin gold rectangle (high voltage, tiny
+/// current) standing over a long cold line reaching a lit far cluster — the
+/// fixed-power trick. A faint squat ghost rectangle behind shows the pinned area.
+/// [phase] sends a cool pulse along the line to the town.
+class StarveTheWireMotifPainter extends CustomPainter {
+  StarveTheWireMotifPainter({required this.section, this.phase = 0});
+
+  final CardSection section;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final accent = section.isPrismatic ? _goldBright : section.accent;
+    final unit = math.min(size.width, size.height);
+
+    // the long cold line across the top, plant → lit town.
+    final plant = Offset(size.width * 0.12, size.height * 0.26);
+    final town = Offset(size.width * 0.84, size.height * 0.26);
+    canvas.drawLine(plant, town,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = unit * 0.016
+          ..color = accent.withValues(alpha: 0.85));
+    // a cool pulse riding the line.
+    final t = (phase / (2 * math.pi)) % 1.0;
+    canvas.drawCircle(Offset.lerp(plant, town, t)!, unit * 0.02,
+        Paint()..color = accent);
+    // small dim plant.
+    canvas.drawRect(Rect.fromCenter(center: plant, width: unit * 0.08, height: unit * 0.07),
+        Paint()..color = const Color(0xFF2A2F45));
+    // the lit far town.
+    _txGlow(canvas, town, unit * 0.16, _txBulb.withValues(alpha: 0.5));
+    final win = Paint()..color = const Color(0xFFFFE7A0);
+    double x = town.dx - unit * 0.13;
+    final ws = [0.045, 0.035, 0.05, 0.04];
+    final hs = [0.05, 0.09, 0.04, 0.07];
+    for (var i = 0; i < ws.length; i++) {
+      final w = unit * ws[i], h = unit * hs[i];
+      canvas.drawRect(Rect.fromLTWH(x, town.dy + unit * 0.06 - h, w, h), win);
+      x += w + unit * 0.012;
+    }
+
+    // the pinned-power rectangle below: ghost (squat/wide) + the tall/narrow one.
+    final cx = size.width * 0.5, baseY = size.height * 0.92;
+    final ghostW = unit * 0.5, ghostH = unit * 0.14;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromLTWH(cx - ghostW / 2, baseY - ghostH, ghostW, ghostH),
+          Radius.circular(unit * 0.02)),
+      Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.01
+        ..color = accent.withValues(alpha: 0.3),
+    );
+    final tallW = unit * 0.16, tallH = unit * 0.40;
+    final tall = Rect.fromLTWH(cx - tallW / 2, baseY - tallH, tallW, tallH);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(tall.inflate(unit * 0.02), Radius.circular(unit * 0.03)),
+      Paint()..color = _txWarm.withValues(alpha: 0.28)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(tall, Radius.circular(unit * 0.02)),
+      Paint()..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [_gold, _txWarm.withValues(alpha: 0.85)],
+      ).createShader(tall),
+    );
+  }
+
+  @override
+  bool shouldRepaint(StarveTheWireMotifPainter old) =>
+      old.phase != phase || old.section != section;
+}
+
+/// Card 11 — "The Still Machine". A transformer: an iron ring core with a few
+/// fixed loops on the left limb, many loops on the right (the turns that set the
+/// voltage), and an amber field breathing through the core — nothing moves but the
+/// field. [phase] drives the field bloom + a pulse climbing the output line.
+class StillMachineMotifPainter extends CustomPainter {
+  StillMachineMotifPainter({required this.section, this.phase = 0});
+
+  final CardSection section;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final accent = section.isPrismatic ? _goldBright : section.accent;
+    final c = Offset(size.width / 2, size.height / 2);
+    final unit = math.min(size.width, size.height);
+    final bloom = (0.4 + 0.6 * (0.5 + 0.5 * math.sin(phase))).clamp(0.0, 1.0);
+
+    // the iron core ring.
+    final ringR = unit * 0.28;
+    canvas.drawCircle(c, ringR,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.085
+          ..color = const Color(0xFF4D5468));
+    // the breathing amber field, additive.
+    canvas.drawCircle(c, ringR,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = unit * 0.03
+          ..blendMode = BlendMode.plus
+          ..color = _txWarm.withValues(alpha: 0.5 * bloom)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+
+    // primary coil — 3 fixed loops on the left limb.
+    final coil = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = unit * 0.016
+      ..color = Colors.white.withValues(alpha: 0.7);
+    for (var i = 0; i < 3; i++) {
+      final y = c.dy - unit * 0.07 + unit * 0.07 * i;
+      canvas.drawOval(
+          Rect.fromCenter(center: Offset(c.dx - ringR, y), width: unit * 0.13, height: unit * 0.05),
+          coil);
+    }
+    // secondary coil — 6 dense loops on the right limb (more turns).
+    final coil2 = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = unit * 0.016
+      ..color = accent.withValues(alpha: 0.9);
+    for (var i = 0; i < 6; i++) {
+      final y = c.dy - ringR * 0.72 + (ringR * 1.44) * (i / 5);
+      canvas.drawOval(
+          Rect.fromCenter(center: Offset(c.dx + ringR, y), width: unit * 0.14, height: unit * 0.045),
+          coil2);
+    }
+
+    // output line rising to the top-right (the higher voltage), with a pulse.
+    final outStart = Offset(c.dx + ringR + unit * 0.07, c.dy - ringR * 0.6);
+    final outEnd = Offset(size.width * 0.92, size.height * 0.10);
+    canvas.drawLine(outStart, outEnd,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.014
+          ..color = accent.withValues(alpha: 0.7));
+    final t = (phase / (2 * math.pi)) % 1.0;
+    canvas.drawCircle(Offset.lerp(outStart, outEnd, t)!, unit * 0.018,
+        Paint()..color = accent);
+  }
+
+  @override
+  bool shouldRepaint(StillMachineMotifPainter old) =>
+      old.phase != phase || old.section != section;
+}
+
+/// Card 12 — "The Two Currents". The top half shows DC: a flat one-way line with a
+/// right-pointing arrow. The bottom half shows AC: a reversing sine wave. The two
+/// currents, side by side. [phase] flows a dot along each — DC steady one way, AC
+/// oscillating — so the difference reads in motion.
+class TwoCurrentsMotifPainter extends CustomPainter {
+  TwoCurrentsMotifPainter({required this.section, this.phase = 0});
+
+  final CardSection section;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final accent = section.isPrismatic ? _goldBright : section.accent;
+    final unit = math.min(size.width, size.height);
+    final lx = size.width * 0.12, rx = size.width * 0.88;
+    final dcY = size.height * 0.34, acY = size.height * 0.68;
+
+    // ── DC: flat steady line + arrow ──
+    canvas.drawLine(Offset(lx, dcY), Offset(rx, dcY),
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.026
+          ..strokeCap = StrokeCap.round
+          ..color = const Color(0xFF8FA6C8));
+    // arrowhead (one way).
+    canvas.drawPath(
+      Path()
+        ..moveTo(rx + unit * 0.04, dcY)
+        ..lineTo(rx - unit * 0.03, dcY - unit * 0.035)
+        ..lineTo(rx - unit * 0.03, dcY + unit * 0.035)
+        ..close(),
+      Paint()..color = const Color(0xFF8FA6C8),
+    );
+    // a steady dot drifting one way.
+    final dct = (phase / (2 * math.pi)) % 1.0;
+    canvas.drawCircle(Offset(lx + (rx - lx) * dct, dcY), unit * 0.022,
+        Paint()..color = _txWarm);
+
+    // ── AC: reversing sine wave ──
+    final wave = Path();
+    const n = 48;
+    final amp = unit * 0.10;
+    for (var i = 0; i <= n; i++) {
+      final t = i / n;
+      final x = lx + (rx - lx) * t;
+      final y = acY - math.sin(t * 2.4 * 2 * math.pi) * amp;
+      if (i == 0) {
+        wave.moveTo(x, y);
+      } else {
+        wave.lineTo(x, y);
+      }
+    }
+    canvas.drawLine(Offset(lx, acY), Offset(rx, acY),
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.008
+          ..color = Colors.white.withValues(alpha: 0.18));
+    canvas.drawPath(wave,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.03
+          ..strokeCap = StrokeCap.round
+          ..color = accent.withValues(alpha: 0.35)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+    canvas.drawPath(wave,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.018
+          ..strokeCap = StrokeCap.round
+          ..color = accent);
+    // a dot oscillating on the wave.
+    final act = (phase / (2 * math.pi)) % 1.0;
+    final ax = lx + (rx - lx) * act;
+    final ay = acY - math.sin(act * 2.4 * 2 * math.pi) * amp;
+    canvas.drawCircle(Offset(ax, ay), unit * 0.022, Paint()..color = _txWarm);
+  }
+
+  @override
+  bool shouldRepaint(TwoCurrentsMotifPainter old) =>
+      old.phase != phase || old.section != section;
+}
+
+/// Card 13 — "The High Road" (EP2 synthesis). The whole case in one icon: a tall
+/// thin gold rectangle (enormous voltage, tiny current) standing over a long cold
+/// line that reaches a lit far cluster across dark terrain. [phase] sends a cool
+/// pulse the full distance — the power beating distance.
+class HighRoadMotifPainter extends CustomPainter {
+  HighRoadMotifPainter({required this.section, this.phase = 0});
+
+  final CardSection section;
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final accent = section.isPrismatic ? _goldBright : section.accent;
+    final unit = math.min(size.width, size.height);
+
+    // faint terrain ridge across the lower third.
+    final ridge = Path()
+      ..moveTo(0, size.height * 0.70)
+      ..quadraticBezierTo(size.width * 0.4, size.height * 0.62,
+          size.width * 0.66, size.height * 0.68)
+      ..quadraticBezierTo(size.width * 0.85, size.height * 0.72, size.width, size.height * 0.66);
+    canvas.drawPath(ridge,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.014
+          ..color = Colors.white.withValues(alpha: 0.07));
+
+    // the tall thin gold rectangle (the voltage/current trade), standing left.
+    final cx = size.width * 0.24, baseY = size.height * 0.84;
+    final tallW = unit * 0.14, tallH = unit * 0.56;
+    final tall = Rect.fromLTWH(cx - tallW / 2, baseY - tallH, tallW, tallH);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(tall.inflate(unit * 0.025), Radius.circular(unit * 0.04)),
+      Paint()..color = _txWarm.withValues(alpha: 0.28)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(tall, Radius.circular(unit * 0.025)),
+      Paint()..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [_gold, _txWarm.withValues(alpha: 0.85)],
+      ).createShader(tall),
+    );
+
+    // the long cold line from the rectangle's top toward the lit far cluster.
+    final lineStart = Offset(cx, tall.top);
+    final town = Offset(size.width * 0.82, size.height * 0.30);
+    canvas.drawLine(lineStart, town,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.04
+          ..color = accent.withValues(alpha: 0.25)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+    canvas.drawLine(lineStart, town,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = unit * 0.014
+          ..color = accent.withValues(alpha: 0.9));
+    // a cool pulse crossing the full distance.
+    final t = (phase / (2 * math.pi)) % 1.0;
+    canvas.drawCircle(Offset.lerp(lineStart, town, t)!, unit * 0.02,
+        Paint()..color = accent);
+
+    // the lit far city.
+    _txGlow(canvas, town, unit * 0.18, _txBulb.withValues(alpha: 0.5));
+    final win = Paint()..color = const Color(0xFFFFE7A0);
+    double x = town.dx - unit * 0.13;
+    final ws = [0.045, 0.035, 0.05, 0.04, 0.045];
+    final hs = [0.05, 0.10, 0.045, 0.08, 0.06];
+    for (var i = 0; i < ws.length; i++) {
+      final w = unit * ws[i], h = unit * hs[i];
+      canvas.drawRect(Rect.fromLTWH(x, town.dy + unit * 0.07 - h, w, h), win);
+      x += w + unit * 0.011;
+    }
+  }
+
+  @override
+  bool shouldRepaint(HighRoadMotifPainter old) =>
+      old.phase != phase || old.section != section;
+}

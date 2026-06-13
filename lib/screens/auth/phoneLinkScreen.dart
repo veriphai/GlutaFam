@@ -13,8 +13,6 @@
 // [newUser] — first-timers continue into OnboardingFlow (name → age group →
 // interests), returning users land on the '/home' named route.
 
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
@@ -182,9 +180,7 @@ class _PhoneLinkScreenState extends State<PhoneLinkScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _topBar(),
-        const SizedBox(height: 28),
-        const Center(child: _PhoneHero()),
-        const SizedBox(height: 28),
+        const SizedBox(height: 32),
         _heading(),
         const SizedBox(height: 12),
         _subheading(),
@@ -450,9 +446,10 @@ class _PhoneLinkScreenState extends State<PhoneLinkScreen>
                     Text(
                       'Continue',
                       style: GoogleFonts.poppins(
-                        // 16 → 19 (~+19%).
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
+                        // Toned down from 19 / w800 to match the login
+                        // screen's calmer auth-button label.
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w500,
                         color: CareerColors.onLight,
                         letterSpacing: 0.2,
                       ),
@@ -530,107 +527,6 @@ class _PhoneLinkScreenState extends State<PhoneLinkScreen>
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────
-// Hero phone icon — a gold-glowing hex badge with a phone glyph inside.
-// Matches the badge/sticker aesthetic used elsewhere in the app (career
-// rewards row, lesson thumbnails) so this screen feels like a member of
-// the same family rather than a generic settings page.
-// ───────────────────────────────────────────────────────────────────────
-
-class _PhoneHero extends StatelessWidget {
-  const _PhoneHero();
-
-  static const _size = 108.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: _size + 40,
-      height: _size + 40,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Outer soft glow halo.
-          Container(
-            width: _size + 36,
-            height: _size + 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  CareerColors.gold.withValues(alpha: 0.22),
-                  CareerColors.gold.withValues(alpha: 0.0),
-                ],
-                stops: const [0.0, 1.0],
-              ),
-            ),
-          ),
-          // The hex badge with the phone glyph.
-          SizedBox(
-            width: _size,
-            height: _size,
-            child: CustomPaint(
-              painter: _HexBadgePainter(),
-              child: const Center(
-                child: Icon(
-                  Icons.phone_iphone_rounded,
-                  size: 46,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HexBadgePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final cx = w / 2, cy = h / 2;
-    final r = w / 2;
-
-    // Hex path (point-up flat-bottom, rotated for the "shield" feel
-    // used elsewhere in the app).
-    final path = Path();
-    for (int i = 0; i < 6; i++) {
-      final angle = (i * 60 - 90) * math.pi / 180;
-      final x = cx + r * 0.96 * math.cos(angle);
-      final y = cy + r * 0.96 * math.sin(angle);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-
-    // Fill — gold gradient to dark gold for depth.
-    final fill = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          CareerColors.gold,
-          Color.lerp(CareerColors.gold, Colors.black, 0.55)!,
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
-    canvas.drawPath(path, fill);
-
-    // Highlight stroke on the upper edge for that premium "lit" feel.
-    final stroke = Paint()
-      ..color = Colors.white.withValues(alpha: 0.55)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6;
-    canvas.drawPath(path, stroke);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 // ───────────────────────────────────────────────────────────────────────
 // PRESERVED OTP IMPLEMENTATION — kept verbatim for easy re-enable.

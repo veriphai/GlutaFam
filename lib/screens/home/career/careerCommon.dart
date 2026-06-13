@@ -425,6 +425,17 @@ class IllustrationPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? a = asset;
+    // Network URL (http*) → NetworkImage; bundled path → AssetImage. Lets a
+    // backend-supplied illustration (e.g. WOW-concept card art on S3) ride the
+    // same full-bleed slot as a bundled profession asset.
+    final DecorationImage? bg = (a == null || a.isEmpty)
+        ? null
+        : DecorationImage(
+            image: a.startsWith('http') ? NetworkImage(a) : AssetImage(a) as ImageProvider,
+            fit: BoxFit.cover,
+            onError: (_, __) {}, // silently fall back to the gradient
+          );
     return Container(
       decoration: BoxDecoration(
         borderRadius: borderRadius,
@@ -433,13 +444,7 @@ class IllustrationPanel extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: gradient,
         ),
-        image: asset == null
-            ? null
-            : DecorationImage(
-                image: AssetImage(asset!),
-                fit: BoxFit.cover,
-                onError: (_, __) {}, // silently fall back to the gradient
-              ),
+        image: bg,
       ),
       child: child,
     );

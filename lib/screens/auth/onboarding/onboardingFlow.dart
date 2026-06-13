@@ -132,6 +132,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   void _goTo(int step) {
+    // Dismiss the name-field keyboard before transitioning. Without this the
+    // step-0 keyboard lingers over step 1, and the Android back gesture used
+    // to close it gets caught by PopScope (canPop is false past step 0) and
+    // walks the step back instead of just dismissing the keyboard.
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _step = step);
     _page.animateToPage(
       step,
@@ -315,9 +320,10 @@ class GoldCta extends StatelessWidget {
         ),
         child: Text(
           label,
-          // 17 → 20.5 (~+20%) to match the welcome CTA.
+          // Toned down from 20.5 / w700 to match the calmer auth-button
+          // label used across the login + phone screens.
           style:
-              GoogleFonts.poppins(fontSize: 20.5, fontWeight: FontWeight.w700),
+              GoogleFonts.poppins(fontSize: 15.5, fontWeight: FontWeight.w500),
         ),
       ),
     );
@@ -469,6 +475,9 @@ class _AgeStep extends StatelessWidget {
             child: GridView.count(
               crossAxisCount: 2,
               physics: const NeverScrollableScrollPhysics(),
+              // Let the selected card's 1.04 scale + gold glow paint past the
+              // grid bounds instead of being clipped at the top / edges.
+              clipBehavior: Clip.none,
               mainAxisSpacing: 14,
               crossAxisSpacing: 14,
               childAspectRatio: 1.25,

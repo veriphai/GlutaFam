@@ -27,6 +27,17 @@ class EpisodeBoardCapture {
 
   final List<EvidenceTileFlash> _queue = [];
 
+  /// Start a FRESH episode run: wipe any evidence persisted from a prior run so the
+  /// board begins empty and is collected anew. Called by the episode's FIRST
+  /// activity ONLY; later activities call [load] to keep what's accumulated.
+  Future<void> reset() async {
+    await EvidenceStore.clear(episodeId);
+    capturedIds.value = const [];
+    images.value = const {};
+    _queue.clear();
+    flashing.value = null;
+  }
+
   /// Seed from the store (pinned ids) + the in-memory image cache (frames from
   /// earlier in this session). Never throws — id load is the only await.
   Future<void> load() async {
@@ -45,7 +56,7 @@ class EpisodeBoardCapture {
   /// REPLAY (id already pinned) it still backfills a fresh frame but doesn't
   /// re-pin/re-animate, so re-running the activity refreshes a missing image.
   void capture(String id, {Uint8List? imageBytes}) {
-    final tile = evidenceById(id);
+    final tile = evidenceByIdFor(episodeId, id);
     if (tile == null) return;
     final already = capturedIds.value.contains(id);
     if (imageBytes != null && images.value[id] == null) {

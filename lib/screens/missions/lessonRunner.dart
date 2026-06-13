@@ -52,6 +52,8 @@ import '../../utils/howwowEventNames.dart';
 import '../../utils/s3_assets.dart';
 import '../../utils/s3_audio.dart';
 import 'activityRegistry.dart';
+import 'activity_header.dart' show LessonActivityScope, ReplayableActivity;
+import 'lessonActivityTitleScreen.dart';
 import 'lessonImageScreen.dart';
 import 'missionVideoScreen.dart';
 
@@ -102,6 +104,14 @@ Future<LessonRunResult> openLesson(
   int startFromIndex = 0,
 }) async {
   if (resources.isEmpty) return LessonRunResult.none;
+  // EVERY lesson (concept AND career) guards BACK on its activities: a back
+  // gesture / header-back raises the leave-confirm modal, and only an explicit
+  // complete (pop true, via completeActivity) advances — exactly like a video.
+  // Previously only concept lessons guarded; career activities treated "any
+  // pop = done", so a back during a satellite activity silently advanced to the
+  // outro instead of asking. (For this to be correct, every activity must finish
+  // via completeActivity, not a bare maybePop — see each activity's success CTA.)
+  final guardLeave = lessonId != null && lessonId.isNotEmpty;
   // If the resume index is past the end (e.g. user taps a fully-completed
   // lesson hoping to re-watch), restart from the beginning instead of
   // falling through to the "not available yet" snackbar. Re-submission
@@ -156,7 +166,7 @@ Future<LessonRunResult> openLesson(
       );
     }
     final r = resources[i];
-    final route = _routeFor(r, lessonId: lessonId, resourceIndex: i);
+    final route = _routeFor(r, lessonId: lessonId, resourceIndex: i, guardLeave: guardLeave);
     if (route == null) continue;
 
     // Background-warm the NEXT upcoming activity (if any) while the
@@ -178,6 +188,32 @@ Future<LessonRunResult> openLesson(
 
     launchedAny = true;
     lastIndexEntered = i;
+
+    // Pre-roll "chapter title" card for a NAMED activity (its resource carries
+    // a `caption` — the human title). Surfaces the activity's name, then
+    // auto-advances into it. NOT a resource: no progress write, no index shift.
+    // A system-back on the card leaves the lesson (stops the run); CER beats
+    // (case briefing / make-your-case) have no caption, so they get no card.
+    if (r.type == 'activity' && (r.caption?.trim().isNotEmpty ?? false)) {
+      final go = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => LessonActivityTitleScreen(title: r.caption!.trim()),
+        ),
+      );
+      if (!context.mounted) {
+        await completionChain;
+        return LessonRunResult(
+          launchedAny: launchedAny,
+          lessonCompleted: lastCompletion?.lessonCompleted ?? false,
+          nextLessonId: lastCompletion?.nextLessonId,
+        );
+      }
+      if (go != true) {
+        backedOut = true;
+        break;
+      }
+    }
+
     // Telemetry on the resource being pushed — paired with the
     // resource_completed mirror that fires after the pop (we already
     // POST progress; the event is just the analytics-side echo).
@@ -216,7 +252,12 @@ Future<LessonRunResult> openLesson(
     // Backing out of a media screen means "leave the lesson" — stop
     // pushing further resources and do NOT mark this one complete, so the
     // next open resumes right here.
-    final finished = r.type == 'activity' || result == true;
+    // For a GUARDED activity, only an explicit complete (pop `true`) advances; a
+    // pop(false) from the leave modal / system-back stops the run. Unguarded
+    // (career) activities keep "any pop = done"; media finish on `true`.
+    final finished = r.type == 'activity'
+        ? (guardLeave ? result == true : true)
+        : result == true;
     if (!finished) {
       backedOut = true;
       break;
@@ -271,6 +312,34 @@ Future<LessonRunResult> openLesson(
   );
 }
 
+/// Called by an activity's "Replay" button (on the collectible earn screen):
+/// restart the CURRENT activity from scratch, IN PLACE (no navigation), via the
+/// [ReplayableActivity] host the runner wraps around every activity — so it
+/// works the same inside a lesson and standalone, and never disturbs the lesson
+/// runner's route stack. Falls back to a pop only if there's no host (an
+/// unexpected launch path that didn't wrap the activity).
+void replayCurrentActivity(BuildContext context) {
+  final restart = LessonActivityScope.replayOf(context);
+  if (restart != null) {
+    restart();
+  } else {
+    Navigator.of(context).maybePop();
+  }
+}
+
+/// Called by a concept activity's COMPLETION (its card "Continue" / success).
+/// Pops the activity with `true` via the [ReplayableActivity] host so the runner
+/// ADVANCES — bypassing the back-confirm guard. Outside a guarded host (career /
+/// standalone) it just maybePops, preserving the old "any pop = done" behaviour.
+void completeActivity(BuildContext context) {
+  final complete = LessonActivityScope.completeOf(context);
+  if (complete != null) {
+    complete();
+  } else {
+    Navigator.of(context).maybePop();
+  }
+}
+
 /// Per-call dedupe map: activityId → Future of the precache pass started
 /// for it. Cleared implicitly when the lesson ends and this function
 /// returns — a new openLesson() call starts fresh, which is the right
@@ -309,7 +378,7 @@ String? _peekNextActivityId(List<HowwowLessonResource> resources, int fromIndex)
 /// Routes are typed `<bool>` for the pop-result protocol: media screens
 /// pop `true` on finish, null on back-out (see the loop in openLesson).
 MaterialPageRoute<bool>? _routeFor(HowwowLessonResource r,
-    {String? lessonId, int? resourceIndex}) {
+    {String? lessonId, int? resourceIndex, bool guardLeave = false}) {
   switch (r.type) {
     case 'video':
       final url = r.url;
@@ -340,12 +409,23 @@ MaterialPageRoute<bool>? _routeFor(HowwowLessonResource r,
     case 'activity':
       final widget = buildActivityScreen(r.activityId);
       if (widget == null) return null;
-      // No leave-confirm wrapper here: activities finish via
-      // Navigator.maybePop() from their success screens, which a
-      // PopScope(canPop:false) guard would intercept — making the
-      // "Continue" button open the leave dialog and trap the user (the
-      // exact bug this replaced). Activities just pop = done.
-      return MaterialPageRoute<bool>(builder: (_) => widget);
+      // Provide the activity's display name (the same caption shown on the
+      // pre-roll title card) to the subtree, so every activity's header
+      // renders it consistently via ActivityNameHeader. No leave-confirm
+      // wrapper here: activities finish via Navigator.maybePop() from their
+      // success screens, which a PopScope(canPop:false) guard would
+      // intercept — making the "Continue" button open the leave dialog and
+      // trap the user (the exact bug this replaced). Activities just pop = done.
+      final activityName = r.caption?.trim();
+      return MaterialPageRoute<bool>(
+        builder: (_) => ReplayableActivity(
+          activityName: (activityName != null && activityName.isNotEmpty)
+              ? activityName
+              : null,
+          guardLeave: guardLeave,
+          child: widget,
+        ),
+      );
     default:
       return null;
   }

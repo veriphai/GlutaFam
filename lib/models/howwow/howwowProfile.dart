@@ -147,7 +147,11 @@ class HowwowCurrentLesson {
   const HowwowCurrentLesson({
     this.lessonId,
     this.professionId,
+    this.professionName,
     this.worldId,
+    this.imageUrl,
+    this.accentColor,
+    this.kind,
     this.lessonNumber = 0,
     this.title,
     this.skills = const [],
@@ -160,7 +164,28 @@ class HowwowCurrentLesson {
 
   final String? lessonId;
   final String? professionId;
+
+  /// Display name of the owning profession/concept. Carried in the payload
+  /// because the home professions list excludes concepts, so a concept hero
+  /// card can't resolve its name from there.
+  final String? professionName;
+
   final String? worldId;
+
+  /// Card/hero illustration of the owning profession/concept (S3 URL or a
+  /// bundled `assets/...` path). Lets the hero card show a concept's own art.
+  final String? imageUrl;
+
+  /// Accent colour (hex) of the owning profession/concept — themes the hero
+  /// card's border, glow and "WOW CONCEPT" chip for concepts.
+  final String? accentColor;
+
+  /// Kind of the owning profession: `"concept"` for a WOW concept (the
+  /// "How Things Work" series), `"career"`/null for a regular career.
+  /// Drives the hero card's framing and world-label visibility. See
+  /// [isConcept].
+  final String? kind;
+
   final int lessonNumber;
   final String? title;
   final List<String> skills;
@@ -194,6 +219,10 @@ class HowwowCurrentLesson {
   /// resource works today).
   bool get started => startedAt != null || lastCompletedResourceIndex >= 0;
 
+  /// True when this lesson belongs to a WOW concept rather than a career.
+  /// Treats null/blank `kind` as a career (matches the backend default).
+  bool get isConcept => kind == 'concept';
+
   /// Index of the resource the user is on (= next to play). Always the
   /// derivation `lastCompleted + 1` clamped to the list — the server
   /// enforces monotonic completion so this never disagrees with a
@@ -205,7 +234,11 @@ class HowwowCurrentLesson {
   factory HowwowCurrentLesson.fromJson(Map<String, dynamic> j) => HowwowCurrentLesson(
         lessonId: j['lessonId'] as String?,
         professionId: j['professionId'] as String?,
+        professionName: j['professionName'] as String?,
         worldId: j['worldId'] as String?,
+        imageUrl: j['imageUrl'] as String?,
+        accentColor: j['accentColor'] as String?,
+        kind: j['kind'] as String?,
         lessonNumber: _int(j['lessonNumber']),
         title: j['title'] as String?,
         skills: (j['skills'] as List?)?.map((e) => e.toString()).toList() ?? const [],

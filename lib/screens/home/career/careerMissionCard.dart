@@ -23,9 +23,9 @@ class ContinueMissionCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(CareerRadii.card),
-        gradient: CareerGradients.heroBorder,
+        gradient: _borderGradient,
         boxShadow: [
-          BoxShadow(color: CareerColors.purple.withValues(alpha: 0.30), blurRadius: 24, offset: const Offset(0, 10)),
+          BoxShadow(color: _glow.withValues(alpha: 0.30), blurRadius: 24, offset: const Offset(0, 10)),
         ],
       ),
       padding: const EdgeInsets.all(1.4),
@@ -47,20 +47,12 @@ class ContinueMissionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Full-bleed illustration, shifted right so the scene hugs the
-                // right border; the far-left of the scene overflows off-card
-                // (clipped) and the freed-up left becomes clean space for text.
-                Positioned.fill(
-                  child: Transform.translate(
-                    offset: Offset(w * 0.12, 0),
-                    child: Image.asset(
-                      'assets/images/hero_mission.png',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
-                ),
+                // Full-bleed illustration. Careers use the bundled hero scene
+                // (shifted right so its empty left overflows off-card, freeing
+                // clean space for text); WOW concepts use their OWN card art,
+                // filling the card so the readability scrim below simply fades
+                // it out under the text on the left.
+                Positioned.fill(child: _heroImage(w)),
                 // Readability scrim: dark on the left (text), clear on the right (art).
                 const Positioned.fill(
                   child: DecoratedBox(
@@ -83,30 +75,52 @@ class ContinueMissionCard extends StatelessWidget {
                     children: [
                       _badgeLabel(),
                       const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(mission.profession,
-                              maxLines: 1,
-                              style: CareerText.heroTitle
-                                  .copyWith(shadows: const [Shadow(color: Colors.black54, blurRadius: 8)])),
+                      // Concept names are long ("How Electricity Reaches Your
+                      // Home") — let them wrap to two lines at full size rather
+                      // than shrink to one. Careers ("Satellite Engineer") keep
+                      // the single-line scale-to-fit treatment.
+                      if (mission.isConcept)
+                        Text(
+                          mission.profession,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: CareerText.heroTitle.copyWith(
+                              fontSize: 18,
+                              height: 1.05,
+                              shadows: const [Shadow(color: Colors.black54, blurRadius: 8)]),
+                        )
+                      else
+                        SizedBox(
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(mission.profession,
+                                maxLines: 1,
+                                style: CareerText.heroTitle
+                                    .copyWith(shadows: const [Shadow(color: Colors.black54, blurRadius: 8)])),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Text('🪐', style: TextStyle(fontSize: 12)),
-                        const SizedBox(width: 5),
-                        Text(mission.world, style: CareerText.worldLabel.copyWith(color: CareerColors.blue, fontWeight: FontWeight.w700)),
-                      ]),
-                      const SizedBox(height: 7),
-                      Text(mission.missionTitle,
-                          style: CareerText.body.copyWith(
-                              color: Colors.white,
-                              fontSize: 11,
-                              shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
-                          maxLines: 2),
+                      if (_showWorld) ...[
+                        const SizedBox(height: 3),
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Text('🪐', style: TextStyle(fontSize: 12)),
+                          const SizedBox(width: 5),
+                          Text(mission.world, style: CareerText.worldLabel.copyWith(color: CareerColors.blue, fontWeight: FontWeight.w700)),
+                        ]),
+                      ],
+                      // The specific episode title (e.g. "Prologue — What
+                      // Electricity Does") shows for careers, but is omitted for
+                      // WOW concepts where the concept name alone leads.
+                      if (!mission.isConcept) ...[
+                        const SizedBox(height: 7),
+                        Text(mission.missionTitle,
+                            style: CareerText.body.copyWith(
+                                color: Colors.white,
+                                fontSize: 11,
+                                shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
+                            maxLines: 2),
+                      ],
                       if (_resumeHint() != null) ...[
                         const SizedBox(height: 4),
                         Text(_resumeHint()!,
@@ -117,16 +131,17 @@ class ContinueMissionCard extends StatelessWidget {
                                 shadows: const [Shadow(color: Colors.black54, blurRadius: 6)]),
                             maxLines: 1),
                       ],
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: const [
-                          SkillChip(icon: Icons.graphic_eq_rounded, label: 'Signals'),
-                          SkillChip(icon: Icons.settings_input_antenna_rounded, label: 'Antennas'),
-                          SkillChip(icon: Icons.desktop_windows_rounded, label: 'Mission Control'),
-                        ],
-                      ),
+                      if (mission.skills.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final skill in mission.skills)
+                              SkillChip(icon: Icons.auto_awesome_rounded, label: skill),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 11),
                       _progress(),
                       const SizedBox(height: 11),
@@ -141,6 +156,67 @@ class ContinueMissionCard extends StatelessWidget {
       ),
     );
   }
+
+  /// Accent used for concept theming — the profession/concept accent, or a
+  /// gold default until the backend supplies one. Only consulted for concepts.
+  Color get _accent => mission.accent ?? CareerColors.gold;
+
+  /// Card border gradient: concepts use a gradient built from their accent
+  /// (electricity → gold); careers keep the default purple→blue hero border.
+  Gradient get _borderGradient => mission.isConcept
+      ? LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color.lerp(_accent, Colors.white, 0.30)!, _accent],
+        )
+      : CareerGradients.heroBorder;
+
+  /// Outer glow colour, matched to the border family.
+  Color get _glow => mission.isConcept ? _accent : CareerColors.purple;
+
+  /// The full-bleed hero illustration behind the mission content.
+  ///
+  /// • Career → the bundled `hero_mission.png` scene, nudged right by 12% so
+  ///   its empty left edge clips off-card and leaves clean space for text.
+  /// • WOW concept → the concept's own card art ([mission.asset], an S3 URL
+  ///   or bundled path), filling the card; the readability scrim above does
+  ///   the left-side fade so the title/subtitle stay legible. Same visual
+  ///   language as the career card, just sourced per-concept.
+  Widget _heroImage(double w) {
+    if (mission.isConcept) {
+      final src = mission.asset;
+      if (src == null || src.isEmpty) return const SizedBox.shrink();
+      return src.startsWith('http')
+          ? Image.network(
+              src,
+              fit: BoxFit.cover,
+              alignment: Alignment.centerRight,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            )
+          : Image.asset(
+              src,
+              fit: BoxFit.cover,
+              alignment: Alignment.centerRight,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            );
+    }
+    return Transform.translate(
+      offset: Offset(w * 0.12, 0),
+      child: Image.asset(
+        'assets/images/hero_mission.png',
+        fit: BoxFit.cover,
+        alignment: Alignment.center,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      ),
+    );
+  }
+
+  /// Whether to render the "🪐 World" line. WOW concepts carry only a
+  /// label-only worldId (no seeded world doc), so the resolved name is
+  /// unfriendly — hide the row for concepts, and whenever the backend hands
+  /// us no world at all.
+  bool get _showWorld =>
+      !mission.isConcept && mission.world.trim().isNotEmpty;
 
   /// "Resume step 2 of 3 — the mission!" hint, shown only when the user is
   /// mid-way through the current lesson AND the payload carries step info
@@ -164,9 +240,10 @@ class ContinueMissionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(7, 4, 10, 4),
       decoration: BoxDecoration(
-        color: CareerColors.purple.withValues(alpha: 0.40),
+        color: (mission.isConcept ? _accent : CareerColors.purple).withValues(alpha: 0.40),
         borderRadius: BorderRadius.circular(CareerRadii.pill),
-        border: Border.all(color: CareerColors.purple.withValues(alpha: 0.6)),
+        border: Border.all(
+            color: (mission.isConcept ? _accent : CareerColors.purple).withValues(alpha: 0.6)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.play_arrow_rounded, size: 14, color: Colors.white),
@@ -174,8 +251,11 @@ class ContinueMissionCard extends StatelessWidget {
         // "START" for a brand-new user, "CONTINUE" once they've made any
         // progress — including being mid-way through their FIRST lesson
         // (inProgress covers started-but-nothing-completed via the
-        // server's resource-start write).
-        Text(mission.inProgress ? 'CONTINUE CAREER MISSION' : 'START CAREER MISSION',
+        // server's resource-start write). The noun follows the profession's
+        // kind: a WOW concept reads "WOW CONCEPT", a career "CAREER MISSION".
+        Text(
+            '${mission.inProgress ? 'CONTINUE' : 'START'} '
+            '${mission.isConcept ? 'WOW CONCEPT' : 'CAREER MISSION'}',
             style: CareerText.label),
       ]),
     );

@@ -14,6 +14,7 @@ import '../../collectibles/collectible_earn_overlay.dart';
 import '../../collectibles/collectible_models.dart';
 import '../../home/career/careerCommon.dart';
 import '../../home/career/careerTheme.dart';
+import '../lessonRunner.dart';
 import 'config/creature_tuning.dart';
 import 'config/genome.dart';
 import 'engine/helix_beat_engine.dart';
@@ -59,7 +60,7 @@ class _RecipeCreatureScreenState extends State<RecipeCreatureScreen>
     if (dt > 0 && dt < 0.1) _controller.tick(dt);
   }
 
-  void _finish() => Navigator.of(context).maybePop();
+  void _finish() => completeActivity(context);
 
   @override
   void dispose() {

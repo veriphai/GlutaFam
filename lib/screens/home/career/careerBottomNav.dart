@@ -21,7 +21,8 @@ class _CareerBottomNavState extends State<CareerBottomNav> {
 
   static const List<(IconData, String)> _items = [
     (Icons.home_rounded, 'Home'),
-    (Icons.sports_esports_rounded, 'Play'), // opens the ActivitiesScreen hub
+    // (Icons.sports_esports_rounded, 'Play'),    // opens the ActivitiesScreen
+    //   hub. Hidden for now — uncomment to bring the Play tab back.
     (Icons.public_rounded, 'Worlds'),
     // (Icons.menu_book_rounded, 'Passport'),     // hidden until the
     //   passport feature ships.

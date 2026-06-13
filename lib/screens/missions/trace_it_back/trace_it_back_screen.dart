@@ -18,18 +18,20 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../collectibles/collectible_earn_overlay.dart';
+import '../activity_header.dart';
+import '../lessonRunner.dart';
 import '../../collectibles/collectible_models.dart';
 import '../../home/career/careerCommon.dart';
 import '../../home/career/careerTheme.dart';
-import '../episode_board/capture_flash.dart';
+import '../episode_board/photo_capture_flash.dart';
+import '../episode_board/case_node.dart';
 import '../episode_board/episode_board_capture.dart';
-import '../episode_board/episode_board_strip.dart';
+import '../episode_board/evidence_board_drawer.dart';
 import '../episode_board/evidence_models.dart';
-import '../episode_board/scene_snapshot.dart';
+import '../episode_board/activity_background.dart';
 import 'config/trace_back_beats.dart';
 import 'game/trace_back_game.dart';
 import 'state/trace_back_controller.dart';
-import 'widgets/energy_field_background.dart';
 
 class TraceItBackScreen extends StatefulWidget {
   const TraceItBackScreen({super.key});
@@ -44,6 +46,11 @@ class _TraceItBackScreenState extends State<TraceItBackScreen> {
   late final Widget _gameWidget;
   final EpisodeBoardCapture _board = EpisodeBoardCapture(kEpisode1Id);
   final GlobalKey _sceneKey = GlobalKey();
+  final GlobalKey _nodeKey = GlobalKey(); // the case node, for an accurate fly target
+
+  // Episode-board overlays (zero layout footprint): the corner node + peek drawer.
+  // (The guiding question is posed by the case-briefing intro screen, not here.)
+  bool _showDrawer = false;
 
   final AudioPlayer _bgm = AudioPlayer(); // ambient music bed (no VO)
   static const double _bgmVol = 0.16;
@@ -51,7 +58,9 @@ class _TraceItBackScreenState extends State<TraceItBackScreen> {
   @override
   void initState() {
     super.initState();
-    _board.load();
+    // Act 2 is the episode's FIRST activity → start the evidence board fresh, so
+    // each new run collects evidence again (Act 3 + the closing then accumulate it).
+    _board.reset();
     _controller = TraceBackController()
       ..onCrankTick = _hapticTick
       ..onDiscovery = () { HapticFeedback.heavyImpact(); } // the "it died" beat
@@ -81,16 +90,27 @@ class _TraceItBackScreenState extends State<TraceItBackScreen> {
 
   void _onCapture(String id) {
     HapticFeedback.lightImpact();
-    // Snapshot the ACTUAL scene at this discovery beat (PRD §8) → the tile shows
-    // the real frame the kid saw. Post-frame so the beat's visual is painted.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final bytes = await captureScenePng(_sceneKey, cropFactor: evidenceById(id)?.cropFactor);
-      if (!mounted) return;
-      _board.capture(id, imageBytes: bytes);
-    });
+    // Pin the moment + play the capture animation. The tile shows the pre-kept
+    // "perfect" frame (assets/images/episode_board/evidence/<id>.png) — no live,
+    // timing-fragile screenshot; the discovery still FEELS captured.
+    _board.capture(id);
   }
 
-  void _finish() => Navigator.of(context).maybePop();
+  void _finish() => completeActivity(context);
+
+  /// The case node's global centre — so a captured photo flies to land on it.
+  Offset? _nodeCenter() {
+    final box = _nodeKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.localToGlobal(box.size.center(Offset.zero));
+  }
+
+  Widget _node() => CaseNode(
+        key: _nodeKey,
+        capturedIds: _board.capturedIds,
+        images: _board.images,
+        onTap: () => setState(() => _showDrawer = true),
+      );
 
   @override
   void dispose() {
@@ -116,7 +136,7 @@ class _TraceItBackScreenState extends State<TraceItBackScreen> {
                 key: _sceneKey,
                 child: Stack(
                   children: [
-                    const Positioned.fill(child: EnergyFieldBackground()),
+                    const Positioned.fill(child: ActivityDossierBackground()),
                     Positioned.fill(child: _gameWidget),
                   ],
                 ),
@@ -140,29 +160,14 @@ class _TraceItBackScreenState extends State<TraceItBackScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                   child: Column(
                     children: [
-                      // Back button (top-left).
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: PressableScale(
-                          onTap: _finish,
-                          child: GlassSurface(
-                            radius: 14,
-                            padding: const EdgeInsets.all(8),
-                            child: const Icon(Icons.arrow_back_rounded,
-                                size: 20, color: CareerColors.textPrimary),
-                          ),
-                        ),
+                      // Standard activity header: back + name, with the case
+                      // node kept as the right-side control.
+                      ActivityNameHeader(
+                        onBack: () => Navigator.of(context).maybePop(),
+                        fallbackName: 'How Electricity Is Made',
+                        trailing: _node(),
                       ),
-                      const SizedBox(height: 10),
-                      // The pinned episode board — the guiding question + the felt
-                      // moments that auto-capture as the kid traces the sources back.
-                      EpisodeBoardStrip(
-                        question: kEpisode1Question,
-                        capturedIds: _board.capturedIds,
-                        images: _board.images,
-                        accent: CareerColors.gold,
-                      ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 4),
                       // Two de-personified registers: bold imperatives (what to do)
                       // + softer meaning-lines (the lesson), plus the solar hook.
                       _TopText(caption: _controller.caption, secondary: _controller.secondary),
@@ -175,20 +180,31 @@ class _TraceItBackScreenState extends State<TraceItBackScreen> {
                 ),
               ),
             ),
-            // The auto-capture moment — a framed moment-tile pins to the board.
+            // The auto-capture moment — a photo snaps + flies up to the node.
             Positioned.fill(
               child: ValueListenableBuilder<EvidenceTileFlash?>(
                 valueListenable: _board.flashing,
                 builder: (context, flash, _) => flash == null
                     ? const IgnorePointer(child: SizedBox.shrink())
-                    : CaptureFlash(
+                    : PhotoCaptureFlash(
                         key: ValueKey(flash.tile.id),
                         tile: flash.tile,
                         imageBytes: flash.imageBytes,
+                        dockTarget: _nodeCenter(),
                         onDone: _board.flashDone,
                       ),
               ),
             ),
+            // The peek drawer (the case board), opened from the node.
+            if (_showDrawer)
+              Positioned.fill(
+                child: EvidenceBoardDrawer(
+                  question: kEpisode1Question,
+                  capturedIds: _board.capturedIds,
+                  images: _board.images,
+                  onClose: () { if (mounted) setState(() => _showDrawer = false); },
+                ),
+              ),
             Positioned.fill(
               child: ValueListenableBuilder<bool>(
                 valueListenable: _controller.showCardEarn,
@@ -198,7 +214,8 @@ class _TraceItBackScreenState extends State<TraceItBackScreen> {
                         eyebrow: 'NEW CARD',
                         brag: TBCopy.cardBrag,
                         showMascot: false, // no Voltix in this activity
-                        onDone: _controller.onCardCollected,
+                        onDone: _finish,
+                        onReplay: () => replayCurrentActivity(context),
                       )
                     : const IgnorePointer(child: SizedBox.shrink()),
               ),

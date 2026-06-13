@@ -10,8 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../../../home/career/careerCommon.dart';
-import '../../episode_board/evidence_tile.dart';
-import '../config/cer_copy.dart';
+import '../../episode_board/photo_card.dart';
 import '../state/cer_controller.dart';
 import 'cer_chrome.dart';
 
@@ -26,24 +25,31 @@ class EvidenceSelectScreen extends StatelessWidget {
     final tiles = c.stageTiles;
     final lastStage = c.evidenceStage >= c.totalStages - 1;
     final width = MediaQuery.of(context).size.width;
-    final tileSize = ((width - 32 - 16) / 2).clamp(120.0, 168.0);
+    final cardW = (width - 48) / 2;
+    final photo = (cardW / 1.12).clamp(110.0, 170.0);
 
     return Column(
       children: [
-        const CerQuestionHeader(step: 1),
+        CerQuestionHeader(question: c.config.question, step: 1),
         const SizedBox(height: 18),
         Text(
-          CerCopy.evidenceTask,
+          c.config.evidenceTask,
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15),
         ),
         const SizedBox(height: 4),
         Text(
-          CerCopy.evidenceHint,
+          c.config.evidenceHint,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.6)),
         ),
         const SizedBox(height: 18),
+        // The bulb hint — offered only AFTER a first unaided pass (once the kid has
+        // bounced off the playback gate), so the first attempt stays their own.
+        if (c.attemptedFinish) ...[
+          _EvidenceHintRow(controller: c),
+          const SizedBox(height: 16),
+        ],
         Expanded(
           child: Center(
             child: SingleChildScrollView(
@@ -53,20 +59,20 @@ class EvidenceSelectScreen extends StatelessWidget {
                   key: ValueKey(c.evidenceStage),
                   alignment: WrapAlignment.center,
                   spacing: 16,
-                  runSpacing: 16,
+                  runSpacing: 18,
                   children: [
-                    for (final t in tiles)
+                    for (var i = 0; i < tiles.length; i++)
                       PressableScale(
                         onTap: () {
                           HapticFeedback.selectionClick();
-                          c.openPreview(t.id); // tap opens the clue to inspect + keep
+                          c.openPreview(tiles[i].id); // tap opens the clue to inspect + keep
                         },
-                        child: EvidenceTileView(
-                          tile: t,
-                          size: tileSize,
-                          selected: c.kept.contains(t.id),
-                          showSource: true,
-                          imageBytes: c.imageBytes[t.id],
+                        child: PhotoCard(
+                          tile: tiles[i],
+                          size: photo,
+                          kept: c.kept.contains(tiles[i].id),
+                          tilt: (i.isEven ? 1 : -1) * 0.025,
+                          imageBytes: c.imageBytes[tiles[i].id],
                         ),
                       ),
                   ],
@@ -82,7 +88,7 @@ class EvidenceSelectScreen extends StatelessWidget {
           children: [
             if (c.evidenceStage > 0) ...[
               CerCtaPill(
-                label: CerCopy.backCta,
+                label: c.config.backCta,
                 icon: Icons.arrow_back_rounded,
                 filled: false,
                 onTap: c.prevStage,
@@ -91,11 +97,79 @@ class EvidenceSelectScreen extends StatelessWidget {
             ],
             Expanded(
               child: lastStage
-                  ? CerCtaPill(label: CerCopy.toClaimCta, onTap: c.goToClaim)
-                  : CerCtaPill(label: CerCopy.moreCta, onTap: c.nextStage),
+                  ? CerCtaPill(label: c.config.toClaimCta, onTap: c.goToClaim)
+                  : CerCtaPill(label: c.config.moreCta, onTap: c.nextStage),
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+// The on-demand hint: a "Need a hint?" bulb that reveals where the missing
+// clue(s) are and/or which kept clue is the distractor. The hint recomputes live
+// as the kid toggles clues — so once the case is solved it flips to an all-clear.
+const Color _hintGold = Color(0xFFE0B24C);
+
+class _EvidenceHintRow extends StatelessWidget {
+  const _EvidenceHintRow({required this.controller});
+  final CerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final hint = c.hintText;
+    return Column(
+      children: [
+        PressableScale(
+          onTap: c.toggleHint,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: _hintGold.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _hintGold.withValues(alpha: 0.45)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lightbulb_outline_rounded, size: 15, color: _hintGold),
+                const SizedBox(width: 6),
+                Text(
+                  c.hintRevealed ? 'Hide hint' : 'Need a hint?',
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFFF0D08A)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (c.hintRevealed) ...[
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _hintGold.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _hintGold.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(hint == null ? Icons.check_circle_rounded : Icons.lightbulb_rounded,
+                    size: 16, color: _hintGold),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    hint ?? 'Your case looks complete — head to "State your answer".',
+                    style: TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.92)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

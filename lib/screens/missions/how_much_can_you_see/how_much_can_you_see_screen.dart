@@ -24,6 +24,7 @@ import 'scenes/story_bridge_scene.dart';
 import 'scenes/story_intro_scene.dart';
 import 'scenes/success_scene.dart';
 import 'scenes/teaser_scene.dart';
+import '../lessonRunner.dart';
 import 'state/how_much_controller.dart';
 import 'state/how_much_state.dart';
 
@@ -235,7 +236,7 @@ class _HowMuchCanYouSeeScreenState extends State<HowMuchCanYouSeeScreen> {
         // controller.continueFromSuccess.
         return KeyedSubtree(
           key: const ValueKey('success'),
-          child: SuccessScene(controller: _controller, onExit: _home, onSound: _playSound),
+          child: SuccessScene(controller: _controller, onExit: () => completeActivity(context), onSound: _playSound),
         );
       // --- Bypassed for now (kept for easy restore) -------------------------
       case ActivityScene.successStoryBeat:
@@ -246,7 +247,7 @@ class _HowMuchCanYouSeeScreenState extends State<HowMuchCanYouSeeScreen> {
       case ActivityScene.nextMissionTeaser:
         return KeyedSubtree(
           key: const ValueKey('teaser'),
-          child: TeaserScene(controller: _controller, onNext: _home),
+          child: TeaserScene(controller: _controller, onNext: () => completeActivity(context)),
         );
     }
   }

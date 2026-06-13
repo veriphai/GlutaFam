@@ -54,6 +54,14 @@ const List<({String title, String message})> _copyVariants = [
   ),
 ];
 
+/// Neutral, mascot-free copy for the curiosity concepts (electricity /
+/// de-extinction), where Orbit's first-person mission plea doesn't fit. Shown
+/// via the `generic: true` path with no avatar / speech bubble.
+const ({String title, String message}) _genericCopy = (
+  title: 'Leave this lesson?',
+  message: "You haven't finished this part yet. Leave for now, or keep going?",
+);
+
 /// Show the leave-lesson confirm modal. Returns true when the user
 /// explicitly taps "Leave Mission"; false/null (Keep Going, tap-outside,
 /// back again) means stay. Fires prompt telemetry on both outcomes.
@@ -62,6 +70,7 @@ Future<bool> showLeaveLessonDialog(
   String? lessonId,
   int? resourceIndex,
   String? resourceType,
+  bool generic = false,
 }) async {
   HowwowEventLogger.instance.log(
     HowwowEvents.lessonLeavePromptShown,
@@ -72,7 +81,8 @@ Future<bool> showLeaveLessonDialog(
     },
   );
 
-  final copy = _copyVariants[math.Random().nextInt(_copyVariants.length)];
+  final copy =
+      generic ? _genericCopy : _copyVariants[math.Random().nextInt(_copyVariants.length)];
 
   final leave = await showGeneralDialog<bool>(
     context: context,
@@ -80,7 +90,7 @@ Future<bool> showLeaveLessonDialog(
     barrierLabel: 'keep-going',
     barrierColor: Colors.black54,
     transitionDuration: const Duration(milliseconds: 220),
-    pageBuilder: (ctx, _, __) => _LeaveLessonCard(copy: copy),
+    pageBuilder: (ctx, _, __) => _LeaveLessonCard(copy: copy, generic: generic),
     transitionBuilder: (ctx, anim, _, child) {
       final curved = Curves.easeOutBack.transform(anim.value.clamp(0.0, 1.0));
       // Backdrop blur ramps in with the card — the paused scene behind
@@ -110,9 +120,13 @@ Future<bool> showLeaveLessonDialog(
 }
 
 class _LeaveLessonCard extends StatelessWidget {
-  const _LeaveLessonCard({required this.copy});
+  const _LeaveLessonCard({required this.copy, this.generic = false});
 
   final ({String title, String message}) copy;
+
+  /// Generic (concept) styling: a plain centred message, no mascot/bubble, and
+  /// neutral button labels ("Keep Going" / "Leave").
+  final bool generic;
 
   @override
   Widget build(BuildContext context) {
@@ -158,8 +172,22 @@ class _LeaveLessonCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Sad Orbit + his message bubble — he asks in first person.
-                Row(
+                if (generic)
+                  // Concept lessons: a plain centred line — no mascot, no bubble,
+                  // no first person.
+                  Text(
+                    copy.message,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      color: CareerColors.textSecondary,
+                      fontSize: 13.5,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  )
+                else
+                  // Sad Orbit + his message bubble — he asks in first person.
+                  Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
@@ -227,7 +255,7 @@ class _LeaveLessonCard extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'Keep Going 🚀',
+                        generic ? 'Keep Going' : 'Keep Going 🚀',
                         style: GoogleFonts.poppins(
                           color: CareerColors.onLight,
                           fontSize: 15,
@@ -243,7 +271,7 @@ class _LeaveLessonCard extends StatelessWidget {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
                   child: Text(
-                    'Leave Mission',
+                    generic ? 'Leave' : 'Leave Mission',
                     style: GoogleFonts.poppins(
                       color: CareerColors.textMuted,
                       fontSize: 13,

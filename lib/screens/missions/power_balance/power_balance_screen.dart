@@ -24,6 +24,7 @@ import 'game/power_balance_game.dart';
 import 'models/power_balance_models.dart';
 import 'state/power_balance_controller.dart';
 import 'state/power_balance_state.dart';
+import '../lessonRunner.dart';
 import 'widgets/capture_flyer.dart';
 import 'widgets/capture_gallery.dart';
 import 'widgets/control_dock.dart';
@@ -354,7 +355,7 @@ class _PowerBalanceScreenState extends State<PowerBalanceScreen> {
           startEnabled: _introReady,
         );
       case MissionPhase.success:
-        return SuccessOverlay(key: const ValueKey('success'), onDone: _exit);
+        return SuccessOverlay(key: const ValueKey('success'), onDone: () => completeActivity(context));
       case MissionPhase.failure:
         return FailureOverlay(
           key: const ValueKey('failure'),

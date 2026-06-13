@@ -24,6 +24,7 @@ import '../../home/career/cosmicBackground.dart';
 import 'build_satellite_intro_screen.dart' show BuildSatelliteIntroScene;
 import 'config/asset_paths.dart';
 import 'game/build_satellite_game.dart';
+import '../lessonRunner.dart';
 import 'state/build_satellite_controller.dart';
 import 'widgets/inventory_tray.dart';
 import 'widgets/launch_preview_button.dart';
@@ -316,7 +317,7 @@ class _BuildSatelliteScreenState extends State<BuildSatelliteScreen> {
         Positioned.fill(
           child: _reactive(() => _controller.state.rewardVisible
               ? RewardPopup(
-                  onContinue: () => Navigator.of(context).maybePop(),
+                  onContinue: () => completeActivity(context),
                   continueEnabled: _controller.state.continueEnabled,
                 )
               : const SizedBox.shrink()),

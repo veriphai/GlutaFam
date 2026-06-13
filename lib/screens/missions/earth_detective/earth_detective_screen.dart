@@ -24,6 +24,7 @@ import 'scenes/mission_play_scene.dart';
 import 'scenes/mission_select_scene.dart';
 import 'scenes/reward_scene.dart';
 import 'scenes/summary_scene.dart';
+import '../lessonRunner.dart';
 import 'scenes/tutorial_scene.dart';
 import 'state/earth_detective_controller.dart';
 import 'state/earth_detective_state.dart';
@@ -266,7 +267,7 @@ class _EarthDetectiveScreenState extends State<EarthDetectiveScreen> {
       case EdScene.reward:
         return KeyedSubtree(
           key: const ValueKey('reward'),
-          child: RewardScene(controller: _controller, onHome: _home),
+          child: RewardScene(controller: _controller, onHome: () => completeActivity(context)),
         );
     }
   }

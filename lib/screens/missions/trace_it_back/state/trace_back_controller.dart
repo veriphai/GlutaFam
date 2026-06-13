@@ -49,8 +49,9 @@ class TraceBackController extends ChangeNotifier {
 
   /// Episode-board capture hook (PRD §8): fired at each felt DISCOVERY beat with
   /// the evidence-tile id to auto-capture. Act 2 contributes the convergence
-  /// ('same_magnet') plus the two true-but-irrelevant distractors the kid really
-  /// witnesses here ('still_magnet', 'turbine_spin'). The shell persists + pins it.
+  /// ('same_magnet', snapped on the NUCLEAR source step where its full chain is on
+  /// screen) plus the two true-but-irrelevant distractors the kid really witnesses
+  /// here ('still_magnet', 'turbine_spin'). The shell persists + pins it.
   void Function(String evidenceId)? onCapture;
 
   /// Reduced motion (MediaQuery.disableAnimations): static current-pulse + calm
@@ -128,6 +129,7 @@ class TraceBackController extends ChangeNotifier {
   bool _touchedMagnet = false;
   bool _touchedTurbine = false;
   int _sourceIndex = 0; // b3 walkthrough position
+  bool _sameMagnetCaptured = false; // the convergence photo — pinned once, on nuclear
   double _step = -1; // ms countdown for the next auto-transition
   void Function()? _stepAction;
   bool _started = false;
@@ -285,6 +287,14 @@ class TraceBackController extends ChangeNotifier {
       caption.value = beats.$2; // result (converges on the spin word)
       if (s == EnergySource.solar) secondary.value = TBCopy.solarHook;
       showNext.value = true;
+      // The convergence photo ('same_magnet') is snapped HERE — while nuclear's
+      // full chain is steady + lit and the "spins the magnet" line is on screen,
+      // so what the kid sees matches the pinned frame. Fires once. (showNext is
+      // false until now, so the kid can't skip past before this lands.)
+      if (s == EnergySource.nuclear && !_sameMagnetCaptured) {
+        _sameMagnetCaptured = true;
+        onCapture?.call('same_magnet');
+      }
       notifyListeners();
     });
     notifyListeners();
@@ -305,7 +315,7 @@ class TraceBackController extends ChangeNotifier {
       phase.value = TBPhase.closing;
       activeSource.value = EnergySource.coal; // close on the running core (not solar)
       caption.value = TBCopy.synthesis; // name-last: "Almost Everything Spins a Magnet"
-      onCapture?.call('same_magnet'); // the convergence: every source spins the SAME magnet
+      // ('same_magnet' was already snapped on the nuclear step — see _showSourceBeats.)
       _schedule(TBCopy.synthesisToCardMs, () => showCardEarn.value = true);
     }
     notifyListeners();

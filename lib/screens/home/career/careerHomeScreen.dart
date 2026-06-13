@@ -5,8 +5,10 @@
 // the screen falls back to the local mock seed in `careerModels.dart` so
 // the UI still renders cleanly.
 
+// import 'package:flutter/foundation.dart' show kDebugMode; // hidden with the Ep2 dev entry
 import 'package:flutter/material.dart';
 
+// import '../../dev/ep2_activities_dev_screen.dart'; // hidden with the Ep2 dev entry
 import '../../../apis/apiClient.dart';
 import '../../../apis/howwow/howwowCareer.dart';
 import '../../../apis/howwow/howwowSession.dart';
@@ -57,10 +59,16 @@ class _CareerHomeScreenState extends State<CareerHomeScreen> {
   List<CareerWorld> _worlds = const [];
   ContinueMission? _currentMission;
 
+  // "How Things Work" curiosity concepts — backend-driven, fetched from
+  // /career/concepts (separate from the home bundle). Empty until loaded; the
+  // rail hides itself when empty.
+  List<WowConcept> _concepts = const [];
+
   @override
   void initState() {
     super.initState();
     _loadHome();
+    _loadConcepts();
     // Remote update toggle — checks installed version against the backend's
     // app-version-details doc and surfaces the update sheet when behind
     // (forced below minimumVersion). Post-frame so the sheet has a mounted
@@ -99,6 +107,20 @@ class _CareerHomeScreenState extends State<CareerHomeScreen> {
         _worlds = kWorlds;
         _currentMission = kContinueMission;
       });
+    }
+  }
+
+  /// Fetch the "How Things Work" curiosity concepts from /career/concepts.
+  /// Non-critical + independent of the home bundle — on failure we leave the
+  /// rail empty (it hides itself) rather than disturbing the rest of the home.
+  Future<void> _loadConcepts() async {
+    try {
+      final items = await howwowGetConcepts();
+      if (!mounted) return;
+      setState(() => _concepts = items.map(WowConcept.fromApi).toList());
+    } catch (e) {
+      // ignore: avoid_print
+      print('careerHome: concepts load failed (rail hidden). err=$e');
     }
   }
 
@@ -179,11 +201,10 @@ class _CareerHomeScreenState extends State<CareerHomeScreen> {
       HowwowEvents.professionTapped,
       props: {'profession_name': concept.title, 'source': 'concept_rail'},
     );
+    // Concepts are kind="concept" professions — open the SAME detail screen by
+    // id; it fetches the episode timeline from /career/professions/{id}/detail.
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ProfessionDetailScreen(
-        professionId: concept.id,
-        localDetail: concept.detail,
-      ),
+      builder: (_) => ProfessionDetailScreen(professionId: concept.id),
     ));
   }
 
@@ -247,6 +268,7 @@ class _CareerHomeScreenState extends State<CareerHomeScreen> {
                                       _usingMockFallback = false;
                                     });
                                     _loadHome();
+                                    _loadConcepts();
                                   }),
                                 ),
                               ],
@@ -289,6 +311,15 @@ class _CareerHomeScreenState extends State<CareerHomeScreen> {
                                 ),
                               ),
                               const SizedBox(height: CareerSpace.section),
+                              // "How Things Work" — curiosity concepts (e.g.
+                              // electricity → the Hand-Crank Lamp activity).
+                              // Backend-driven (GET /career/concepts). Shown
+                              // first so the WOW concepts lead the page.
+                              HowThingsWorkSection(
+                                concepts: _concepts,
+                                onConceptTap: _openConcept,
+                              ),
+                              const SizedBox(height: CareerSpace.section),
                               FeaturedProfessionsSection(
                                 professions: _professions,
                                 onProfessionTap: _openProfession,
@@ -302,14 +333,25 @@ class _CareerHomeScreenState extends State<CareerHomeScreen> {
                                 // job catalog pre-filtered to that world.
                                 onWorldTap: (w) => _openAllJobs(world: w.name),
                               ),
-                              const SizedBox(height: CareerSpace.section),
-                              // "How Things Work" — curiosity concepts (e.g.
-                              // electricity → the Hand-Crank Lamp activity).
-                              // Locally seeded for now (kWowConcepts).
-                              HowThingsWorkSection(
-                                concepts: kWowConcepts,
-                                onConceptTap: _openConcept,
-                              ),
+                              // DEV: launch each Episode-2 activity individually
+                              // (debug builds only — never shipped).
+                              // Hidden for now — uncomment to bring the
+                              // "Episode 2 Activities (dev)" entry back.
+                              // if (kDebugMode) ...[
+                              //   const SizedBox(height: CareerSpace.section),
+                              //   Padding(
+                              //     padding: const EdgeInsets.symmetric(
+                              //         horizontal: CareerSpace.page),
+                              //     child: _Ep2DevEntry(
+                              //       onTap: () => Navigator.of(context).push(
+                              //         MaterialPageRoute(
+                              //           builder: (_) =>
+                              //               const Ep2ActivitiesDevScreen(),
+                              //         ),
+                              //       ),
+                              //     ),
+                              //   ),
+                              // ],
                               // "Today's Job Challenge" + "Career Passport"
                               // cards hidden for now — neither feature is
                               // live yet. Re-enable by uncommenting (widget
@@ -399,3 +441,49 @@ class _DemoModeBanner extends StatelessWidget {
     );
   }
 }
+
+// DEV-only entry card → the Episode-2 activity launcher (debug builds only).
+// Hidden for now — uncomment (along with the kDebugMode block above and the
+// ep2_activities_dev_screen import) to bring it back.
+/*
+class _Ep2DevEntry extends StatelessWidget {
+  const _Ep2DevEntry({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF161D3A),
+      borderRadius: BorderRadius.circular(CareerRadii.smallCard),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(CareerRadii.smallCard),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(CareerRadii.smallCard),
+            border: Border.all(color: const Color(0xFF3FB9F5).withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            children: const [
+              Icon(Icons.bolt_rounded, color: Color(0xFF7FD8FF), size: 22),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Episode 2 Activities (dev)',
+                  style: TextStyle(
+                    color: CareerColors.textPrimary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: CareerColors.textSecondary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+*/

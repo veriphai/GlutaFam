@@ -196,6 +196,22 @@ class ContinueMission {
   final String? professionId;
   final String profession;
   final String world;
+
+  /// True when the hero card is showing a WOW concept (e.g. electricity)
+  /// rather than a career. Drives the card's framing — "WOW CONCEPT" vs
+  /// "CAREER MISSION" copy, and hiding the world label (concepts carry only
+  /// a label-only worldId). Sourced from the profession's `kind`.
+  final bool isConcept;
+
+  /// Card/hero illustration of the profession/concept (S3 URL or bundled
+  /// `assets/...` path). Used to render a concept's own art on the hero card;
+  /// careers fall back to the bundled hero scene.
+  final String? asset;
+
+  /// Accent colour of the profession/concept. The hero card themes its
+  /// border, glow and "WOW CONCEPT" chip off this for concepts (electricity
+  /// = gold). Null for careers (they keep the default purple hero theme).
+  final Color? accent;
   final String missionTitle;
   final List<String> skills;
   final int current;
@@ -226,6 +242,9 @@ class ContinueMission {
     required this.skills,
     required this.current,
     required this.total,
+    this.isConcept = false,
+    this.asset,
+    this.accent,
     this.startedCurrentLesson = false,
     this.resumeStep,
     this.totalSteps = 0,
@@ -255,8 +274,16 @@ class ContinueMission {
     final hasSteps = m.resources.isNotEmpty;
     return ContinueMission(
       professionId: m.professionId,
-      profession: professionNamesById[m.professionId] ?? (m.professionId ?? ''),
+      // Prefer the name carried in the payload — the professions map excludes
+      // concepts, so resolving a concept name from it would fail and fall
+      // back to the raw professionId.
+      profession: m.professionName ??
+          professionNamesById[m.professionId] ??
+          (m.professionId ?? ''),
       world: worldNamesById[m.worldId] ?? (m.worldId ?? ''),
+      isConcept: m.isConcept,
+      asset: m.imageUrl,
+      accent: parseHexColor(m.accentColor),
       missionTitle: m.title!,
       skills: m.skills,
       current: m.completedCount,
@@ -269,13 +296,23 @@ class ContinueMission {
   }
 }
 
+// Demo/offline fallback for the hero "beginning" card. Mirrors the backend's
+// new-user default: a brand-new user starts on the electricity WOW concept
+// (the curiosity hook) rather than a career. Only used when /career/home is
+// unreachable; a live backend overrides this with the user's actual
+// most-recently-attempted lesson.
 const kContinueMission = ContinueMission(
-  profession: 'Satellite Engineer',
-  world: 'Space World',
-  missionTitle: 'Mission 2: How satellites talk to Earth',
-  skills: ['Signals', 'Antennas', 'Mission Control'],
-  current: 2,
-  total: 5,
+  professionId: 'concept_electricity',
+  profession: 'How Electricity Reaches Your Home',
+  world: '', // concept — no world label (hidden on the card)
+  isConcept: true,
+  asset:
+      'https://the-how-wow-prod.s3.ap-south-1.amazonaws.com/professions/concept_electricity/card.jpg',
+  accent: CareerColors.gold,
+  missionTitle: 'Prologue — What Electricity Does',
+  skills: ['Energy', 'Curiosity'],
+  current: 0,
+  total: 6,
 );
 
 // ── adapters: API → UI types ─────────────────────────────────────────
@@ -326,6 +363,33 @@ IconData iconForKey(String? key) {
       return Icons.memory_rounded;
     case 'engineering':
       return Icons.engineering_rounded;
+    // ── WOW-concept icon keys (electricity + de-extinction series) ──────
+    case 'bolt':
+      return Icons.bolt_rounded;
+    case 'factory':
+      return Icons.factory_rounded;
+    case 'cable':
+      return Icons.cable_rounded;
+    case 'home':
+      return Icons.home_rounded;
+    case 'electric_meter':
+      return Icons.electric_meter_rounded;
+    case 'receipt_long':
+      return Icons.receipt_long_rounded;
+    case 'history':
+      return Icons.history_toggle_off_rounded;
+    case 'extension':
+      return Icons.extension_rounded;
+    case 'find_replace':
+      return Icons.find_replace_rounded;
+    case 'monitor_heart':
+      return Icons.monitor_heart_rounded;
+    case 'rule':
+      return Icons.rule_rounded;
+    case 'forest':
+      return Icons.forest_rounded;
+    case 'balance':
+      return Icons.balance_rounded;
     default:
       return Icons.workspace_premium_rounded;
   }

@@ -28,6 +28,7 @@ import 'scenes/play_scene.dart';
 import 'state/code_satellite_controller.dart';
 import 'state/code_satellite_state.dart';
 import 'widgets/success_overlay.dart';
+import '../lessonRunner.dart';
 
 class CodeSatelliteScreen extends StatefulWidget {
   const CodeSatelliteScreen({super.key});
@@ -53,7 +54,7 @@ class _CodeSatelliteScreenState extends State<CodeSatelliteScreen> {
     _controller = CodeSatelliteController(
       onSound: _playSound,
       onHaptic: HapticFeedback.selectionClick,
-      onExit: _exit,
+      onExit: () => completeActivity(context),
     );
     _controller.attachStage(_game);
     _gameWidget = GameWidget(game: _game); // built ONCE — never inside a rebuild

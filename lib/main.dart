@@ -22,13 +22,17 @@ import 'package:eureka_app/screens/profileScreen.dart';
 import 'package:eureka_app/screens/vaultScreen.dart';
 import 'package:eureka_app/services/audioProvider.dart';
 import 'package:eureka_app/services/notificationService.dart';
-import 'package:eureka_app/services/simpleNetworkService.dart';
-import 'package:eureka_app/providers/simpleNetworkProvider.dart';
+// Network detection (connectivity-based "No Internet" / "Back online!" popups)
+// disabled for now per product — kept in lib/services/simpleNetworkService.dart,
+// lib/providers/simpleNetworkProvider.dart and lib/widgets/networkListener.dart
+// for possible later use.
+// import 'package:eureka_app/services/simpleNetworkService.dart';
+// import 'package:eureka_app/providers/simpleNetworkProvider.dart';
 import 'package:app_links/app_links.dart';
 import 'package:eureka_app/utils/deeplink/howwowDeeplinkRouter.dart';
 import 'package:eureka_app/utils/howwowEventLogger.dart';
 import 'package:eureka_app/utils/howwowEventNames.dart';
-import 'package:eureka_app/widgets/networkListener.dart';
+// import 'package:eureka_app/widgets/networkListener.dart'; // disabled (network popups)
 import 'package:singular_flutter_sdk/singular.dart';
 import 'package:singular_flutter_sdk/singular_config.dart';
 import 'package:eureka_app/utils/appHelperService.dart';
@@ -70,8 +74,8 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Initialize Network Service
-  await SimpleNetworkService().initialize();
+  // Network detection disabled for now (connectivity popups commented out) — was:
+  // await SimpleNetworkService().initialize();
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool? firstLaunchBool = prefs.getBool('appFirstLaunch');
   bool firstLaunch = firstLaunchBool ?? true; // Default to true if null
@@ -260,16 +264,22 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MyAppState()),
         ChangeNotifierProvider(
             create: (_) => AudioProvider()), // Add AudioProvider
-        ChangeNotifierProvider(
-            create: (_) => SimpleNetworkProvider()), // Add Network Provider
+        // Network detection provider disabled for now (popups off) — was:
+        // ChangeNotifierProvider(
+        //     create: (_) => SimpleNetworkProvider()), // Add Network Provider
       ],
       child: Builder(
         builder: (context) {
           WidgetsBinding.instance.addObserver(LifecycleEventHandler(
               context: context, firstLaunch: firstLaunch));
 
-          return NetworkListener(
-            child: MaterialApp(
+          // NetworkListener drives the connectivity "No Internet" /
+          // "Back online!" popups — disabled for now (kept in
+          // lib/widgets/networkListener.dart for later). The MaterialApp is
+          // returned directly instead of being wrapped.
+          // return NetworkListener(
+          //   child: MaterialApp(
+          return MaterialApp(
               title: "Tuto: AI Tutor for Class 6-12",
               navigatorKey: navigatorKey,
               theme: ThemeData(
@@ -333,8 +343,7 @@ class MyApp extends StatelessWidget {
                 '/parent-dashboard': (_) => ParentDashboardPage(),
                 '/vault': (_) => VaultScreen(),
               },
-            ),
-          );
+            );
         },
       ),
     );

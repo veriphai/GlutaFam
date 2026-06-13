@@ -31,6 +31,7 @@ import 'state/mission_stage_controller.dart';
 import 'state/mission_state.dart';
 import 'widgets/mission_dialogue_overlay.dart';
 import 'widgets/mission_progress_rail.dart';
+import '../lessonRunner.dart';
 
 class SaveCoastalCityMissionScreen extends StatefulWidget {
   const SaveCoastalCityMissionScreen({super.key});
@@ -321,7 +322,7 @@ class _SaveCoastalCityMissionScreenState
       case MissionStage.finalSuccess:
         return FinaleScene(controller: _controller);
       case MissionStage.badgeReveal:
-        return BadgeScene(controller: _controller, onExit: _exit);
+        return BadgeScene(controller: _controller, onExit: () => completeActivity(context));
     }
   }
 }

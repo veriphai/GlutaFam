@@ -19,6 +19,12 @@ const Color _paperMist = Color(0xFFE8ECF7); // body text
 const Color _gold = Color(0xFFF5C451);
 const Color _goldBright = Color(0xFFFFD970);
 
+/// Aspect ratio (width / height) of the pre-rendered image-art cards. The PNGs
+/// are trimmed of their transparent margin to this portrait shape (the hexagon
+/// fills the frame), so the card view + earn overlay size them at this ratio
+/// instead of forcing a square (which wasted ~30% of the width as side air).
+const double kImageCardAspect = 0.8;
+
 /// The art-window motif painter for a card — one painter per [CardMotif].
 CustomPainter _motifPainter(CollectibleCard card, double phase) {
   switch (card.motif) {
@@ -34,6 +40,23 @@ CustomPainter _motifPainter(CollectibleCard card, double phase) {
       return SynthesisMotifPainter(section: card.section, phase: phase);
     case CardMotif.recipe:
       return RecipeMotifPainter(section: card.section, phase: phase);
+    // ── Episode 2 — transmission ──────────────────────────────────────────
+    case CardMotif.pushFlow:
+      return PushFlowMotifPainter(section: card.section, phase: phase);
+    case CardMotif.narrowPipe:
+      return NarrowPipeMotifPainter(section: card.section, phase: phase);
+    case CardMotif.electricFriction:
+      return ElectricFrictionMotifPainter(section: card.section, phase: phase);
+    case CardMotif.squareTax:
+      return SquareTaxMotifPainter(section: card.section, phase: phase);
+    case CardMotif.starveTheWire:
+      return StarveTheWireMotifPainter(section: card.section, phase: phase);
+    case CardMotif.stillMachine:
+      return StillMachineMotifPainter(section: card.section, phase: phase);
+    case CardMotif.twoCurrents:
+      return TwoCurrentsMotifPainter(section: card.section, phase: phase);
+    case CardMotif.highRoad:
+      return HighRoadMotifPainter(section: card.section, phase: phase);
   }
 }
 
@@ -116,8 +139,8 @@ class _CollectibleCardViewState extends State<CollectibleCardView>
   @override
   Widget build(BuildContext context) {
     final w = widget.width;
-    // Pre-rendered hero art is square (its own frame/glow); painted cards are 5:7.
-    final h = widget.card.hasImageFaces ? w : w * 7 / 5;
+    // Image-art cards are portrait (trimmed to kImageCardAspect); painted cards 5:7.
+    final h = widget.card.hasImageFaces ? w / kImageCardAspect : w * 7 / 5;
     final radius = w * 0.06;
     final band = w * 0.066;
 

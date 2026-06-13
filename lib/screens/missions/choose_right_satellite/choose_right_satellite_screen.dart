@@ -24,6 +24,7 @@ import 'state/analytics.dart';
 import 'state/choose_satellite_controller.dart';
 import 'state/choose_satellite_state.dart';
 import '../../../utils/s3_assets.dart';
+import '../lessonRunner.dart';
 
 class ChooseRightSatelliteScreen extends StatefulWidget {
   const ChooseRightSatelliteScreen({super.key});
@@ -244,8 +245,9 @@ class _ChooseRightSatelliteScreenState extends State<ChooseRightSatelliteScreen>
 
   void _onNextActivity() {
     _analytics.nextActivityClicked();
-    // Power Up the Satellite activity is not built yet — return to the hub.
-    Navigator.of(context).maybePop();
+    // Power Up the Satellite activity is not built yet — finish this activity
+    // so the lesson advances to the next beat (outro / next episode).
+    completeActivity(context);
   }
 
   @override

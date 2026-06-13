@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../home/career/careerCommon.dart';
 import '../home/career/careerTheme.dart';
+import '../missions/episode_board/activity_background.dart';
 import 'collectible_card_view.dart';
 import 'collectible_models.dart';
 import 'collectible_store.dart';
@@ -20,6 +21,7 @@ class CollectibleEarnOverlay extends StatefulWidget {
     super.key,
     required this.card,
     required this.onDone,
+    this.onReplay,
     this.eyebrow = 'NEW CARD',
     this.brag = 'Whoa — your first card. A real law of the universe.',
     this.mascot,
@@ -41,8 +43,15 @@ class CollectibleEarnOverlay extends StatefulWidget {
   /// centred banner) — for activities with no mascot (e.g. Trace It Back).
   final bool showMascot;
 
-  /// Called after the kid adds the card to their deck (persisted by then).
+  /// Called when the kid taps the primary button (card persisted to the deck by
+  /// then). For lesson activities this pops the activity → the runner advances
+  /// to the next beat. The collectible screen is the LAST screen.
   final VoidCallback onDone;
+
+  /// When non-null, a "Replay" button appears ABOVE the primary button and the
+  /// primary is labelled "Continue" (instead of "Add to your deck"). Tapping
+  /// Replay persists the card, then redoes the activity from scratch.
+  final VoidCallback? onReplay;
 
   @override
   State<CollectibleEarnOverlay> createState() => _CollectibleEarnOverlayState();
@@ -77,42 +86,49 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
     super.dispose();
   }
 
-  Future<void> _addToDeck() async {
+  /// Persist the earned card to the deck (idempotent). Both Continue and Replay
+  /// do this first, so the card is always saved once the kid leaves this screen.
+  Future<void> _persist() async {
     if (_added) return;
     _added = true;
-    HapticFeedback.selectionClick();
     await CollectibleStore.add(widget.card.id);
+  }
+
+  Future<void> _continue() async {
+    HapticFeedback.selectionClick();
+    await _persist();
     widget.onDone();
+  }
+
+  Future<void> _replay() async {
+    HapticFeedback.selectionClick();
+    await _persist();
+    widget.onReplay?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    // Image-art cards are square + include their own glow margin, so give them a
-    // bit more width and a square height; painted cards stay 5:7.
     final hasImage = widget.card.hasImageFaces;
-    final cardW = (media.size.width * (hasImage ? 0.9 : 0.78)).clamp(240.0, hasImage ? 400.0 : 350.0);
-    final cardH = hasImage ? cardW : cardW * 7 / 5;
+    final avail = media.size.width - 32; // content width inside the 16px padding
+    // WIDTH budget for the card. Image-art cards are SQUARE + carry their own glow
+    // margin, so let them fill almost the whole width (the old 400 cap left big
+    // side gaps on wide screens). The FINAL size is fit to the available height in
+    // the LayoutBuilder below, so the square card grows as large as fits without
+    // pushing the brag/buttons off-screen. Painted cards keep their 5:7 sizing.
+    final cardW = hasImage
+        ? (avail * 0.98).clamp(260.0, 640.0)
+        : (media.size.width * 0.78).clamp(240.0, 350.0);
     final accent = widget.card.section.accent;
 
     return Material(
       color: Colors.transparent,
       child: Stack(
         children: [
-          // Near-opaque scrim so the busy crank scene can't bleed through.
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  radius: 1.1,
-                  colors: [
-                    const Color(0xFF10183A).withValues(alpha: 0.97),
-                    const Color(0xFF05070F).withValues(alpha: 0.99),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          // The shared dossier background (same as the activities), shown at FULL —
+          // the art is already dark by design, so NO scrim/tint over it. Opaque, so
+          // it also hides the busy activity scene behind.
+          const Positioned.fill(child: ActivityDossierBackground()),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -126,74 +142,85 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
                   final settled = _entry.value > 0.85 || _reduced;
                   return Column(
                     children: [
-                      // Voltix + tailed message box (top).
-                      AnimatedOpacity(
-                        opacity: settled ? 1 : 0,
-                        duration: const Duration(milliseconds: 320),
-                        child: _VoltixMessage(
-                            eyebrow: widget.eyebrow,
-                            brag: widget.brag,
-                            mascot: widget.mascot,
-                            showMascot: widget.showMascot),
-                      ),
-                      // Card + glow-burst, centred in the remaining space.
+                      // Card + glow-burst, sized to FILL the free space: a square
+                      // image card fits to the smaller of the width budget and the
+                      // column's available height (reserving room for the flip hint),
+                      // so it's as large as fits — no more big side gaps.
                       Expanded(
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: cardW * 1.7,
-                                height: cardH + 24,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Opacity(
-                                      opacity: (1 - burst) * 0.9,
-                                      child: Container(
-                                        width: cardW * (0.7 + burst * 1.1),
-                                        height: cardW * (0.7 + burst * 1.1),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          gradient: RadialGradient(
-                                            colors: [
-                                              _glowColor(accent).withValues(alpha: 0.6),
-                                              _glowColor(accent).withValues(alpha: 0),
-                                            ],
+                        child: LayoutBuilder(
+                          builder: (context, c) {
+                            // Image cards are PORTRAIT (kImageCardAspect): width w, height
+                            // w / aspect. Fill the free space — bounded by the width budget
+                            // OR the column height (reserve for the flip hint + box pad),
+                            // whichever binds — so it's as large as fits.
+                            final hRoom = c.maxHeight - 66;
+                            final double w;
+                            if (hasImage) {
+                              final byHeight = hRoom * kImageCardAspect; // width keeping height ≤ hRoom
+                              w = (cardW < byHeight ? cardW : byHeight).clamp(260.0, double.infinity);
+                            } else {
+                              w = cardW;
+                            }
+                            final h = hasImage ? w / kImageCardAspect : w * 7 / 5;
+                            final glowBox = (w * 1.4).clamp(w, avail); // never wider than the screen
+                            return Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: glowBox,
+                                    height: h + 24,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Opacity(
+                                          opacity: (1 - burst) * 0.9,
+                                          child: Container(
+                                            width: w * (0.7 + burst * 1.1),
+                                            height: w * (0.7 + burst * 1.1),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: RadialGradient(
+                                                colors: [
+                                                  _glowColor(accent).withValues(alpha: 0.6),
+                                                  _glowColor(accent).withValues(alpha: 0),
+                                                ],
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    Opacity(
-                                      opacity: _reduced ? _entry.value : burst,
-                                      child: Transform.scale(
-                                        scale: _reduced ? (0.9 + 0.1 * _entry.value) : e,
-                                        child: CollectibleCardView(
-                                          card: widget.card,
-                                          width: cardW,
-                                          interactive: settled,
-                                          tossOnEnter: true,
+                                        Opacity(
+                                          opacity: _reduced ? _entry.value : burst,
+                                          child: Transform.scale(
+                                            scale: _reduced ? (0.9 + 0.1 * _entry.value) : e,
+                                            child: CollectibleCardView(
+                                              card: widget.card,
+                                              width: w,
+                                              interactive: settled,
+                                              tossOnEnter: true,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  AnimatedOpacity(
+                                    opacity: settled ? 1 : 0,
+                                    duration: const Duration(milliseconds: 280),
+                                    child: _flipHint(),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 14),
-                              AnimatedOpacity(
-                                opacity: settled ? 1 : 0,
-                                duration: const Duration(milliseconds: 280),
-                                child: _flipHint(),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ),
-                      // "Add to your deck" — pinned at the bottom.
+                      // Replay (above) + Continue / Add-to-deck — pinned bottom.
                       AnimatedOpacity(
                         opacity: settled ? 1 : 0,
                         duration: const Duration(milliseconds: 280),
-                        child: _addButton(),
+                        child: _bottomButtons(),
                       ),
                     ],
                   );
@@ -227,9 +254,27 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
     );
   }
 
-  Widget _addButton() {
+  Widget _bottomButtons() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Replay sits ABOVE Continue — secondary, so it never competes with the
+        // primary action. Only shown when the host wired a replay handler.
+        if (widget.onReplay != null) ...[
+          _replayButton(),
+          const SizedBox(height: 10),
+        ],
+        _continueButton(),
+      ],
+    );
+  }
+
+  Widget _continueButton() {
+    // "Continue" in the new lesson flow (Replay wired); "Add to your deck" in
+    // the legacy single-button flow (satellite / CER), so those are untouched.
+    final label = widget.onReplay != null ? 'Continue' : 'Add to your deck';
     return PressableScale(
-      onTap: _addToDeck,
+      onTap: _continue,
       child: Container(
         height: 54,
         width: double.infinity,
@@ -253,7 +298,7 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Add to your deck',
+            Text(label,
                 style: CareerText.cta.copyWith(color: CareerColors.onLight, fontSize: 14.5)),
             const SizedBox(width: 6),
             const Icon(Icons.arrow_forward_rounded, size: 20, color: CareerColors.onLight),
@@ -262,154 +307,30 @@ class _CollectibleEarnOverlayState extends State<CollectibleEarnOverlay>
       ),
     );
   }
-}
 
-/// Voltix (celebrating) + a tailed speech bubble — the same message-box language
-/// as the activity. The "NEW CARD" eyebrow + brag line live inside the bubble.
-class _VoltixMessage extends StatelessWidget {
-  const _VoltixMessage({required this.eyebrow, required this.brag, this.mascot, this.showMascot = true});
-
-  final String eyebrow;
-  final String brag;
-  final Widget? mascot;
-  final bool showMascot;
-
-  @override
-  Widget build(BuildContext context) {
-    // No-mascot: a plain centred banner (no avatar, no speech tail).
-    if (!showMascot) {
-      return Container(
+  Widget _replayButton() {
+    return PressableScale(
+      onTap: _replay,
+      child: Container(
+        height: 50,
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFF0E1E3C).withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: CareerColors.gold.withValues(alpha: 0.5)),
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(CareerRadii.pill),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
         ),
-        child: Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              eyebrow,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.ibmPlexMono(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2.2,
-                color: const Color(0xFFFFD970),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              brag,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                height: 1.28,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
+            Icon(Icons.replay_rounded, size: 19, color: Colors.white.withValues(alpha: 0.85)),
+            const SizedBox(width: 7),
+            Text('Replay',
+                style: CareerText.cta.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9), fontSize: 14)),
           ],
         ),
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Floaty(
-          amplitude: 3,
-          child: mascot ??
-              Image.asset(
-                'assets/images/voltix/voltix_celebrating.png',
-                height: 92,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox(width: 56),
-              ),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: CustomPaint(
-            painter: _TailBubblePainter(
-              fill: const Color(0xFF0E1E3C).withValues(alpha: 0.95),
-              border: CareerColors.gold.withValues(alpha: 0.7),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 11, 14, 11),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    eyebrow,
-                    style: GoogleFonts.ibmPlexMono(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2.2,
-                      color: const Color(0xFFFFD970),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    brag,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12.5,
-                      height: 1.28,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
-}
-
-/// Dark + gold speech bubble with a left tail pointing at Voltix — one
-/// continuous outline (tail folded into the left edge) so the border has no seam.
-class _TailBubblePainter extends CustomPainter {
-  _TailBubblePainter({required this.fill, required this.border});
-
-  final Color fill;
-  final Color border;
-
-  static const double _tail = 12;
-  static const double _tailHalf = 9;
-  static const double _r = 16;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final cy = h * 0.5;
-    final p = Path()
-      ..moveTo(_tail + _r, 0)
-      ..lineTo(w - _r, 0)
-      ..arcToPoint(Offset(w, _r), radius: const Radius.circular(_r))
-      ..lineTo(w, h - _r)
-      ..arcToPoint(Offset(w - _r, h), radius: const Radius.circular(_r))
-      ..lineTo(_tail + _r, h)
-      ..arcToPoint(Offset(_tail, h - _r), radius: const Radius.circular(_r))
-      ..lineTo(_tail, cy + _tailHalf)
-      ..lineTo(0, cy)
-      ..lineTo(_tail, cy - _tailHalf)
-      ..lineTo(_tail, _r)
-      ..arcToPoint(Offset(_tail + _r, 0), radius: const Radius.circular(_r))
-      ..close();
-    canvas.drawShadow(p, Colors.black.withValues(alpha: 0.5), 5, false);
-    canvas.drawPath(p, Paint()..color = fill);
-    canvas.drawPath(
-      p,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4
-        ..color = border,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_TailBubblePainter old) => old.fill != fill || old.border != border;
 }

@@ -48,17 +48,18 @@ class SourcePersonalitiesController extends ChangeNotifier {
   void Function()? onSelectHaptic;
 
   /// Episode-board capture hook (PRD §8): fired when a source's CATCH lands, with
-  /// the evidence-tile id to auto-capture. Act 3 contributes the FOUR distinct
-  /// catches (coal=dirty, nuclear=expensive, wind=unreliable, solar=nightly); gas
-  /// and hydro catches still fire the synthesis gate but are deliberately NOT
-  /// captured (PRD §2.3 trims them — gas duplicates coal, hydro is a quiet one).
+  /// the evidence-tile id to auto-capture. All 6 sources the kid runs leave a
+  /// trace: coal AND gas club to ONE 'fossil_haze' tile (same catch — dirty),
+  /// while nuclear/wind/solar/hydro each pin their own distinct catch.
   void Function(String evidenceId)? onCapture;
 
   static const Map<SourceKind, String> _captureFor = {
-    SourceKind.coal: 'coal_haze',
+    SourceKind.coal: 'fossil_haze',
+    SourceKind.gas: 'fossil_haze', // clubbed with coal (burning fuel = dirty)
     SourceKind.nuclear: 'nuclear_cost',
     SourceKind.wind: 'wind_drop',
     SourceKind.solar: 'solar_night',
+    SourceKind.hydro: 'hydro_river',
   };
 
   // --- Geometry (pixels = factors × stage size) ------------------------------

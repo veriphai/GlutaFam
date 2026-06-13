@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 
 import '../../../home/career/careerCommon.dart';
 import '../../../home/career/careerTheme.dart';
-import '../config/cer_copy.dart';
+import '../state/cer_controller.dart';
 
 /// The guiding question, pinned at the top of every closing screen (PRD §4).
 class CerQuestionHeader extends StatelessWidget {
-  const CerQuestionHeader({super.key, this.step, this.totalSteps = 3});
+  const CerQuestionHeader({super.key, required this.question, this.step, this.totalSteps = 3});
+
+  final String question;
 
   /// 1-based step index (1..3) for the tiny progress dots; null hides them.
   final int? step;
@@ -20,11 +22,11 @@ class CerQuestionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 13),
+      padding: const EdgeInsets.fromLTRB(18, 15, 18, 18),
       decoration: BoxDecoration(
         color: const Color(0xFF0B1330).withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: CareerColors.gold.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: CareerColors.gold.withValues(alpha: 0.35)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -64,13 +66,13 @@ class CerQuestionHeader extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 9),
           Text(
-            CerCopy.question,
+            question,
             style: const TextStyle(
-              fontSize: 15.5,
-              height: 1.2,
-              fontWeight: FontWeight.w700,
+              fontSize: 20.5,
+              height: 1.25,
+              fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
           ),
@@ -133,6 +135,87 @@ class CerCtaPill extends StatelessWidget {
     return IgnorePointer(
       ignoring: !enabled,
       child: PressableScale(onTap: enabled ? onTap : () {}, child: pill),
+    );
+  }
+}
+
+const Color _hintGold = Color(0xFFE0B24C);
+
+/// The shared "case isn't ready" GATE for Screen 3, shown when
+/// [CerController.caseSolved] is false: the message + an on-demand hint bulb +
+/// "Review clues" (back to the evidence screen). Used by BOTH the passive
+/// playback and the active reasoning-grid screens so the gate is identical.
+class CerGate extends StatelessWidget {
+  const CerGate({super.key, required this.controller});
+  final CerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          c.notReadyMessage,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.72)),
+        ),
+        if (c.hintRevealed && c.hintText != null) ...[
+          const SizedBox(height: 9),
+          CerHintBanner(text: c.hintText!),
+        ],
+        const SizedBox(height: 11),
+        Row(
+          children: [
+            CerCtaPill(
+              label: c.hintRevealed ? 'Hide hint' : 'Hint',
+              icon: Icons.lightbulb_outline_rounded,
+              filled: false,
+              onTap: c.toggleHint,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: CerCtaPill(
+                label: 'Review clues',
+                icon: Icons.arrow_back_rounded,
+                onTap: c.addMoreEvidence,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// The bulb's revealed hint — a soft gold note (shared by the gate + the grid).
+class CerHintBanner extends StatelessWidget {
+  const CerHintBanner({super.key, required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: _hintGold.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _hintGold.withValues(alpha: 0.42)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lightbulb_rounded, size: 16, color: _hintGold),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.92)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

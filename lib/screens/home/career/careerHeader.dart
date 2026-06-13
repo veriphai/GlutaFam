@@ -50,7 +50,7 @@ class CareerHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
               const SizedBox(height: 2),
-              Text('What amazing job will you try today?',
+              Text('What will you explore today?',
                   style: CareerText.subtitle.copyWith(color: CareerColors.textMuted, height: 1.2),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis),

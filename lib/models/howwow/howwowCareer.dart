@@ -159,6 +159,7 @@ class HowwowDetailLesson {
     required this.lessonId,
     required this.lessonNumber,
     required this.title,
+    this.tag,
     this.description,
     this.descriptionLong,
     this.discoverHook,
@@ -177,6 +178,7 @@ class HowwowDetailLesson {
 
   final String lessonId;
   final int lessonNumber;
+  final String? tag;                 // optional uppercase row badge ("LONGEST"); null = none
   final String title;
   final String? description;
   final String? descriptionLong;
@@ -218,6 +220,7 @@ class HowwowDetailLesson {
   factory HowwowDetailLesson.fromJson(Map<String, dynamic> j) => HowwowDetailLesson(
         lessonId: j['lessonId']?.toString() ?? '',
         lessonNumber: _int(j['lessonNumber']),
+        tag: j['tag'] as String?,
         title: j['title']?.toString() ?? '',
         description: j['description'] as String?,
         descriptionLong: j['descriptionLong'] as String?,

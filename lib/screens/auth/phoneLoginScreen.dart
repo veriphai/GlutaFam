@@ -9,7 +9,6 @@
 // (name → age group → interests), returning user → CareerHomeScreen.
 
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -178,9 +177,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _topBar(onBack: () => Navigator.of(context).maybePop()),
-        const SizedBox(height: 28),
-        const Center(child: _AuthHero(icon: Icons.phone_iphone_rounded)),
-        const SizedBox(height: 28),
+        const SizedBox(height: 32),
         _heading('Sign in with phone'),
         const SizedBox(height: 12),
         _subheading("We'll text you a 6-digit code to verify your number."),
@@ -288,9 +285,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
             _otpValue.value = '';
           });
         }),
-        const SizedBox(height: 28),
-        const Center(child: _AuthHero(icon: Icons.message_rounded)),
-        const SizedBox(height: 28),
+        const SizedBox(height: 32),
         _heading('Enter code'),
         const SizedBox(height: 12),
         _subheadingRich(
@@ -528,9 +523,10 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
                     Text(
                       label,
                       style: GoogleFonts.poppins(
-                        // 16 → 19 (~+19%).
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
+                        // Toned down from 19 / w800 to match the login
+                        // screen's calmer auth-button label.
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w500,
                         color: CareerColors.onLight,
                         letterSpacing: 0.2,
                       ),
@@ -689,99 +685,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen>
     }
     return 'Something went wrong. Please try again.';
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Hero badge — gold-gradient hex with the supplied glyph at the centre.
-// Identical structure to PhoneLinkScreen's hero so the auth surface
-// reads as a family of related steps.
-// ─────────────────────────────────────────────────────────────────────
-
-class _AuthHero extends StatelessWidget {
-  const _AuthHero({required this.icon});
-  final IconData icon;
-
-  static const _size = 108.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: _size + 40,
-      height: _size + 40,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Outer soft glow halo.
-          Container(
-            width: _size + 36,
-            height: _size + 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  CareerColors.gold.withValues(alpha: 0.22),
-                  CareerColors.gold.withValues(alpha: 0.0),
-                ],
-              ),
-            ),
-          ),
-          // Hex badge with glyph.
-          SizedBox(
-            width: _size,
-            height: _size,
-            child: CustomPaint(
-              painter: _HexBadgePainter(),
-              child: Center(
-                child: Icon(icon, size: 46, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HexBadgePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final cx = w / 2, cy = h / 2;
-    final r = w / 2;
-
-    final path = Path();
-    for (int i = 0; i < 6; i++) {
-      final angle = (i * 60 - 90) * math.pi / 180;
-      final x = cx + r * 0.96 * math.cos(angle);
-      final y = cy + r * 0.96 * math.sin(angle);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-
-    final fill = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          CareerColors.gold,
-          Color.lerp(CareerColors.gold, Colors.black, 0.55)!,
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
-    canvas.drawPath(path, fill);
-
-    final stroke = Paint()
-      ..color = Colors.white.withValues(alpha: 0.55)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6;
-    canvas.drawPath(path, stroke);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ─────────────────────────────────────────────────────────────────────

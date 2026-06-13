@@ -33,6 +33,7 @@ import '../../home/career/cosmicBackground.dart';
 import 'config/asset_paths.dart';
 import 'game/satellite_doctor_game.dart';
 import 'scenes/sd_scenes.dart';
+import '../lessonRunner.dart';
 import 'state/satellite_doctor_controller.dart';
 import 'widgets/sd_ui.dart';
 
@@ -202,7 +203,7 @@ class _SatelliteDoctorScreenState extends State<SatelliteDoctorScreen> {
       case SceneGroup.mission:
         return MissionScene(controller: _controller, onBack: _exit);
       case SceneGroup.complete:
-        return FinalScene(onReplay: _controller.replay, onExit: _exit);
+        return FinalScene(onReplay: _controller.replay, onExit: () => completeActivity(context));
     }
   }
 }

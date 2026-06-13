@@ -24,6 +24,7 @@ import 'state/orbit_launcher_state.dart';
 // import 'widgets/bridge_panel.dart'; // next-activity bridge disabled for now (kept for later)
 import 'widgets/control_panel.dart';
 import 'widgets/mission_brief_screen.dart';
+import '../lessonRunner.dart';
 import 'widgets/mission_goal_panel.dart';
 import 'widgets/mission_control_bubble.dart';
 import 'widgets/orbit_button.dart';
@@ -323,7 +324,7 @@ class _OrbitLauncherScreenState extends State<OrbitLauncherScreen> {
       OrbitActivityState.almost ||
       OrbitActivityState.orbitLocked =>
         // Orbit-Locked AWESOME! exits to the hub for now (bridge screen disabled).
-        ResultCard(key: const ValueKey('result'), controller: _controller, onOrbitFinish: _exit),
+        ResultCard(key: const ValueKey('result'), controller: _controller, onOrbitFinish: () => completeActivity(context)),
       // Bridge (next-activity) screen disabled for now (kept for later). AWESOME!
       // exits to the hub, so nextActivityBridge is normally never reached.
       // OrbitActivityState.nextActivityBridge =>

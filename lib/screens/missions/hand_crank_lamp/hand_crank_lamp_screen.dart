@@ -17,12 +17,14 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../collectibles/collectible_earn_overlay.dart';
+import '../lessonRunner.dart';
+import '../activity_header.dart';
 import '../../collectibles/collectible_models.dart';
 import '../../home/career/careerCommon.dart';
 import '../../home/career/careerTheme.dart';
 import 'state/crank_controller.dart';
 import 'widgets/crank_surface.dart';
-import 'widgets/energy_field_background.dart';
+import '../episode_board/activity_background.dart';
 import 'widgets/instruction_banner.dart';
 
 class HandCrankLampScreen extends StatefulWidget {
@@ -88,7 +90,7 @@ class _HandCrankLampScreenState extends State<HandCrankLampScreen>
     }
   }
 
-  void _finish() => Navigator.of(context).maybePop();
+  void _finish() => completeActivity(context);
 
   @override
   void dispose() {
@@ -106,17 +108,34 @@ class _HandCrankLampScreenState extends State<HandCrankLampScreen>
         backgroundColor: const Color(0xFF070A1C),
         body: Stack(
           children: [
-            Positioned.fill(child: EnergyFieldBackground(controller: _controller)),
+            const Positioned.fill(child: ActivityDossierBackground()),
             Positioned.fill(
               child: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                   child: Column(
                     children: [
-                      _ActivityHeader(
+                      ActivityNameHeader(
                         onBack: () => Navigator.of(context).maybePop(),
-                        soundOn: _soundOn,
-                        onToggleSound: _toggleSound,
+                        fallbackName: 'Making Electricity by Hand',
+                        trailing: PressableScale(
+                          onTap: _toggleSound,
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(13),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              _soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                              color: Colors.white.withValues(alpha: 0.8),
+                              size: 20,
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       // The large top instruction — fixed height so the stage
@@ -158,6 +177,7 @@ class _HandCrankLampScreenState extends State<HandCrankLampScreen>
                   ? CollectibleEarnOverlay(
                       card: kConservationCard,
                       onDone: _finish,
+                      onReplay: () => replayCurrentActivity(context),
                       mascot: const SizedBox.shrink(), // no companion
                     )
                   : const IgnorePointer(child: SizedBox.shrink()),
@@ -165,91 +185,6 @@ class _HandCrankLampScreenState extends State<HandCrankLampScreen>
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Screen header — expressive display title (Bricolage Grotesque) + mono
-/// subtitle (IBM Plex Mono) + a BGM mute toggle.
-class _ActivityHeader extends StatelessWidget {
-  const _ActivityHeader({
-    required this.onBack,
-    required this.soundOn,
-    required this.onToggleSound,
-  });
-  final VoidCallback onBack;
-  final bool soundOn;
-  final VoidCallback onToggleSound;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        PressableScale(
-          onTap: onBack,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Handle Lamp',
-                style: GoogleFonts.bricolageGrotesque(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                  height: 1.05,
-                  color: Colors.white,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'MAKE THE LIGHT YOURSELF',
-                style: GoogleFonts.ibmPlexMono(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.6,
-                  color: const Color(0xFFE8C98A).withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        PressableScale(
-          onTap: onToggleSound,
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-              color: Colors.white.withValues(alpha: 0.8),
-              size: 20,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

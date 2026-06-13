@@ -12,7 +12,6 @@
 //        phoneVerified true  → OnboardingFlow if newUser, else CareerHomeScreen
 
 import 'dart:developer' as developer;
-import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
@@ -456,7 +455,14 @@ class _GoogleButton extends StatelessWidget {
       glowColor: Colors.white.withValues(alpha: 0.18),
       label: 'Continue with Google',
       labelColor: const Color(0xFF1A1340),
-      iconBuilder: (size) => _GoogleGlyph(size: size),
+      // Real multi-colour Google "G" asset (carried over from the old
+      // Tuto login) instead of the hand-painted ring, which read as
+      // broken at button scale.
+      iconBuilder: (size) => Image.asset(
+        'lib/assets/google_logo.png',
+        height: size,
+        width: size,
+      ),
     );
   }
 }
@@ -546,10 +552,11 @@ class _AuthPill extends StatelessWidget {
               Text(
                 label,
                 style: GoogleFonts.poppins(
-                  // 15.5 → 18.5 (~20% larger) for parity with the
-                  // welcome CTA.
-                  fontSize: 18.5,
-                  fontWeight: FontWeight.w700,
+                  // Toned down from 18.5 / w700 — the bold-and-big label
+                  // read as heavy on-device; 15.5 / w500 sits as a calmer,
+                  // more standard auth-button label.
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w500,
                   color: labelColor,
                   letterSpacing: 0.1,
                 ),
@@ -562,65 +569,3 @@ class _AuthPill extends StatelessWidget {
   }
 }
 
-/// Mini Google-brand "G" — four-quadrant ring approximating the
-/// official Google logo enough to read as the brand at button scale
-/// without bundling an asset / SVG.
-class _GoogleGlyph extends StatelessWidget {
-  const _GoogleGlyph({required this.size});
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(painter: _GoogleGlyphPainter()),
-    );
-  }
-}
-
-class _GoogleGlyphPainter extends CustomPainter {
-  // Canonical Google brand colours.
-  static const _blue = Color(0xFF4285F4);
-  static const _red = Color(0xFFEA4335);
-  static const _yellow = Color(0xFFFBBC05);
-  static const _green = Color(0xFF34A853);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final r = size.width / 2;
-    final stroke = size.width * 0.18;
-
-    final rect = Rect.fromCircle(center: Offset(cx, cy), radius: r - stroke / 2);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.butt;
-
-    // Four quadrant arcs in Google brand colours.
-    paint.color = _blue;
-    canvas.drawArc(rect, -math.pi / 2, math.pi / 2, false, paint);
-    paint.color = _green;
-    canvas.drawArc(rect, 0, math.pi / 2, false, paint);
-    paint.color = _yellow;
-    canvas.drawArc(rect, math.pi / 2, math.pi / 2, false, paint);
-    paint.color = _red;
-    canvas.drawArc(rect, math.pi, math.pi / 2, false, paint);
-
-    // Inner "G" tongue — short blue horizontal bar.
-    final tongue = Paint()
-      ..color = _blue
-      ..strokeWidth = stroke * 0.7
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(cx, cy),
-      Offset(cx + r * 0.55, cy),
-      tongue,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

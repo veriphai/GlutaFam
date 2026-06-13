@@ -23,6 +23,7 @@ import 'widgets/mission_panel.dart';
 import 'widgets/power_panel.dart';
 import 'widgets/progress_rail.dart';
 import 'widgets/zone_labels.dart';
+import '../lessonRunner.dart';
 
 class RestoreEarthScreen extends StatefulWidget {
   const RestoreEarthScreen({super.key});
@@ -277,7 +278,7 @@ class _RestoreEarthScreenState extends State<RestoreEarthScreen> {
       height: 56,
       child: CtaButton(
         controller: _controller,
-        onNextMission: () => Navigator.of(context).maybePop(),
+        onNextMission: () => completeActivity(context),
       ),
     );
 

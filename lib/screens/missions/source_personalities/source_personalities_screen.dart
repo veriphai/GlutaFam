@@ -10,6 +10,7 @@
 // The GameWidget is built ONCE (kept out of the rebuilt subtree) so Flame is
 // never re-attached; the TownGame ticks the controller, which owns the sim.
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
@@ -17,14 +18,16 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../collectibles/collectible_earn_overlay.dart';
+import '../lessonRunner.dart';
 import '../../collectibles/collectible_models.dart';
 import '../../home/career/careerCommon.dart';
 import '../../home/career/careerTheme.dart';
-import '../episode_board/capture_flash.dart';
+import '../activity_header.dart';
+import '../episode_board/photo_capture_flash.dart';
+import '../episode_board/case_node.dart';
 import '../episode_board/episode_board_capture.dart';
-import '../episode_board/episode_board_strip.dart';
+import '../episode_board/evidence_board_drawer.dart';
 import '../episode_board/evidence_models.dart';
-import '../episode_board/scene_snapshot.dart';
 import 'game/town_game.dart';
 import 'state/source_personalities_controller.dart';
 import 'widgets/cost_meter.dart';
@@ -45,6 +48,27 @@ class _SourcePersonalitiesScreenState extends State<SourcePersonalitiesScreen> {
   late final Widget _gameWidget; // built ONCE
   final EpisodeBoardCapture _board = EpisodeBoardCapture(kEpisode1Id);
   final GlobalKey _sceneKey = GlobalKey();
+  final GlobalKey _nodeKey = GlobalKey(); // the case node, for an accurate fly target
+  bool _showDrawer = false; // the peek drawer (the question was already posed in Act 2)
+
+  // Looping ambient music bed — the SAME track as the Prologue (hand_crank_lamp),
+  // reused directly (already bundled) so the opening beats share one mood.
+  final AudioPlayer _bgm = AudioPlayer();
+  static const double _bgmVol = 0.18;
+
+  /// The case node's global centre — so a captured photo flies to land on it.
+  Offset? _nodeCenter() {
+    final box = _nodeKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.localToGlobal(box.size.center(Offset.zero));
+  }
+
+  Widget _node() => CaseNode(
+        key: _nodeKey,
+        capturedIds: _board.capturedIds,
+        images: _board.images,
+        onTap: () => setState(() => _showDrawer = true),
+      );
 
   @override
   void initState() {
@@ -57,24 +81,44 @@ class _SourcePersonalitiesScreenState extends State<SourcePersonalitiesScreen> {
       ..onCapture = _onCapture;
     _game = TownGame(controller: _controller, reducedMotion: reduced);
     _gameWidget = GameWidget(game: _game);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _controller.start());
+    _bgm.setReleaseMode(ReleaseMode.loop);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAudio();
+      _controller.start();
+    });
+  }
+
+  /// PER-PLAYER audio-context (AndroidAudioFocus.none / iOS mixWithOthers) so the
+  /// bed mixes with any other app audio rather than grabbing focus, then loop it.
+  Future<void> _startAudio() async {
+    final mix = AudioContext(
+      android: AudioContextAndroid(audioFocus: AndroidAudioFocus.none),
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playback,
+        options: const {AVAudioSessionOptions.mixWithOthers},
+      ),
+    );
+    await _bgm.setAudioContext(mix).catchError((_) {});
+    if (!mounted) return;
+    _bgm
+        .play(AssetSource('sounds/hand_crank_lamp/bgm.mp3'), volume: _bgmVol)
+        .catchError((_) {});
   }
 
   void _onCapture(String id) {
     HapticFeedback.lightImpact();
-    // Snapshot the ACTUAL town at this catch (PRD §8) — the dark town / haze /
-    // soaring cost the kid just felt becomes the tile. Post-frame so it's painted.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final bytes = await captureScenePng(_sceneKey, cropFactor: evidenceById(id)?.cropFactor);
-      if (!mounted) return;
-      _board.capture(id, imageBytes: bytes);
-    });
+    // Pin the catch + play the capture animation. The tile shows the pre-kept
+    // "perfect" frame (assets/images/episode_board/evidence/<id>.png) — no live,
+    // timing-fragile screenshot; the catch still FEELS captured.
+    _board.capture(id);
   }
 
-  void _finish() => Navigator.of(context).maybePop();
+  void _finish() => completeActivity(context);
 
   @override
   void dispose() {
+    _bgm.stop().catchError((_) {});
+    _bgm.dispose();
     _controller.dispose();
     _board.dispose();
     super.dispose();
@@ -105,15 +149,18 @@ class _SourcePersonalitiesScreenState extends State<SourcePersonalitiesScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _Header(onBack: () => Navigator.of(context).maybePop()),
-                      const SizedBox(height: 10),
-                      // The pinned episode board — the guiding question + the felt
-                      // catches that auto-capture as the kid runs the town on each source.
-                      EpisodeBoardStrip(
-                        question: kEpisode1Question,
-                        capturedIds: _board.capturedIds,
-                        images: _board.images,
-                        accent: const Color(0xFFE8C98A),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: ActivityNameHeader(
+                              onBack: () => Navigator.of(context).maybePop(),
+                              fallbackName: 'Why No Source Is Perfect',
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _node(),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       // Time scrubber — at the very top, above the message (gated on
@@ -190,19 +237,31 @@ class _SourcePersonalitiesScreenState extends State<SourcePersonalitiesScreen> {
             ),
 
             // The auto-capture moment — a framed catch-tile pins to the board.
+            // The auto-capture moment — a photo snaps + flies up to the node.
             Positioned.fill(
               child: ValueListenableBuilder<EvidenceTileFlash?>(
                 valueListenable: _board.flashing,
                 builder: (context, flash, _) => flash == null
                     ? const IgnorePointer(child: SizedBox.shrink())
-                    : CaptureFlash(
+                    : PhotoCaptureFlash(
                         key: ValueKey(flash.tile.id),
                         tile: flash.tile,
                         imageBytes: flash.imageBytes,
+                        dockTarget: _nodeCenter(),
                         onDone: _board.flashDone,
                       ),
               ),
             ),
+            // The peek drawer (the case board), opened from the node.
+            if (_showDrawer)
+              Positioned.fill(
+                child: EvidenceBoardDrawer(
+                  question: kEpisode1Question,
+                  capturedIds: _board.capturedIds,
+                  images: _board.images,
+                  onClose: () { if (mounted) setState(() => _showDrawer = false); },
+                ),
+              ),
 
             // The collectible earn moment (Card 03). MUST stay Positioned.fill.
             Positioned.fill(
@@ -214,7 +273,8 @@ class _SourcePersonalitiesScreenState extends State<SourcePersonalitiesScreen> {
                         eyebrow: 'NEW CARD',
                         brag: 'No Free Lunch — every power source is a compromise. '
                             'Now you know the catch behind all of them.',
-                        onDone: _controller.onCardCollected,
+                        onDone: _finish,
+                        onReplay: () => replayCurrentActivity(context),
                       )
                     : const IgnorePointer(child: SizedBox.shrink()),
               ),
@@ -322,64 +382,6 @@ class _InstructionBanner extends StatelessWidget {
                 ),
         );
       },
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.onBack});
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        PressableScale(
-          onTap: onBack,
-          child: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 21),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Power for a Day',
-                style: GoogleFonts.bricolageGrotesque(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                  height: 1.05,
-                  color: Colors.white,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'WHAT EACH SOURCE IS LIKE',
-                style: GoogleFonts.ibmPlexMono(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.6,
-                  color: const Color(0xFFE8C98A).withValues(alpha: 0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

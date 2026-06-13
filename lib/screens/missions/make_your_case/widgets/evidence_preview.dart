@@ -12,7 +12,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import '../../../home/career/careerCommon.dart';
 import '../../../home/career/careerTheme.dart';
 import '../../episode_board/evidence_models.dart';
-import '../../episode_board/evidence_tile.dart';
+import '../../episode_board/photo_card.dart';
 
 class EvidencePreview extends StatelessWidget {
   const EvidencePreview({
@@ -50,14 +50,13 @@ class EvidencePreview extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // The captured moment, full-size (real frame or drawn motif).
-                  EvidenceTileView(
+                  // The captured moment as a polaroid (the real frame or motif).
+                  PhotoCard(
                     tile: tile,
-                    size: imgSize,
-                    selected: kept,
-                    showLabel: false,
-                    showSource: true,
+                    size: imgSize * 0.82,
+                    kept: kept,
                     imageBytes: imageBytes,
+                    tilt: -0.02,
                   ),
                   const SizedBox(height: 16),
                   Text(

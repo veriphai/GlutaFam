@@ -20,6 +20,7 @@ import '../../../apis/howwow/howwowSession.dart';
 import '../../../utils/howwowEventLogger.dart';
 import '../../../utils/howwowEventNames.dart';
 import '../../../utils/routeObserver.dart';
+import '../../missions/episode_board/activity_background.dart';
 import '../../missions/lessonRunner.dart';
 import 'nextEpisodeDialog.dart';
 import 'resumeLessonDialog.dart';
@@ -79,6 +80,15 @@ class _ProfessionDetailScreenState extends State<ProfessionDetailScreen>
   ProfessionDetail? _detail;
   bool _loading = true;
   bool _autoStartConsumed = false;
+
+  bool get _usesElectricityDossierBackground =>
+      widget.professionId == 'concept_electricity';
+
+  /// Concepts (kind=concept) carry a `world`/`worldEmoji` (e.g. ⚡) inherited
+  /// from the profession machinery they reuse, but it reads as noise in their
+  /// header. Career professions (satellite) keep it. Concept professionIds are
+  /// prefixed `concept_`.
+  bool get _isConcept => widget.professionId.startsWith('concept_');
 
   @override
   void initState() {
@@ -303,10 +313,14 @@ class _ProfessionDetailScreenState extends State<ProfessionDetailScreen>
     if (_loading) {
       return Scaffold(
         backgroundColor: CareerColors.bgMid,
-        body: const Stack(
+        body: Stack(
           children: [
-            Positioned.fill(child: CosmicBackground()),
-            Center(
+            Positioned.fill(
+              child: _usesElectricityDossierBackground
+                  ? const ActivityDossierBackground()
+                  : const CosmicBackground(),
+            ),
+            const Center(
               child: SizedBox(
                 width: 32,
                 height: 32,
@@ -327,7 +341,11 @@ class _ProfessionDetailScreenState extends State<ProfessionDetailScreen>
         backgroundColor: CareerColors.bgMid,
         body: Stack(
           children: [
-            const Positioned.fill(child: CosmicBackground()),
+            Positioned.fill(
+              child: _usesElectricityDossierBackground
+                  ? const ActivityDossierBackground()
+                  : const CosmicBackground(),
+            ),
             SafeArea(
               child: Center(
                 child: Padding(
@@ -375,7 +393,11 @@ class _ProfessionDetailScreenState extends State<ProfessionDetailScreen>
         backgroundColor: CareerColors.bgMid,
         body: Stack(
           children: [
-            const Positioned.fill(child: CosmicBackground()),
+            Positioned.fill(
+              child: _usesElectricityDossierBackground
+                  ? const ActivityDossierBackground()
+                  : const CosmicBackground(),
+            ),
             SafeArea(
               child: Center(
                 child: ConstrainedBox(
@@ -394,6 +416,7 @@ class _ProfessionDetailScreenState extends State<ProfessionDetailScreen>
                             title: detail.name,
                             world: detail.world,
                             worldEmoji: detail.worldEmoji,
+                            isConcept: _isConcept,
                             accent: detail.accentColor,
                             xp: xp,
                             streakDays: streakDays,
@@ -482,6 +505,7 @@ class _DetailAppBar extends StatelessWidget {
     required this.title,
     required this.world,
     required this.worldEmoji,
+    this.isConcept = false,
     required this.accent,
     required this.xp,
     required this.streakDays,
@@ -490,6 +514,9 @@ class _DetailAppBar extends StatelessWidget {
   final String title;
   final String world;
   final String worldEmoji;
+
+  /// Concept headers drop the `worldEmoji` (e.g. ⚡); careers keep it.
+  final bool isConcept;
   final Color accent;
   final int xp;
   final int streakDays;
@@ -528,22 +555,37 @@ class _DetailAppBar extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                       height: 1.15),
-                  maxLines: 1,
+                  // Concept names are longer ("How Electricity Reaches You") →
+                  // allow two lines; careers keep the single-line header.
+                  maxLines: isConcept ? 2 : 1,
                   overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(worldEmoji,
-                      style: const TextStyle(fontSize: 14)),
-                  const SizedBox(width: 4),
-                  Text(world,
-                      style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: accent)),
-                ],
-              ),
+              // World sub-line. Careers always show "emoji + world". Concepts
+              // drop the emoji AND skip the whole row when they have no world
+              // label (electricity has none) — an empty row would add phantom
+              // height below the title, lifting it off the row's vertical
+              // centre where it should align with the back button + streak.
+              if (!isConcept) ...[
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(worldEmoji, style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 4),
+                    Text(world,
+                        style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: accent)),
+                  ],
+                ),
+              ] else if (world.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(world,
+                    style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: accent)),
+              ],
             ],
           ),
         ),
@@ -667,8 +709,11 @@ class _HeroSeriesCard extends StatelessWidget {
             if (detail.heroAsset != null)
               Positioned.fill(
                 left: 140,
-                child: Image.asset(
-                  detail.heroAsset!,
+                // Network URL (backend-supplied concept hero) or bundled asset.
+                child: Image(
+                  image: detail.heroAsset!.startsWith('http')
+                      ? NetworkImage(detail.heroAsset!)
+                      : AssetImage(detail.heroAsset!) as ImageProvider,
                   fit: BoxFit.cover,
                   alignment: Alignment.centerRight,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),

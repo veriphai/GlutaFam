@@ -4,7 +4,7 @@ description: "The How Behind The Wow"
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.2.17+70
+version: 2.0.0+100
 
 environment:
   sdk: ^3.5.0
@@ -122,6 +122,10 @@ flutter:
     # isn't enough — that path only matters during the native splash
     # phase).
     - assets/howwow-logo.png
+    # The HowWow wordmark icon (the native-splash / app icon). Bundled so
+    # Image.asset can render it at runtime — used as the core of the
+    # "building your universe" orbit on BuildingUniverseScreen.
+    - assets/howwow-icon.png
     # `assets/videos/` keeps the small home-screen onboarding loop
     # (intro_loop.mp4 ~1.7 MB + intro_first_frame.jpg ~215 KB) — they're
     # hot-path and must paint instantly. Lesson cutscene videos
@@ -154,6 +158,11 @@ flutter:
     - assets/images/helix/
     # Pre-rendered collectible card faces (premium hero art for specific cards).
     - assets/images/collectibles/
+    # Episode-board art: the case-briefing dossier + activity backdrop + (subfolder)
+    # the pre-kept "perfect" evidence frames. Folder decls aren't recursive, so
+    # both the parent and the evidence/ subfolder are listed.
+    - assets/images/episode_board/
+    - assets/images/episode_board/evidence/
     # Hand-Crank Lamp audio — Voltix VO (voltix_01..18.mp3) + BGM. Bundled
     # locally (not S3) for <100ms voice latency on kid feedback.
     - assets/sounds/hand_crank_lamp/
@@ -180,10 +189,16 @@ flutter_native_splash:
   # image: assets/howwow-logo.png  # (old rocket-box illustration)
   image: assets/howwow-icon.png
   # Android 12+ uses the system splash (centered icon on a solid color);
-  # full-bleed background images aren't supported there.
+  # full-bleed background images aren't supported there. The OS also MASKS
+  # this icon into a circle/squircle and only shows the inner ~2/3, so we
+  # feed it a pre-padded variant where the wordmark is shrunk to fit inside
+  # that safe zone (regenerate with tools/generate_splash_background.py logic
+  # / the padded-icon step). Using the full-bleed howwow-icon.png here clips
+  # ~28% of the logo. The un-padded full logo is still used for iOS and
+  # Android <=11 below, which don't mask.
   android_12:
     color: "#07162F" # CareerColors.bgMid
-    image: assets/howwow-icon.png
+    image: assets/howwow-icon-splash.png
   android: true
   ios: true
   fullscreen: true # Optional: Set to true for full-screen splash
