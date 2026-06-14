@@ -6,7 +6,6 @@
 // build-and-watch-it-leak demonstration, not an efficiency-tuning game.
 
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// One lossy conversion in the chain (Burn→Boil→Spin→Wire for coal).
 enum LeakStepKind { burn, boil, spin, wire }
@@ -29,13 +28,13 @@ extension LeakStepKindInfo on LeakStepKind {
   IconData get icon {
     switch (this) {
       case LeakStepKind.burn:
-        return PhosphorIconsFill.fire;
+        return Icons.local_fire_department;
       case LeakStepKind.boil:
-        return PhosphorIconsFill.drop;
+        return Icons.water_drop;
       case LeakStepKind.spin:
-        return PhosphorIconsFill.fan;
+        return Icons.cyclone;
       case LeakStepKind.wire:
-        return PhosphorIconsFill.lightning;
+        return Icons.bolt;
     }
   }
 

@@ -10,7 +10,6 @@
 // The core components read these and are otherwise untouched across sources.
 
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 enum EnergySource { coal, gas, nuclear, hydro, wind, solar }
 
@@ -48,7 +47,7 @@ const List<SourceDef> kSources = [
   SourceDef(
     source: EnergySource.coal,
     label: 'Coal',
-    icon: PhosphorIconsFill.fire,
+    icon: Icons.local_fire_department,
     accent: Color(0xFFFF8A4D),
     kind: FrontEndKind.heatSteam,
     spinsTurbine: true,
@@ -58,7 +57,7 @@ const List<SourceDef> kSources = [
   SourceDef(
     source: EnergySource.gas,
     label: 'Gas',
-    icon: PhosphorIconsFill.flame,
+    icon: Icons.whatshot,
     accent: Color(0xFF5BC0F8),
     kind: FrontEndKind.heatSteam,
     spinsTurbine: true,
@@ -68,7 +67,7 @@ const List<SourceDef> kSources = [
   SourceDef(
     source: EnergySource.nuclear,
     label: 'Nuclear',
-    icon: PhosphorIconsFill.atom,
+    icon: Icons.science,
     accent: Color(0xFF7CE0B0),
     kind: FrontEndKind.heatSteam,
     spinsTurbine: true,
@@ -78,7 +77,7 @@ const List<SourceDef> kSources = [
   SourceDef(
     source: EnergySource.hydro,
     label: 'Hydro',
-    icon: PhosphorIconsFill.drop,
+    icon: Icons.water_drop,
     accent: Color(0xFF4FA8F5),
     kind: FrontEndKind.water,
     spinsTurbine: true,
@@ -88,7 +87,7 @@ const List<SourceDef> kSources = [
   SourceDef(
     source: EnergySource.wind,
     label: 'Wind',
-    icon: PhosphorIconsFill.wind,
+    icon: Icons.air,
     accent: Color(0xFFBFD8E8),
     kind: FrontEndKind.wind,
     spinsTurbine: true,
@@ -98,7 +97,7 @@ const List<SourceDef> kSources = [
   SourceDef(
     source: EnergySource.solar,
     label: 'Solar',
-    icon: PhosphorIconsFill.sun,
+    icon: Icons.wb_sunny,
     accent: Color(0xFFFFC857),
     kind: FrontEndKind.sunlight,
     spinsTurbine: false, // the odd one out — no turbine

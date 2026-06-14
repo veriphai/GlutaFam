@@ -25,7 +25,7 @@ dependencies:
   device_info_plus: ^12.1.0
   shared_preferences: ^2.2.3
   smooth_page_indicator: ^1.1.0
-  google_fonts: ^6.2.1
+  google_fonts: ^8.1.0
   firebase_auth: ^6.0.2
   firebase_core: ^4.1.0
   firebase_messaging: ^16.0.1
@@ -97,7 +97,6 @@ dependencies:
   page_transition: ^2.2.1
   flutter_animate: ^4.5.2
   flame: ^1.35.1
-  phosphor_flutter: ^2.1.0 # premium icon set (font-based; renders in Flame too)
   # soundpool: ^2.4.1  # REMOVED: Package discontinued, replaced by audioplayers
 
 dev_dependencies:
