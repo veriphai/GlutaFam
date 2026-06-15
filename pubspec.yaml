@@ -99,6 +99,16 @@ dependencies:
   flame: ^1.35.1
   # soundpool: ^2.4.1  # REMOVED: Package discontinued, replaced by audioplayers
 
+  # ─── Ember (lib/ember/) — standalone Stone Age world-builder module ───
+  # Self-contained: imports nothing from the rest of eureka_app, and is imported
+  # by it ONLY via lib/ember/ember.dart. See lib/ember/README_ember.md.
+  # flame (^1.35.1, above) + audioplayers + path_provider are reused as-is.
+  flutter_riverpod: ^2.6.1 # Ember meta-state, scoped to its own ProviderScope
+  hive: ^2.2.3 #            Ember local save — single JSON document, no codegen
+  hive_flutter: ^1.1.0 #    Hive.initFlutter() + path_provider wiring
+  # DEFERRED until real assets/rigs exist (kept behind swappable interfaces):
+  #   spine_flutter (AnimatedActor seam), flame_tiled (iso map seam).
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -172,6 +182,15 @@ flutter:
     # tools/generate_activity_manifests.sh whenever sprites or sounds are
     # added/renamed for one of the 11 activities.
     - assets/manifests/
+    # ─── Ember module assets (lib/ember/) ───
+    # Empty for now: the default PlaceholderEmberArt is fully programmatic and
+    # SilentAudio plays nothing, so nothing here is required to build. Declared
+    # (dirs hold a .gitkeep) so real iso tilesets / sprites / Spine rigs / SFX
+    # drop in later with NO pubspec edit.
+    - assets/ember/tiles/
+    - assets/ember/sprites/
+    - assets/ember/actors/
+    - assets/ember/audio/
     # Activity audio (Orbit voice-over, BGM, SFX — ~129 MB across the 11
     # activities) is NOT bundled. It lives on S3 at
     # activities/<id>/audio/<path> (upload via

@@ -1,0 +1,25 @@
+# Self-contained analyzer config for the Ember module (lib/ember/).
+#
+# Ember is a standalone segment: it must ALWAYS analyze clean on its own via
+#   fvm flutter analyze lib/ember
+# This nested config keeps the module isolated from the repo's ~468 pre-existing
+# errors in unrelated files. Treat any issue surfaced under lib/ember as a bug.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+  errors:
+    unused_import: warning
+    unused_local_variable: warning
+    dead_code: warning
+
+linter:
+  rules:
+    # Module-local style (intentionally stricter than the repo root):
+    prefer_const_constructors: true
+    prefer_final_locals: true
+    directives_ordering: true
+    # Repo-wide relaxations kept for parity:
+    avoid_print: false
+    use_key_in_widget_constructors: false

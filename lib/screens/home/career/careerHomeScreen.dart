@@ -6,9 +6,11 @@
 // the UI still renders cleanly.
 
 // import 'package:flutter/foundation.dart' show kDebugMode; // hidden with the Ep2 dev entry
+import 'package:flutter/foundation.dart' show kDebugMode; // DEBUG-only Ember launcher
 import 'package:flutter/material.dart';
 
 // import '../../dev/ep2_activities_dev_screen.dart'; // hidden with the Ep2 dev entry
+import 'package:eureka_app/ember/ember.dart'; // DEBUG-only Ember launcher
 import '../../../apis/apiClient.dart';
 import '../../../apis/howwow/howwowCareer.dart';
 import '../../../apis/howwow/howwowSession.dart';
@@ -333,6 +335,23 @@ class _CareerHomeScreenState extends State<CareerHomeScreen> {
                                 // job catalog pre-filtered to that world.
                                 onWorldTap: (w) => _openAllJobs(world: w.name),
                               ),
+                              // DEV: launch the standalone Ember game module
+                              // (debug builds only — never shipped). Mounts the
+                              // self-contained EmberApp directly on a new route.
+                              if (kDebugMode) ...[
+                                const SizedBox(height: CareerSpace.section),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: CareerSpace.page),
+                                  child: _EmberDevEntry(
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const EmberApp(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                               // DEV: launch each Episode-2 activity individually
                               // (debug builds only — never shipped).
                               // Hidden for now — uncomment to bring the
@@ -436,6 +455,52 @@ class _DemoModeBanner extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// DEV-only entry card → launches the standalone Ember game module (debug
+// builds only — gated behind kDebugMode at the call site so it never ships).
+class _EmberDevEntry extends StatelessWidget {
+  const _EmberDevEntry({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF161D3A),
+      borderRadius: BorderRadius.circular(CareerRadii.smallCard),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(CareerRadii.smallCard),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(CareerRadii.smallCard),
+            border: Border.all(
+                color: const Color(0xFFFF7A18).withValues(alpha: 0.45)),
+          ),
+          child: Row(
+            children: const [
+              Icon(Icons.local_fire_department_rounded,
+                  color: Color(0xFFFF9A3D), size: 22),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '🔥 Ember (DEBUG)',
+                  style: TextStyle(
+                    color: CareerColors.textPrimary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: CareerColors.textSecondary),
+            ],
+          ),
         ),
       ),
     );
